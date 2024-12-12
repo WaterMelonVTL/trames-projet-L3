@@ -16,10 +16,10 @@ On connait react, cette fois on s'attaque à react TS (TypeScript) c'est pareil,
 Mais au moins, ça fait du code vraiment propre car typé (ce que javascript ne fait pas) la syntaxe est la meme que JS, sauf que les variables sont typées. 
 
 Comme d'habitude, on sépare le code un maximum en composants. Si un code est dupliqué, alors c'est que tu peux en créer un composant. 
-
+___
 ### Vite
 C'est rapide, c'est efficace. On aime.
-
+___
 ### Tailwind
 Ici on veut pas juste un site qui fonctionne, mais un site BEAU GOSSE qui fonctionne. Tailwind c'est bien, ça permet de faire du css dans le code directement. En plus ça va pemermetre de garder de la cohérence au travers du site à l'aide de variables. 
 Exemple : 
@@ -27,7 +27,7 @@ Exemple :
 
 la doc est ici : (https://tailwindcss.com/docs/installation)
 Sinon copilot s'en sort si jamais.
-
+___
 ### Comunication avec le serveur : 
 Pour communiquer cette fois on va passer par des requetes normales, aka, pas de socket.
 Donc en réact ça marche comme ça : 
@@ -113,6 +113,7 @@ Et ce qui est bien c'est que si on appelle api/cours/quelque_chose et bah ça fe
 
 Vous avez tout plein d'exemples dans le serveur sur le git. 
 
+___
 ### Base de donnée 
 Petite découverte de ma part, tres tres pratique : **sequelize**
 
@@ -189,7 +190,9 @@ User.count({ where: { Role: 'ADMIN' } })
 //ect...
 ```
 Copilot connait donc hesitez pas à lui demander
-## Conclusion générales
+
+
+## Conclusions générales
 Toutes ces choses vont faire que notre code sera propre, maintenable et bien structuré. 
 Je vous laisse checker l'exemple que j'ai laissé dans le dépot github. 
 Globalement, on va essayer de toujours respecter les principes de programation propre, tels que : 
@@ -312,6 +315,6 @@ router.delete('/:id', async (req, res) => {
 });
 ```
 
-Et c'est beaucoup plus clair. là encore ça va car il y a qu'un seul try catch, mais quand il y en a beacoup on se retrouve tres vite avec des try, dans des try, dans des try...
+C'est beaucoup plus clair. là encore ça va car il y a qu'un seul try catch, mais quand il y en a beacoup on se retrouve tres vite avec des try, dans des try, dans des try...
 
 
