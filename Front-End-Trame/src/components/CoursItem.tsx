@@ -42,7 +42,7 @@ function CoursItem(props : {cours: Cours}) {
     <div className={`text-${textColor} h-28 border border-black hover:bg-blue-300 absolute cursor-pointer flex flex-col w-full text-center z-50`} 
     style={{ backgroundColor: cours.couleur, height: `${cours.durée * 100}%`, transform:`translateY(${offsetToPercentage(cours.offset)/cours.durée}%)`}} 
     onClick={()=> {console.log(`vous avez clické sur ${cours.nom} ${cours.date} ${cours.couleur}`)}} 
-    onContextMenu={(e) => {/*e.preventDefault()*/; console.log(`right click sur ${cours.nom} ${cours.date}`)}} >
+    onContextMenu={(e) => {e.preventDefault(); console.log(`right click sur ${cours.nom} ${cours.date}`)}} >
       <h1 className="text-xl font-bold">{cours.nom}</h1>
       <h1 className="text-xl ">{cours.enseignant}</h1>
       <h1 className="text-xl ">{cours.salle}</h1>
