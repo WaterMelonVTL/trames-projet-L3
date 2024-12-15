@@ -7,7 +7,7 @@ import CalendarPage from './components/CalendarPage';
 function App() {
 
   return (
-    <>
+    <div className='w-screen h-screen absolute top-0 left-0'>
       <Router>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -15,7 +15,7 @@ function App() {
           <Route path='/calendar' element={<CalendarPage />} />
         </Routes>
       </Router>
-    </>
+    </div>
   )
 }
 
