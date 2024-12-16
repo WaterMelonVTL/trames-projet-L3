@@ -11,14 +11,15 @@ type ECU = {
   TDParDefaut: string
 };
 
-function EcuItem(props: { darken: boolean, type: string, ecu: ECU, onHover: () => void, onLeave: () => void }) {
+function EcuItem(props: { darken: boolean, type: string, ecu: ECU, onHover: () => void, onLeave: () => void , onMouseDown: ()=> void} ) {
   const ecu = props.ecu;
 
   return (
-    <div className='w-[90%] h-12 rounded-md shadow-md flex items-center justify-between p-4 mb-4 border-2 border-black cursor-pointer transition-colors duration-300 hover:shadow-lg hover:scale-105'
+    <div className='w-[90%] h-12 rounded-md shadow-md flex select-none items-center justify-between p-4 mb-4 border-2 border-black cursor-pointer transition-colors duration-300 hover:shadow-lg hover:scale-105'
       style={{ backgroundColor: !props.darken ? ecu.color : darkenColor(ecu.color, 0.2) }}
       onMouseEnter={props.onHover}
       onMouseLeave={props.onLeave}
+      onMouseDown={props.onMouseDown}
     >
       <h1 className='text-xl'>{ecu.name} ({props.type})</h1>
     </div>

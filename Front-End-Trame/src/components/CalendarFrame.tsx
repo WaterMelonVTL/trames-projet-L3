@@ -36,7 +36,7 @@ function CalendarFrame(props: { currentEcu: CoursFrame | null }) {
     }
     
     return (
-        <div className="w-[80vw] text-black">
+        <div className="w-[80vw] text-black select-none">
             <div className="border-2 border-black flex flex-row w-full justify-around rounded-lg">
                 <div key={"horaires"} className="flex flex-col w-20">
                     <div className="flex flex-col">{`Crenaux`}</div>
@@ -60,8 +60,8 @@ function CalendarFrame(props: { currentEcu: CoursFrame | null }) {
                                 <div key={colIndex} className="bg-white h-28 border border-black hover:bg-gray-300 cursor-pointer relative" 
                                 onClick={()=> {console.log(`vous avez clické sur ${day} ${crenaux[colIndex].start}`)}} 
                                 onMouseUp={() => {
-                                    if (props.currenEcu) {
-                                        AddCours(props.currenEcu, index, colIndex);
+                                    if (props.currentEcu) {
+                                        AddCours(props.currentEcu, index, colIndex);
                                     }
                                 }}
                                 onContextMenu={(e) => {e.preventDefault(); console.log(`right click sur ${day} ${crenaux[colIndex].start}`)}} >

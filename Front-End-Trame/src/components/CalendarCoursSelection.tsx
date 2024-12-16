@@ -21,7 +21,7 @@ type CoursFrame = {
     ecu : ECU
   };
 
-function CalendarCoursSelection(props : {setCurrentEcu : (ecu : CoursFrame) => void}) {
+function CalendarCoursSelection(props : {setCurrentEcu : (ecu : CoursFrame | null) => void}) {
     const [hoveredItem,setHoveredItem] = useState<number>(-1)
     const ecus = [
         {
@@ -50,8 +50,8 @@ function CalendarCoursSelection(props : {setCurrentEcu : (ecu : CoursFrame) => v
             <h1 className='font-bold text-xl mb-4'>Cours disponibles : </h1>
             {ecus.map((ecu, index) => (
                 <div className='flex flex-col flex-gap-2 mb-4 w-full items-center'>
-                    <EcuItem darken={hoveredItem!=-1 && hoveredItem!=index} type="CM" ecu={ecu} onHover={()=>{setHoveredItem(index)}} onLeave={()=>{setHoveredItem(-1)}} onMouseDown={()=>{props.setCurrentEcu()}}/>
-                    <EcuItem darken={hoveredItem!=-1 && hoveredItem!=index+ecus.length} type="TD" ecu={ecu} onHover={()=>{setHoveredItem(index+ecus.length)}} onLeave={()=>{setHoveredItem(-1)}} onMouseDown={()=>{props.setCurrentEcu()}}/>
+                    <EcuItem darken={hoveredItem!=-1 && hoveredItem!=index} type="CM" ecu={ecu} onHover={()=>{setHoveredItem(index)}} onLeave={()=>{setHoveredItem(-1)}} onMouseDown={()=>{props.setCurrentEcu({name:ecu.name, enseignant:[ecu.enseignantCM], type:'CM', color:ecu.color, salle:ecu.AmphiParDefaut, ecu:ecu });setHoveredItem(-2)}}/>
+                    <EcuItem darken={hoveredItem!=-1 && hoveredItem!=index+ecus.length} type="TD" ecu={ecu} onHover={()=>{setHoveredItem(index+ecus.length)}} onLeave={()=>{setHoveredItem(-1)}} onMouseDown={()=>{props.setCurrentEcu({name:ecu.name, enseignant:[ecu.enseignantCM], type:'TD', color:ecu.color, salle:ecu.AmphiParDefaut, ecu:ecu })}}/>
                 </div>
             ))}
 
