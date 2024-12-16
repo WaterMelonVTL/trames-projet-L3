@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Home from './components/Home';
 import Login from './components/Login';
 import CalendarPage from './components/CalendarPage';
-
+import Snowfall from 'react-snowfall'
 function App() {
 
   return (
@@ -15,6 +15,9 @@ function App() {
           <Route path='/calendar' element={<CalendarPage />} />
         </Routes>
       </Router>
+      <div className="absolute w-full h-16 top-0 z-[999] -translate-y-[17%]" style={{ backgroundImage: 'url(./src/assets/noel2.png)', backgroundRepeat: 'repeat-x', backgroundSize: 'auto 100%' }}>
+      </div>
+      <Snowfall color="white" style={{ zIndex: 200 }} />
     </div>
   )
 }

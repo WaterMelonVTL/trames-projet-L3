@@ -24,7 +24,7 @@ type CoursFrame = {
 };
 
 function CalendarPage() {
-  const [currentEcu, setCurrentEcu] = useState<CoursFrame | null>(null)
+  const [currentEcu, setCurrentEcu] = useState<CoursFrame | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -43,7 +43,7 @@ function CalendarPage() {
     <div className="w-screen h-screen bg-gray-200 flex justify-around items-start pt-8"
       onMouseUp={() => { setCurrentEcu(null) }}>
       <CalendarCoursSelection setCurrentEcu={setCurrentEcu} />
-      <CalendarFrame currentEcu={currentEcu} />
+      <CalendarFrame setCurrentEcu={setCurrentEcu} currentEcu={currentEcu} />
       {
         currentEcu &&
         <div className="absolute z-[100] -translate-x-1/2 translate-y-1/2 text-black text-xl w-80" style={{ top: `${mousePosition.y}px`, left: `${mousePosition.x}px` }}>

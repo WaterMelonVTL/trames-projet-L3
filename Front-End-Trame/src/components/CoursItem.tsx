@@ -33,7 +33,7 @@ function offsetToPercentage(offset: number): number {
   return (offset * 60 / 90) * 100;
 }
 
-function CoursItem(props : {cours: Cours}) {
+function CoursItem(props : {cours: Cours, onMouseDown:()=>void}) {
   const cours = props.cours;
   const luminance = calculateLuminance(cours.couleur);
   const textColor = luminance > 0.5 ? 'black' : 'white';
@@ -42,6 +42,7 @@ function CoursItem(props : {cours: Cours}) {
     <div className={`text-${textColor} h-28 border border-black hover:bg-blue-300 absolute cursor-pointer flex flex-col w-full text-center z-50`} 
     style={{ backgroundColor: cours.couleur, height: `${cours.durée * 100}%`, transform:`translateY(${offsetToPercentage(cours.offset)/cours.durée}%)`}} 
     onClick={()=> {console.log(`vous avez clické sur ${cours.nom} ${cours.date} ${cours.couleur}`)}} 
+    onMouseDown={props.onMouseDown}
     onContextMenu={(e) => {e.preventDefault(); console.log(`right click sur ${cours.nom} ${cours.date}`)}} >
       <h1 className="text-xl font-bold">{cours.nom}</h1>
       <h1 className="text-xl ">{cours.enseignant}</h1>
