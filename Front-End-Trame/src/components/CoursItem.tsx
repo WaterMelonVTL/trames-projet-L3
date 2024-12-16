@@ -1,17 +1,7 @@
-type Cours = {
-  id: number,
-  nom: string,
-  type: string,
-  enseignant: string,
-  date: string,
-  jour: number,
-  start: number,
-  salle: string,
-  groupe: string[],
-  offset: number,
-  couleur: string,
-  durée: number
-}
+import { useState, useRef } from "react";
+import CalendarOptionMenu from "./CalendarOptionMenu";
+import { Cours } from "../types/types";
+
 function calculateLuminance(hexColor: string): number {
 
   hexColor = hexColor.replace(/^#/, '');
@@ -33,24 +23,43 @@ function offsetToPercentage(offset: number): number {
   return (offset * 60 / 90) * 100;
 }
 
-function CoursItem(props : {cours: Cours, onMouseDown:()=>void}) {
-  const cours = props.cours;
+
+
+
+function CoursItem(props: { cours: Cours, onMouseDown: (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void }) {
+  const [cours, setCours] = useState(props.cours);
   const luminance = calculateLuminance(cours.couleur);
   const textColor = luminance > 0.5 ? 'black' : 'white';
-  return (
+  const [showOption, setShowOption] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{ top: number, left: number } | null>(null);
+  const itemRef = useRef<HTMLDivElement>(null);
 
-    <div className={`text-${textColor} h-28 border border-black hover:bg-blue-300 absolute cursor-pointer flex flex-col w-full text-center z-50`} 
-    style={{ backgroundColor: cours.couleur, height: `${cours.durée * 100}%`, transform:`translateY(${offsetToPercentage(cours.offset)/cours.durée}%)`}} 
-    onClick={()=> {console.log(`vous avez clické sur ${cours.nom} ${cours.date} ${cours.couleur}`)}} 
-    onMouseDown={props.onMouseDown}
-    onContextMenu={(e) => {e.preventDefault(); console.log(`right click sur ${cours.nom} ${cours.date}`)}} >
+  const handleContextMenu = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    e.preventDefault();
+    if (itemRef.current) {
+      const rect = itemRef.current.getBoundingClientRect();
+      setMenuPosition({ top: rect.top, left: rect.right });
+    }
+    setShowOption(true);
+  };
+
+
+  return (
+    <div
+      ref={itemRef}
+      className={`text-${textColor} h-28 border border-black hover:bg-blue-300 absolute cursor-pointer flex flex-col w-full text-center z-50`}
+      style={{ backgroundColor: cours.couleur, height: `${cours.durée * 100}%`, transform: `translateY(${offsetToPercentage(cours.offset) / cours.durée}%)` }}
+      onClick={() => { console.log(`vous avez clické sur ${cours.nom} ${cours.date} ${cours.couleur}`) }}
+      onMouseDown={(e) => { if (!showOption) { props.onMouseDown(e) } }}
+      onContextMenu={handleContextMenu} >
       <h1 className="text-xl font-bold">{cours.nom}</h1>
       <h1 className="text-xl ">{cours.enseignant}</h1>
       <h1 className="text-xl ">{cours.salle}</h1>
+      {
+        showOption && <CalendarOptionMenu cours={cours} setCours={setCours} close={() => setShowOption(false)} position={menuPosition}/>
+      }
     </div>
-
   )
-
 }
 
 

@@ -1,25 +1,8 @@
 import React, { useState } from 'react'
 import EcuItem from './EcuItem'
+import {ECU, CoursFrame} from '../types/types'
 
-type ECU = {
-    name: string,
-    numberOfCM: number,
-    numberOfTD: number,
-    enseignantCM: string,
-    enseignantTD: string[],
-    color: string,
-    AmphiParDefaut: string,
-    TDParDefaut: string
-};
 
-type CoursFrame = {
-    name: string,
-    enseignant: string[],
-    type: string,
-    color: string,
-    salle: string,
-    ecu: ECU
-};
 
 function CalendarCoursSelection(props: { setCurrentEcu: (ecu: CoursFrame | null) => void }) {
     const [hoveredItem, setHoveredItem] = useState<number>(-1)
@@ -114,7 +97,7 @@ function CalendarCoursSelection(props: { setCurrentEcu: (ecu: CoursFrame | null)
         <div>
             <h1 className='font-bold text-xl mb-4   '>Cours disponibles : </h1>
 
-            <div className='min-h-20 w-[18vw] rounded-lg border-2 border-black text-xl text-black flex flex-col items-center max-h-[80vh] overflow-y-auto py-4'>
+            <div className='min-h-20 w-[18vw] rounded-lg border-2 border-black text-xl text-black flex flex-col items-center max-h-[80vh] overflow-y-auto py-4 shadow-inner shadow-gray-300'>
                 <div className='rounded-full absolute shadow-lg h-10 w-80 flex text-base font-normal bg-white border-2 border-gray-800'>
                     <input
                         type="text"

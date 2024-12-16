@@ -2,28 +2,11 @@ import React, { useState, useEffect } from 'react'
 import CalendarFrame from './CalendarFrame'
 import CalendarCoursSelection from './CalendarCoursSelection'
 import EcuItem from './EcuItem';
+import { CoursFrame} from '../types/types';
 
-type ECU = {
-  name: string,
-  numberOfCM: number,
-  numberOfTD: number,
-  enseignantCM: string,
-  enseignantTD: string[],
-  color: string,
-  AmphiParDefaut: string,
-  TDParDefaut: string
-};
-
-type CoursFrame = {
-  name: string,
-  enseignant: string[],
-  type: string,
-  color: string,
-  salle: string,
-  ecu : ECU
-};
 
 function CalendarPage() {
+  //TODO: Keep the cours data when dragging, make it use an other type that can keep it.
   const [currentEcu, setCurrentEcu] = useState<CoursFrame | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 

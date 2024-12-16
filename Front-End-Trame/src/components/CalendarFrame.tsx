@@ -1,23 +1,6 @@
 import { useState } from 'react';
-import React from 'react'
 import CoursItem from './CoursItem';
-import noelImage from "../assets/noel.png";
-
-
-
-
-
-
-type ECU = {
-    name: string,
-    numberOfCM: number,
-    numberOfTD: number,
-    enseignantCM: string,
-    enseignantTD: string[],
-    color: string,
-    AmphiParDefaut: string,
-    TDParDefaut: string
-};
+import { ECU } from '../types/types';
 
 type CoursFrame = {
     name: string,
@@ -48,6 +31,8 @@ function CalendarFrame(props: { currentEcu: CoursFrame | null, setCurrentEcu: (e
     const rows = Array.from({ length: 7 }, (_, i) => i + 1);
     const crenaux = [{ 'start': '8h', 'end': '9h30' }, { 'start': '9h45', 'end': '11h15' }, { 'start': '11h30', 'end': '13h' }, { 'start': '13h15', 'end': '14h45' }, { 'start': '15h00', 'end': '16h30' }, { 'start': '16h45', 'end': '18h15' }, { 'start': '18h30', 'end': '20h00' }];
     const [cours, setCours] = useState<CalendarEvent[]>([])
+    const creneauHeight = 7;
+    const breakHeight = creneauHeight * 15 / 90;
 
     function AddCours(ecu: CoursFrame, jour: number, start: number) {
         console.log(`ajout de cours ${ecu.name} le ${daysOfWeek[jour]} à ${crenaux[start].start}`)
@@ -67,19 +52,19 @@ function CalendarFrame(props: { currentEcu: CoursFrame | null, setCurrentEcu: (e
     }
 
     return (
-        <div className="w-[80vw] text-black select-none">
-            <div className="border-2 border-black flex flex-row w-full justify-around rounded-lg">
+        <div className="w-[80vw] text-black select-none ">
+            <div className="border-2 border-black flex flex-row w-full justify-around rounded-lg ">
 
-                <div key={"horaires"} className="flex flex-col w-20 z-10">
+                <div key={"horaires"} className="flex flex-col w-20 ">
                     <div className="flex flex-col bg-gray-400 border border-black font-bold h-8">
                     </div>
                     {rows.map((_, colIndex) => (
                         <>
-                            <div key={colIndex} className="bg-gray-400 h-28 flex flex-col justify-between border border-black">
+                            <div key={colIndex} className={`bg-gray-400 flex flex-col justify-between border border-black`} style={{ height: `${creneauHeight}rem` }}>
                                 <div>{crenaux[colIndex].start} </div>
                                 <div>{crenaux[colIndex].end}</div>
                             </div>
-                            <div className="h-3"></div>
+                            <div style={{ height: `${breakHeight}rem` }}></div>
                         </>
                     ))}
                 </div>
@@ -87,10 +72,11 @@ function CalendarFrame(props: { currentEcu: CoursFrame | null, setCurrentEcu: (e
 
 
                     <div key={day} className="flex flex-col flex-grow">
-                        <div className="flex flex-col bg-gray-400 border border-black font-bold h-8">{`${day}`}</div>
+                        <div className="flex flex-col bg-gray-400 border border-black font-bold h-8 ">{`${day}`}</div>
                         {rows.map((_, colIndex) => (
                             <>
-                                <div key={colIndex} className="bg-white h-28 border border-black hover:bg-gray-300 cursor-pointer relative"
+                                <div key={colIndex} className="bg-white border border-black hover:bg-gray-300 cursor-pointer relative"
+                                    style={{ height: `${creneauHeight}rem` }}
                                     onClick={() => { console.log(`vous avez clické sur ${day} ${crenaux[colIndex].start}`) }}
                                     onMouseUp={() => {
                                         if (props.currentEcu) {
@@ -101,25 +87,28 @@ function CalendarFrame(props: { currentEcu: CoursFrame | null, setCurrentEcu: (e
                                     {cours.map((cours) => {
                                         if (cours.jour === index && cours.start === colIndex) {
                                             return (
-                                                <CoursItem cours={cours} onMouseDown={() => {
-                                                    props.setCurrentEcu({
-                                                        name: cours.nom, enseignant: [cours.enseignant], type: cours.type, color: cours.couleur, salle: cours.salle, ecu: {
-                                                            name: cours.nom,
-                                                            numberOfCM: 0,
-                                                            numberOfTD: 0,
-                                                            enseignantCM: cours.enseignant,
-                                                            enseignantTD: [cours.enseignant],
-                                                            color: cours.couleur,
-                                                            AmphiParDefaut: cours.salle,
-                                                            TDParDefaut: cours.salle
-                                                        }
-                                                    }); RemoveCours(index, colIndex)
+                                                <CoursItem cours={cours} onMouseDown={(e) => {
+                                                    if (e.button === 0) { // Only listen to left click
+                                                        props.setCurrentEcu({
+                                                            name: cours.nom, enseignant: [cours.enseignant], type: cours.type, color: cours.couleur, salle: cours.salle, ecu: {
+                                                                name: cours.nom,
+                                                                numberOfCM: 0,
+                                                                numberOfTD: 0,
+                                                                enseignantCM: cours.enseignant,
+                                                                enseignantTD: [cours.enseignant],
+                                                                color: cours.couleur,
+                                                                AmphiParDefaut: cours.salle,
+                                                                TDParDefaut: cours.salle
+                                                            }
+                                                        });
+                                                        RemoveCours(index, colIndex);
+                                                    }
                                                 }} />
                                             )
                                         }
                                     })}
                                 </div>
-                                <div className="h-3"></div>
+                                <div style={{ height: `${breakHeight}rem` }}></div>
                             </>
                         ))}
                     </div>

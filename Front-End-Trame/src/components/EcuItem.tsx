@@ -1,15 +1,6 @@
 import React from 'react';
+import {ECU} from '../types/types';
 
-type ECU = {
-  name: string,
-  numberOfCM: number,
-  numberOfTD: number,
-  enseignantCM: string,
-  enseignantTD: string[],
-  color: string,
-  AmphiParDefaut: string,
-  TDParDefaut: string
-};
 
 function EcuItem(props: { darken: boolean, type: string, ecu: ECU, onHover: () => void, onLeave: () => void , onMouseDown: ()=> void} ) {
   const ecu = props.ecu;
