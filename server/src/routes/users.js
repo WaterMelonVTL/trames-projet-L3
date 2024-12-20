@@ -1,8 +1,11 @@
-const express = require('express');
-const { User, Sequelize, sequelize } = require('../models');
+import express from 'express';
+import { User, Sequelize, sequelize } from '../models/index.js';
+import bcrypt from 'bcrypt';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
 const router = express.Router();
-const bcrypt = require('bcrypt');
-require('dotenv').config();
 
 const createInitialAdmin = async () => {
     const adminCount = await User.count({ where: { Role: 'ADMIN' } });
@@ -35,7 +38,6 @@ const createInitialAdmin = async () => {
 };
 
 createInitialAdmin();
-
 
 // Create a new user
 router.post('/', async (req, res) => {
@@ -94,6 +96,7 @@ router.get('/get/:id', async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 });
+
 router.put('/:id/password', async (req, res) => {
     const userId = req.params.id;
     try {
@@ -145,4 +148,4 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

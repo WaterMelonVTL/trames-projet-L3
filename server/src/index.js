@@ -1,9 +1,19 @@
-const express = require('express');
+import express from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import userRoutes from './routes/users.js';
+import coursRoutes from './routes/cours.js';
+import profRoutes from './routes/profs.js';
+import layerRoutes from './routes/layers.js';
+import trammeRoutes from './routes/tramme.js';
+import authRoutes from './routes/auth.js';
+import contextRoutes from './routes/context.js';
+import UERoutes from './routes/UE.js';
+
 const app = express();
 const port = process.env.PORT || 3000;
-const cors = require('cors');
-const cookieParser = require('cookie-parser');
 const ip = 'localhost';
+
 // Middleware to parse JSON bodies
 app.use(express.json());
 app.use(cors({
@@ -12,25 +22,11 @@ app.use(cors({
 }));
 app.use(cookieParser());
 
-// Import routes
-const userRoutes = require('./routes/users');
-const pictures = require('./routes/pictures');
-const auth = require('./routes/auth');
-//const coursRoutes = require('./routes/cours'); (exemple)
-
-
 // Use routes
-
 app.use('/api/users', userRoutes);
-app.use('/api/pictures', pictures);
-app.use('/api/auth', auth);
+app.use('/api/auth', authRoutes);
 //app.use('/api/cours', coursRoutes); (exemple)
-
-
-
 
 app.listen(port, () => {
     console.log(`Server is running on http://${ip}:${port}`);
 });
-
-
