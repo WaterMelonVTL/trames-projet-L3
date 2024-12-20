@@ -14,9 +14,14 @@ app.use(cookieParser());
 
 // Import routes
 const userRoutes = require('./routes/users');
-const pictures = require('./routes/pictures');
-const auth = require('./routes/auth');
-//const coursRoutes = require('./routes/cours'); (exemple)
+const coursRoutes = require('./routes/cours');
+const profRoutes = require('./routes/profs');
+const layerRoutes = require('./routes/layers');
+const trammeRoutes = require('./routes/tramme');
+const authRoutes = require('./routes/auth');
+const pictureRoutes = require('./routes/pictures');
+const contextRoutes = require('./routes/context');
+const UERoutes = require('./routes/UE');
 
 
 // Use routes

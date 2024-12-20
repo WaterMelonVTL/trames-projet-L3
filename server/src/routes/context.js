@@ -1,7 +1,7 @@
 const express = require('express');
 require('dotenv').config();
-import { catchError } from '../utils/HandleErrors';
-import { Context, Sequelize, sequelize } from '../models';
+const { catchError } = require('../utils/HandleErrors'); 
+const { Context, Sequelize, sequelize } = require('../models');
 const router = express.Router();
 
 // Create a new Context
