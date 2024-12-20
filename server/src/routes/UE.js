@@ -1,7 +1,9 @@
-const express = require('express');
-require('dotenv').config();
-const { catchError } = require('../utils/HandleErrors'); 
-const { UE, Sequelize, sequelize } = require('../models');
+import express from 'express';
+import dotenv from 'dotenv';
+import { catchError } from '../utils/HandleErrors.js';
+import { UE, Sequelize } from '../models/index.js';
+
+dotenv.config();
 const router = express.Router();
 
 // Create a new UE
@@ -63,7 +65,7 @@ router.get('/tramme/:id', async (req, res) => {
     return res.json(ues);
 });
 
-//Get UE by ID
+// Get UE by ID
 router.get('/:id', async (req, res) => {
     const id = req.params.id;
     const [ueError, ue] = await catchError(UE.findOne({ where: { id } }));
@@ -99,3 +101,5 @@ router.delete('/:id', async (req, res) => {
     }
     return res.json(ueData);
 });
+
+export default router;

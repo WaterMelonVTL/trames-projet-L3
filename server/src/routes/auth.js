@@ -1,10 +1,14 @@
-const express = require('express');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-const { Sequelize, sequelize, Tokens, User } = require('../models');
-require('dotenv').config();
+import express from 'express';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
+import { Sequelize, sequelize, Tokens, User } from '../models/index.js';
+import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
+
+dotenv.config();
 
 const router = express.Router();
+router.use(cookieParser());
 
 const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
 const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
@@ -133,4 +137,4 @@ router.post('/logout', (req, res) => {
     res.sendStatus(204);
 });
 
-module.exports = router;
+export default router;

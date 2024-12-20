@@ -1,7 +1,9 @@
-const express = require('express');
-require('dotenv').config();
-const { catchError } = require('../utils/HandleErrors'); 
-const { Layer, Sequelize, sequelize } = require('../models');
+import express from 'express';
+import dotenv from 'dotenv';
+import { catchError } from '../utils/HandleErrors.js';
+import { Layer, Sequelize, sequelize } from '../models/index.js';
+
+dotenv.config();
 
 const router = express.Router();
 
@@ -122,3 +124,5 @@ router.delete('/:id', async (req, res) => {
     }
     res.json(layerData);
 });
+
+export default router;

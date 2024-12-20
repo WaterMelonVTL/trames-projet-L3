@@ -1,9 +1,10 @@
-const express = require('express');
-require('dotenv').config();
-const { catchError } = require('../utils/HandleErrors'); 
-const { Course, Sequelize, sequelize } = require('../models');
-const router = express.Router();
+import express from 'express';
+import dotenv from 'dotenv';
+import { catchError } from '../utils/HandleErrors.js';
+import { Course, Sequelize, sequelize } from '../models/index.js';
 
+dotenv.config();
+const router = express.Router();
 
 // Create a new Course
 router.put('/', async (req, res) => {
@@ -114,7 +115,7 @@ router.get('/tramme/:id', async (req, res) => {
     return res.json(courses);
 });
 
-// Get all  Course for a specific Teacher
+// Get all Course for a specific Teacher
 router.get('/teacher/:id', async (req, res) => {
     const id = req.params.id;
     const [courseError, courses] = await catchError(Course.findAll({
@@ -181,6 +182,4 @@ router.delete('/:id', async (req, res) => {
     return res.json(courseData);
 });
 
-
-
-
+export default router;

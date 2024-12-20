@@ -1,7 +1,9 @@
-const express = require('express');
-require('dotenv').config();
-const { catchError } = require('../utils/HandleErrors'); 
-const  { Prof, Sequelize, sequelize } = require('../models');
+import express from 'express';
+import dotenv from 'dotenv';
+import { catchError } from '../utils/HandleErrors.js';
+import { Prof, Sequelize, sequelize } from '../models/index.js';
+
+dotenv.config();
 const router = express.Router();
 
 // Create a new prof
@@ -34,13 +36,10 @@ router.get('/search/:Context/:searchQuery', async (req, res) => {
     let profs;
     let profError;
     if (searchQuery === '%all%') {
-
         [profError, profs] = await catchError(Prof.findAll({
             where: { ContextId: Context }
         }));
-
     } else {
-
         [profError, profs] = await catchError(Prof.findAll({
             where: {
                 ContextId: Context,
@@ -58,7 +57,6 @@ router.get('/search/:Context/:searchQuery', async (req, res) => {
     }
 
     return res.json(profs);
-
 });
 
 // Get all the profs of a context
@@ -129,3 +127,5 @@ router.delete('/:id', async (req, res) => {
     }
     return res.json(profData);
 });
+
+export default router;

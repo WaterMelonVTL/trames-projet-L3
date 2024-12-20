@@ -1,5 +1,10 @@
-const { Sequelize, DataTypes } = require('sequelize');
-const path = require('path');
+import { Sequelize, DataTypes } from 'sequelize';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const sequelize = new Sequelize({
     dialect: 'sqlite',
@@ -270,6 +275,26 @@ const Course = sequelize.define('Course', {
     }
 });
 
+// Define Tokens model
+const Tokens = sequelize.define('Tokens', {
+    Token: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    UserId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: User,
+            key: 'Id'
+        }
+    },
+    Expire: {
+        type: DataTypes.DATE,
+        allowNull: false
+    }
+});
+
 // Define relationships
 
 // UE relationships
@@ -290,4 +315,16 @@ Tramme.belongsTo(User, { foreignKey: 'Owner' });
 
 sequelize.sync();
 
-module.exports = { Sequelize, sequelize, User, Context, Tramme, Layer, Prof, Room, UE, Course };
+export {
+    Sequelize,
+    sequelize,
+    User,
+    Context,
+    Tramme,
+    Layer,
+    Prof,
+    Room,
+    UE,
+    Course,
+    Tokens
+};
