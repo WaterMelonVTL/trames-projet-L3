@@ -98,7 +98,9 @@ function CalendarFrame(props: { currentEcu: CoursFrame | null, setCurrentEcu: (e
                                                                 enseignantTD: [cours.enseignant],
                                                                 color: cours.couleur,
                                                                 AmphiParDefaut: cours.salle,
-                                                                TDParDefaut: cours.salle
+                                                                TDParDefaut: cours.salle,
+                                                                TDHebdo: 0,
+                                                                CMHebdo: 0,
                                                             }
                                                         });
                                                         RemoveCours(index, colIndex);

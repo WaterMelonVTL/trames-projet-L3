@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react'
 import CalendarFrame from './CalendarFrame'
 import CalendarCoursSelection from './CalendarCoursSelection'
 import EcuItem from './EcuItem';
-import { CoursFrame} from '../types/types';
+import { CoursFrame, ECU} from '../types/types';
 
 
-function CalendarPage() {
+function CalendarPage(props : {data: { [key: string]: ECU[] }}) {
   //TODO: Keep the cours data when dragging, make it use an other type that can keep it.
   const [currentEcu, setCurrentEcu] = useState<CoursFrame | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -25,7 +25,7 @@ function CalendarPage() {
   return (
     <div className="w-screen h-screen bg-gray-200 flex justify-around items-start pt-8"
       onMouseUp={() => { setCurrentEcu(null) }}>
-      <CalendarCoursSelection setCurrentEcu={setCurrentEcu} />
+      <CalendarCoursSelection setCurrentEcu={setCurrentEcu} ecus={props.data[Object.keys(props.data)[0]]}/>
       <CalendarFrame setCurrentEcu={setCurrentEcu} currentEcu={currentEcu} />
       {
         currentEcu &&
