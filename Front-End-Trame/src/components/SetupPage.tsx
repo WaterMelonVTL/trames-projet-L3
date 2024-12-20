@@ -1,6 +1,9 @@
 import React, { useEffect } from 'react'
 import { ECU } from "../types/types";
-function SetupPage() {
+import { useNavigate } from 'react-router-dom';
+function SetupPage( props : {setData: (data: { [key: string]: ECU[] }) => void}) {
+  const navigate = useNavigate(); 
+
   const [setupStage, setSetupStage] = React.useState<number>(1)
   const [couches, setCouches] = React.useState<string[]>([])
   const [profs, setProfs] = React.useState<string[]>([])
@@ -18,6 +21,8 @@ function SetupPage() {
   const [ueTDProfInput, setUeTDProfInput] = React.useState<string>('')
   const [ueCMVolumeHebdoInput, setUeCMVolumeHebdoInput] = React.useState<number>(0)
   const [ueTDVolumeHebdoInput, setUeTDVolumeHebdoInput] = React.useState<number>(0)
+  const [amphiParDefautInput, setAmphiParDefautInput] = React.useState<string>('')
+  const [tdParDefautInput, setTdParDefautInput] = React.useState<string>('')
 
   const defaultColors = ['#FFB3BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF']
 
@@ -56,18 +61,24 @@ function SetupPage() {
         enseignantTD: [ueTDProfInput],
         color: ueColorInput,
         AmphiParDefaut: "",
-        TDParDefaut: ""
+        TDParDefaut: "",
+        TDHebdo: ueTDVolumeHebdoInput,
+        CMHebdo: ueCMVolumeHebdoInput
       }]
     })
-    setUeNameInput('')
-    setUeCMVolumeInput(0)
-    setUeTDVolumeInput(0)
-    setUeCMProfInput('')
-    setUeTDProfInput('')
-    setUeColorInput('')
+    
+    setUeNameInput('');
+    setUeCMVolumeInput(0);
+    setUeTDVolumeInput(0);
+    setUeCMProfInput('');
+    setUeTDProfInput('');
+    setUeColorInput('');
   }
 
   useEffect(() => {
+    if (setupStage === 4+couches.length) {
+      navigate('/calendar')
+    } else
     
     if (setupStage - 3 < 0){
       setCurrentLayerIndex(0)
@@ -81,6 +92,11 @@ function SetupPage() {
     console.log("current Layer : ", currentLayerIndex)
     console.log("current setup stage : ", setupStage)
   }, [setupStage, couches])
+
+  useEffect(() => {
+    props.setData(ues);
+  }, [ues, props])
+
 
 
   const disableNextButton = () => {
@@ -310,6 +326,26 @@ function SetupPage() {
                     onChange={(e) => setUeTDVolumeHebdoInput(parseInt(e.target.value))}
                   />
                 </div>
+
+                <div className='flex items-center justify-between mb-4'>
+                  <label htmlFor="amphiParDefautInput" className='text-xl font-semibold'>Amphi par défaut : </label>
+                  <input
+                  type="text"
+                  id="amphiParDefautInput"
+                  className='border-b-2 border-black select-none outline-none p-2'
+                  value={amphiParDefautInput}
+                  onChange={(e) => setAmphiParDefautInput(e.target.value)}
+                  />
+                  <label htmlFor="tdParDefautInput" className='text-xl font-semibold'>TD par défaut : </label>
+                  <input
+                  type="text"
+                  id="tdParDefautInput"
+                  className='border-b-2 border-black select-none outline-none p-2'
+                  value={tdParDefautInput}
+                  onChange={(e) => setTdParDefautInput(e.target.value)}
+                  />
+                </div>
+
 
                 <div className='flex items-center justify-between mb-4'>
 

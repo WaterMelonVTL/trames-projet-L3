@@ -6,7 +6,10 @@ export type ECU = {
     enseignantTD: string[],
     color: string,
     AmphiParDefaut: string,
-    TDParDefaut: string
+    TDParDefaut: string,
+    TDHebdo: number,
+    CMHebdo: number,
+
 };
 export type CoursFrame = {
     name: string,
