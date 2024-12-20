@@ -6,8 +6,6 @@ const sequelize = new Sequelize({
     storage: path.join(__dirname, '../main.db')
 });
 
-// JE LAISSE LE FICHIER ENTIER POUR L'EXEMPLE
-
 // Define User model 
 const User = sequelize.define('User', {
     Id: {
@@ -36,7 +34,7 @@ const User = sequelize.define('User', {
         type: DataTypes.INTEGER,
         defaultValue: 0
     },
-    Picture : {
+    Picture: {
         type: DataTypes.STRING,
         allowNull: true
     },
@@ -47,184 +45,249 @@ const User = sequelize.define('User', {
     },
 });
 
-// Define House model
-const House = sequelize.define('House', {
+// Define Context model
+const Context = sequelize.define('Context', {
     Id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
-    },
-    Street: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    Number: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    ZipCode: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    Country: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    Description: {
-        type: DataTypes.TEXT,
-        allowNull: true
-    },
-    Price: {
-        type: DataTypes.INTEGER,
-        allowNull: true
-    }
-});
-
-// Define Booking model
-const Booking = sequelize.define('Booking', {
-    Id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-    },
-    HouseId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
-    Staker: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
-    StartDate: {
-        type: DataTypes.DATE,
-        allowNull: false,
-    },
-    EndDate: {
-        type: DataTypes.DATE,
-        allowNull: false,
-    },
-    EffectiveStartDate: {
-        type: DataTypes.DATE,
-    },
-    EffectiveEndDate: {
-        type: DataTypes.DATE,
-    },
-});
-
-// Define Review model
-const Review = sequelize.define('Review', {
-    id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-    },
-    HouseId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
-    Reviewer: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
-    Rating: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
-    Comment: {
-        type: DataTypes.TEXT,
-    },
-});
-
-// Define BookingUser model
-const BookingUser = sequelize.define('BookingUser', {
-    id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-    },
-    booking_id: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
-    user_id: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
-});
-
-
-// Define Image model
-const Image = sequelize.define('Image', {
-    Hash: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    Type: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    RefId: {
-        type: DataTypes.INTEGER,
-        allowNull: false
-    },
-    Url: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
-});
-
-// Define City model
-const City = sequelize.define('City', {
-    ZipCode: {
-        type: DataTypes.STRING,
-        primaryKey: true,
     },
     Name: {
         type: DataTypes.STRING,
         allowNull: false
-    }}
-)
-
-// Define Token model
-const Tokens = sequelize.define('Tokens', {
-    Token: {
-        type: DataTypes.STRING,
-        primaryKey: true,
     },
-    UserId: {
+    Owner: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: User,
+            key: 'Id'
+        }
+    },
+});
+
+// Define Tramme model
+const Tramme = sequelize.define('Tramme', {
+    Id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+    },
+    Name: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    Owner: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: User,
+            key: 'Id'
+        }
+    },
+    Year: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    }
+});
+
+// Define Layer model
+const Layer = sequelize.define('Layer', {
+    Id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+    },
+    Name: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    TrammeId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Tramme,
+            key: 'Id'
+        }
+    },
+    Color: {
+        type: DataTypes.STRING,
+        allowNull: false
+    }
+});
+
+// Define Prof model
+const Prof = sequelize.define('Prof', {
+    Id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+    },
+    FirstName: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    LastName: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    Status: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 'Enseignant Titulaire'
+    },
+    Sexe: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    TrammeId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Tramme,
+            key: 'Id'
+        }
+    }
+});
+
+// Define Room model
+const Room = sequelize.define('Room', {
+    Id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+    },
+    Name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    Informatised: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
+    ContextId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Context,
+            key: 'Id'
+        }
+    }
+});
+
+// Define UE model
+const UE = sequelize.define('UE', {
+    Id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+    },
+    Name: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    TotalHourVolume_CM: {
         type: DataTypes.INTEGER,
         allowNull: false
     },
-    Expire:{
-        type: DataTypes.DATE,
+    TotalHourVolume_TD: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
+    DefaultHourVolumeHebdo_CM: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
+    DefaultHourVolumeHebdo_TD: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
+    Color: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    TrammeId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Tramme,
+            key: 'Id'
+        }
     }
-})
+});
+
+// Define Course model
+const Course = sequelize.define('Course', {
+    Id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+    },
+    UEId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: UE,
+            key: 'Id'
+        }
+    },
+    Date: {
+        type: DataTypes.DATE,
+        allowNull: false
+    },
+    StartHour: {
+        type: DataTypes.TIME,
+        allowNull: false
+    },
+    length: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
+    TrammeId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Tramme,
+            key: 'Id'
+        }
+    },
+    RoomId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Room,
+            key: 'Id'
+        }
+    },
+    LayerId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Layer,
+            key: 'Id'
+        }
+    }
+});
 
 // Define relationships
-User.hasMany(House, { foreignKey: 'Owner' });
-House.belongsTo(User, { foreignKey: 'Owner' });
 
-House.hasMany(Booking, { foreignKey: 'HouseId' });
-Booking.belongsTo(House, { foreignKey: 'HouseId' });
+// UE relationships
+UE.belongsToMany(Prof, { as: 'Responsibles', through: 'UE_Responsibles', foreignKey: 'UEId' });
+UE.belongsToMany(Prof, { as: 'ProfCMs', through: 'UE_ProfCMs', foreignKey: 'UEId' });
+UE.belongsToMany(Prof, { as: 'ProfTDs', through: 'UE_ProfTDs', foreignKey: 'UEId' });
 
-User.hasMany(Booking, { foreignKey: 'Staker' });
-Booking.belongsTo(User, { foreignKey: 'Staker' });
+// Course relationships
+Course.belongsToMany(Prof, { as: 'Teachers', through: 'Course_Teachers', foreignKey: 'CourseId' });
+Prof.belongsToMany(Course, { as: 'Courses', through: 'Course_Teachers', foreignKey: 'ProfId' });
 
-House.hasMany(Review, { foreignKey: 'HouseId' });
-Review.belongsTo(House, { foreignKey: 'HouseId' });
+// User relationships
+User.hasMany(Context, { foreignKey: 'Owner' });
+Context.belongsTo(User, { foreignKey: 'Owner' });
 
-User.hasMany(Review, { foreignKey: 'Reviewer' });
-Review.belongsTo(User, { foreignKey: 'Reviewer' });
-
-House.belongsTo(City, { foreignKey: 'ZipCode', targetKey: 'ZipCode' });
-City.hasMany(House, { foreignKey: 'ZipCode', sourceKey: 'ZipCode' });
-
-Booking.belongsToMany(User, { through: BookingUser, foreignKey: 'booking_id' });
-User.belongsToMany(Booking, { through: BookingUser, foreignKey: 'user_id' });
-
-User.hasMany(Tokens, { foreignKey: 'UserId' });
-Tokens.belongsTo(User, { foreignKey: 'UserId' });
+User.hasMany(Tramme, { foreignKey: 'Owner' });
+Tramme.belongsTo(User, { foreignKey: 'Owner' });
 
 sequelize.sync();
 
-module.exports = { Sequelize,sequelize, User, House, Booking, Review, BookingUser, Image, City,Tokens };
+module.exports = { Sequelize, sequelize, User, Context, Tramme, Layer, Prof, Room, UE, Course };
