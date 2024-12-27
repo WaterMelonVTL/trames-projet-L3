@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate,useLocation } from 'react-router-dom';
 import { Prof, Room } from '../types/types';
-
 function SetupContexte() {
     const navigate = useNavigate();
-    const contextID = 1; // get from props or url params
+    const location = useLocation();
+    const contextID = location.pathname.split('/').pop();
     const [contextName, setContextName] = React.useState<string>('');
     const [setupStage, setSetupStage] = React.useState<number>(1);
     const [profs, setProfs] = React.useState<Prof[]>([]);
@@ -26,7 +26,7 @@ function SetupContexte() {
             status: profStatusInput
         };
         // Mockup server call
-        const response = await fetch('/api/profs/', { method: 'POST', body: JSON.stringify(newProf) });
+        const response = await fetch('http://localhost:3000/api/profs/', { method: 'POST', body: JSON.stringify(newProf) });
         if (response.ok) {
             const addedProf = await response.json();
             setProfs([...profs, addedProf]);
@@ -40,7 +40,7 @@ function SetupContexte() {
     };
 
     const removeProf = async (index: number) => {
-        await fetch(`/api/profs/${profs[index].Id}`, { method: 'DELETE'});
+        await fetch(`http://localhost:3000/api/profs/${profs[index].Id}`, { method: 'DELETE'});
         setProfs(profs.filter((_, i) => i !== index));
     };
 
@@ -52,7 +52,7 @@ function SetupContexte() {
             capacity: salleCapacityInput
         };
         // Mockup server call
-        const response = await fetch('/api/ ', { method: 'POST', body: JSON.stringify(newSalle) });
+        const response = await fetch('http://localhost:3000/api/rooms ', { method: 'POST', body: JSON.stringify(newSalle) });
         if (response.ok) {
             const addedSalle = await response.json();
             setSalles([...salles, addedSalle]);
@@ -70,7 +70,7 @@ function SetupContexte() {
     };
 
     const setContextNameHandler = async (name: string) => {
-        const response = await fetch('/api/context', { method: 'PUT', body: JSON.stringify({ contextID, name }) });
+        const response = await fetch('http://localhost:3000/api/context', { method: 'PUT', body: JSON.stringify({ contextID, name }) });
         if (response.ok) {
             setContextName(name);
         } else {

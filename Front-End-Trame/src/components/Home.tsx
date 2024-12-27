@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Context } from '../types/types.tsx'
+import { useNavigate } from 'react-router-dom';
 
 const ARROW = <svg fill="#000000" height="200px" width="200px" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" viewBox="0 0 330 330" xmlSpace="preserve">
   <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
@@ -20,22 +21,23 @@ function Home() {
   const username = "Beaugosse" // Later get it from authentification
   
   const [contexts, setContexts] = useState([] as Context[])
+  const navigate = useNavigate();
 
   const CreateContext = () => {
+
+
     fetch('http://localhost:3000/api/context', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        Name: "Nouveau contexte",
-        Owner: userID
-      })
+      body: JSON.stringify({ ContextName: "Nouveau Contexte", User: { Id: userID } })
     })
       .then((res) => res.json())
       .then((data) => {
-        setContexts([...contexts, data])
-      })
+        setContexts([...contexts, data]);
+        navigate(`/edit/context/${data.id}`);
+      });
   }
 
   useEffect(() => {

@@ -8,8 +8,9 @@ const router = express.Router();
 
 // Create a new Context
 router.post('/', async (req, res) => {
-    const { context, user } = req.body;
-    const [contextError, contextData] = await catchError(Context.create(context));
+    const { ContextName, User } = req.body;
+    const data = {Name: ContextName, Owner: User.Id};
+    const [contextError, contextData] = await catchError(Context.create(data));
     if (contextError) {
         console.error(contextError);
         res.status(500).send('Internal Server Error');

@@ -28,9 +28,9 @@ app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/profs', profRoutes);
 app.use('/api/layers', layerRoutes);
-app.use('/api/tramme', trammeRoutes);
-app.use('/api/context', contextRoutes);
-app.use('/api/UE', UERoutes);
+app.use('/api/trammes', trammeRoutes);
+app.use('/api/contexts', contextRoutes);
+app.use('/api/UEs', UERoutes);
 app.use('/api/cours', coursRoutes); 
 app.use('/api/rooms', roomsRoutes);
 
