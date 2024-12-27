@@ -7,7 +7,7 @@ dotenv.config();
 const router = express.Router();
 
 // Create a new Context
-router.put('/', async (req, res) => {
+router.post('/', async (req, res) => {
     const { context, user } = req.body;
     const [contextError, contextData] = await catchError(Context.create(context));
     if (contextError) {

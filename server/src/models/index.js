@@ -178,6 +178,10 @@ const Room = sequelize.define('Room', {
             model: Context,
             key: 'Id'
         }
+    },
+    Capacity: {
+        type: DataTypes.INTEGER,
+        allowNull: true
     }
 });
 
@@ -211,6 +215,14 @@ const UE = sequelize.define('UE', {
     Color: {
         type: DataTypes.STRING,
         allowNull: false
+    },
+    DefaultRoomId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Room,
+            key: 'Id'
+        }
     },
     TrammeId: {
         type: DataTypes.INTEGER,

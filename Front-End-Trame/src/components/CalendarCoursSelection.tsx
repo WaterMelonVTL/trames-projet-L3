@@ -7,6 +7,7 @@ import {ECU, CoursFrame} from '../types/types'
 function CalendarCoursSelection(props: { setCurrentEcu: (ecu: CoursFrame | null) => void, ecus: ECU[] }) {
     const [hoveredItem, setHoveredItem] = useState<number>(-1)
     const [isSearching, setIsSearching] = useState<string>("")
+    
 
 
     const search = (search: string) => {

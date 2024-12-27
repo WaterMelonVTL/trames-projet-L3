@@ -8,6 +8,7 @@ import layerRoutes from './routes/layers.js';
 import trammeRoutes from './routes/tramme.js';
 import authRoutes from './routes/auth.js';
 import contextRoutes from './routes/context.js';
+import roomsRoutes from './routes/rooms.js';
 import UERoutes from './routes/UE.js';
 
 const app = express();
@@ -25,7 +26,13 @@ app.use(cookieParser());
 // Use routes
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
-//app.use('/api/cours', coursRoutes); (exemple)
+app.use('/api/profs', profRoutes);
+app.use('/api/layers', layerRoutes);
+app.use('/api/tramme', trammeRoutes);
+app.use('/api/context', contextRoutes);
+app.use('/api/UE', UERoutes);
+app.use('/api/cours', coursRoutes); 
+app.use('/api/rooms', roomsRoutes);
 
 app.listen(port, () => {
     console.log(`Server is running on http://${ip}:${port}`);

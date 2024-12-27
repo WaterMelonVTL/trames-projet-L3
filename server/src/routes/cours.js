@@ -7,7 +7,7 @@ dotenv.config();
 const router = express.Router();
 
 // Create a new Course
-router.put('/', async (req, res) => {
+router.post('/', async (req, res) => {
     const { course, user } = req.body;
     const [courseError, courseData] = await catchError(Course.create(course));
     if (courseError) {

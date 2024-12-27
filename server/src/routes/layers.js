@@ -8,7 +8,7 @@ dotenv.config();
 const router = express.Router();
 
 // Create a new layer
-router.put('/', async (req, res) => {
+router.post('/', async (req, res) => {
     const { layer, user } = req.body;
     const [layerError, layerData] = await catchError(Layer.create(layer));
     if (layerError) {

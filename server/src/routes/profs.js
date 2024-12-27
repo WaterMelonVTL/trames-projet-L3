@@ -7,7 +7,7 @@ dotenv.config();
 const router = express.Router();
 
 // Create a new prof
-router.put('/', async (req, res) => {
+router.post('/', async (req, res) => {
     const { prof, user } = req.body;
     const [profError, profData] = await catchError(Prof.create(prof));
     if (profError) {

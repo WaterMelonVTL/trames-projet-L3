@@ -10,6 +10,21 @@ function CalendarPage(props : {data: { [key: string]: ECU[] }}) {
   const [currentEcu, setCurrentEcu] = useState<CoursFrame | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
+  const  [trammeId, setTrammeId] = useState(-1)
+
+  const [ecus, setEcus] = useState<ECU[]>([])
+
+  useEffect(() => {
+    fetch('http://localhost:3000/api/UE/tramme/',{trammeId})
+      .then((res) => res.json())
+      .then((data) => {
+        setEcus(data)
+      })
+  }, [trammeId])
+
+
+
+
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
       setMousePosition({ x: event.clientX, y: event.clientY });

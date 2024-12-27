@@ -7,7 +7,7 @@ dotenv.config();
 const router = express.Router();
 
 // Create a new tramme
-router.put('/', async (req, res) => {
+router.post('/', async (req, res) => {
     const { tramme, user } = req.body;
     const [trammeError, trammeData] = await catchError(Tramme.create(tramme));
     if (trammeError) {

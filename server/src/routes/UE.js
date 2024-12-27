@@ -7,7 +7,7 @@ dotenv.config();
 const router = express.Router();
 
 // Create a new UE
-router.put('/', async (req, res) => {
+router.post('/', async (req, res) => {
     const { ue, user } = req.body;
     const [ueError, ueData] = await catchError(UE.create(ue));
     if (ueError) {
