@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useNavigate,useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Prof, Room } from '../types/types';
 function SetupContexte() {
     const navigate = useNavigate();
@@ -18,21 +18,24 @@ function SetupContexte() {
     const [salleCapacityInput, setSalleCapacityInput] = React.useState<number | undefined>(undefined);
 
     const addProf = async () => {
-        if (profFirstNameInput === '' || profLastNameInput === '' || profGenreInput === '' || profStatusInput === '') return;
+        if (contextID ==='' || profFirstNameInput === '' || profLastNameInput === '' || profGenreInput === '' || profStatusInput === '') return;
         const newProf = {
-            firstName: profFirstNameInput,
-            lastName: profLastNameInput,
-            genre: profGenreInput,
-            status: profStatusInput
+            FirstName: profFirstNameInput,
+            LastName: profLastNameInput,
+            Sexe: profGenreInput,
+            Status: profStatusInput,
+            ContextId: contextID 
         };
-        // Mockup server call
-        const response = await fetch('http://localhost:3000/api/profs/', { method: 'POST', body: JSON.stringify(newProf) });
+
+        console.log(newProf);
+
+        const response = await fetch('http://localhost:3000/api/profs/', { method: 'POST', body: JSON.stringify({ prof: newProf, user: { userId: 1 } }), headers: { 'Content-Type': 'application/json' } });
         if (response.ok) {
             const addedProf = await response.json();
             setProfs([...profs, addedProf]);
         } else {
             console.error('Failed to add prof');
-        }
+        }   
         setProfFirstNameInput('');
         setProfLastNameInput('');
         setProfGenreInput('M');
@@ -40,19 +43,57 @@ function SetupContexte() {
     };
 
     const removeProf = async (index: number) => {
-        await fetch(`http://localhost:3000/api/profs/${profs[index].Id}`, { method: 'DELETE'});
+        await fetch(`http://localhost:3000/api/profs/${profs[index].Id}`, { method: 'DELETE' });
         setProfs(profs.filter((_, i) => i !== index));
     };
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const contextResponse = await fetch(`http://localhost:3000/api/contexts/${contextID}`);
+                if (contextResponse.ok) {
+                    const contextData = await contextResponse.json();
+                    setContextName(contextData.Name);
+                } else {
+                    console.error('Failed to fetch context');
+                    alert('Failed to fetch context');
+                    return;
+                }
+    
+                const roomsResponse = await fetch(`http://localhost:3000/api/rooms/context/${contextID}`);
+                const roomsData = await roomsResponse.json();
+                setSalles(roomsData);
+    
+                const profsResponse = await fetch(`http://localhost:3000/api/profs/context/${contextID}`);
+                const profsData = await profsResponse.json();
+                setProfs(profsData);
+
+                
+            } catch (error) {
+                console.error('An error has occured:', error);
+                alert('An error has occured : '+ error);
+                
+            }
+        };
+    
+        fetchData();
+    }, [contextID]);
 
     const addSalle = async () => {
         if (salleNameInput === '') return;
         const newSalle = {
-            name: salleNameInput,
-            informatisée: salleInformatiséeInput,
-            capacity: salleCapacityInput
+            Name: salleNameInput,
+            Informatised: salleInformatiséeInput,
+            Capacity: salleCapacityInput,
+            ContextId: contextID
         };
-        // Mockup server call
-        const response = await fetch('http://localhost:3000/api/rooms ', { method: 'POST', body: JSON.stringify(newSalle) });
+        
+        const response = await fetch('http://localhost:3000/api/rooms', { 
+            method: 'POST', 
+            body: JSON.stringify({ room: newSalle, user: { userId: 1 } }), 
+            headers: { 'Content-Type': 'application/json' } 
+        });
+
         if (response.ok) {
             const addedSalle = await response.json();
             setSalles([...salles, addedSalle]);
@@ -70,7 +111,13 @@ function SetupContexte() {
     };
 
     const setContextNameHandler = async (name: string) => {
-        const response = await fetch('http://localhost:3000/api/context', { method: 'PUT', body: JSON.stringify({ contextID, name }) });
+        const response = await fetch(`http://localhost:3000/api/contexts/${contextID}`, { 
+            method: 'PUT', 
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ Name: name }) 
+        });
         if (response.ok) {
             setContextName(name);
         } else {
@@ -79,8 +126,8 @@ function SetupContexte() {
     };
 
     useEffect(() => {
-        if (setupStage === 4) {
-            navigate('/calendar');
+        if (setupStage === 5) {
+            navigate('/');
         }
     }, [setupStage]);
 
@@ -201,7 +248,7 @@ function SetupContexte() {
                         <div>
                             {salles.map((salle, index) => (
                                 <div className='flex items-center justify-between border-2 border-black p-2 mb-2 rounded-xl' key={index}>
-                                    <p className='ml-4'>{`${salle.Name} - ${salle.Informatised ? 'Informatisée' : 'Non Informatisée'} - ${salle.capacity || 'No Capacity'}`}</p>
+                                    <p className='ml-4'>{`${salle.Name} - ${salle.Informatised ? 'I' : 'N/A'} - ${salle.Capacity || 'No Capacity'}`}</p>
                                     <button className='mr-4' onClick={() => removeSalle(index)}>X</button>
                                 </div>
                             ))}

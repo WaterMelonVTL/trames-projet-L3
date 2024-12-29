@@ -108,13 +108,22 @@ router.put('/:id', async (req, res) => {
         return;
     }
 
-    const [updateError, updatedContext] = await contextData.update(req.body);
+    if (!contextData) {
+        res.status(404).send('Context not found');
+        return;
+    }
+
+    console.log("updating context with data: ", req.body);
+
+    const [updateError, updatedContext] = await catchError(contextData.update(req.body));
 
     if (updateError) {
         console.error(updateError);
         res.status(500).send('Internal Server Error');
         return;
     }
+
+    console.log(updatedContext);
 
     return res.json(updatedContext);
 });

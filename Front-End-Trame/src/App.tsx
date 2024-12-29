@@ -5,7 +5,7 @@ import Home from './components/Home';
 import Login from './components/Login';
 import CalendarPage from './components/CalendarPage';
 import Snowfall from 'react-snowfall'
-import SetupPage from './components/SetupPage';
+import SetupPage from './components/SetupTramme';
 import { ECU } from './types/types';
 import SetupContexte from './components/SetupContexte';
 function App() {

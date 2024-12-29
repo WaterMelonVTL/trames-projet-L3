@@ -9,6 +9,7 @@ const router = express.Router();
 // Create a new prof
 router.post('/', async (req, res) => {
     const { prof, user } = req.body;
+    console.log(prof);
     const [profError, profData] = await catchError(Prof.create(prof));
     if (profError) {
         console.error(profError);

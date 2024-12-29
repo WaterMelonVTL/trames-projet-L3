@@ -8,7 +8,13 @@ const router = express.Router();
 
 // Create a new tramme
 router.post('/', async (req, res) => {
-    const { tramme, user } = req.body;
+    const { data, user } = req.body; // user est à récupérer depuis le token pour sécuriser la création
+    const tramme = {
+        Name: data.Name,
+        ContextId: data.ContextId,
+        Owner: user.Id,
+        Year: data.Year
+    };
     const [trammeError, trammeData] = await catchError(Tramme.create(tramme));
     if (trammeError) {
         console.error(trammeError);
@@ -56,9 +62,33 @@ router.get('/search/:searchQuery', async (req, res) => {
     res.json(trammes);
 });
 
+// Get trammes by contextID
+router.get('/context/:id', async (req, res) => {
+    const id = req.params.id;
+    
+    if (!id) {
+        res.status(400).send('Id is required');
+        return;
+    }
+
+    const [trammeError, trammes] = await catchError(Tramme.findAll({ where: { ContextId: id } }));
+    if (trammeError) {
+        console.error(trammeError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+    return res.json(trammes);
+});
+
 // Get trammes by user ID
 router.get('/user/:id', async (req, res) => {
     const id = req.params.id;
+    
+    if (!id) {
+        res.status(400).send('Id is required');
+        return;
+    }
+
     const [trammeError, trammes] = await catchError(Tramme.findAll({ where: { Owner: id } }));
     if (trammeError) {
         console.error(trammeError);

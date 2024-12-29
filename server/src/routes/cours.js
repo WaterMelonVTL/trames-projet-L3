@@ -158,7 +158,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Update a Course by ID
-router.post('/:id', async (req, res) => {
+router.put('/:id', async (req, res) => {
     const id = req.params.id;
     const { course } = req.body;
     const [courseError, courseData] = await catchError(Course.update(course, { where: { id } }));

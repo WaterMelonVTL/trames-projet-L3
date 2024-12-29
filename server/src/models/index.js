@@ -82,6 +82,14 @@ const Tramme = sequelize.define('Tramme', {
         type: DataTypes.STRING,
         allowNull: false
     },
+    ContextId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Context,
+            key: 'Id'
+        }
+    },
     Owner: {
         type: DataTypes.INTEGER,
         allowNull: false,
@@ -145,11 +153,11 @@ const Prof = sequelize.define('Prof', {
         type: DataTypes.STRING,
         allowNull: true
     },
-    TrammeId: {
+    ContextId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: Tramme,
+            model: Context,
             key: 'Id'
         }
     }

@@ -11,6 +11,7 @@ const router = express.Router();
 // Create a new room
 router.post('/', async (req, res) => {
     const { room, user } = req.body;
+    console.log(req.body);
     const [roomError, roomData] = await catchError(Room.create(room));
     if (roomError) {
         console.error(roomError);

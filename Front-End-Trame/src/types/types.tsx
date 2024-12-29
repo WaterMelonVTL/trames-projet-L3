@@ -20,6 +20,7 @@ export type Tramme = {
     Name: string;
     Owner: number;
     Year: number;
+    ContextId: number;
 };
 
 export type Layer = {
@@ -35,7 +36,7 @@ export type Prof = {
     LastName: string;
     Status: string;
     Sexe?: string;
-    TrammeId: number;
+    ContextId: number;
 };
 
 export type Room = {
