@@ -232,11 +232,11 @@ const UE = sequelize.define('UE', {
             key: 'Id'
         }
     },
-    TrammeId: {
+    LayerId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: Tramme,
+            model: Layer,
             key: 'Id'
         }
     }

@@ -5,7 +5,7 @@ import Home from './components/Home';
 import Login from './components/Login';
 import CalendarPage from './components/CalendarPage';
 import Snowfall from 'react-snowfall'
-import SetupPage from './components/SetupTramme';
+import SetupTramme from './components/SetupTramme';
 import { ECU } from './types/types';
 import SetupContexte from './components/SetupContexte';
 function App() {
@@ -21,10 +21,9 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path='/calendar' element={<CalendarPage data={data} />} />
-          <Route path='/setup' element={<SetupPage setData={setData} />} /> {/*will be replaced by a server call later*/}
           <Route path="/edit">
             <Route path="context/:id" element={<SetupContexte />} />
-            <Route path="tramme/:id" element={<div>Tramme Edit Page</div>} />
+            <Route path="tramme/:id" element={<SetupTramme  />} />
           </Route>
         </Routes>
       </Router>
