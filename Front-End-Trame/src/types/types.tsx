@@ -52,11 +52,14 @@ export type UE = {
     Name: string;
     TotalHourVolume_CM: number;
     TotalHourVolume_TD: number;
+    TotalHourVolume_TP: number;
     DefaultHourVolumeHebdo_CM: number;
     DefaultHourVolumeHebdo_TD: number;
+    DefaultHourVolumeHebdo_TP: number;
+    ResponsibleId: number;
     Color: string;
     DefaultRoomId: number;
-    TrammeId: number;
+    LayerId: number;
 };
 
 export type Course = {

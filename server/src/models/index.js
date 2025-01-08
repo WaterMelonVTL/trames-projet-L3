@@ -212,6 +212,10 @@ const UE = sequelize.define('UE', {
         type: DataTypes.INTEGER,
         allowNull: false
     },
+    TotalHourVolume_TP: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
     DefaultHourVolumeHebdo_CM: {
         type: DataTypes.INTEGER,
         allowNull: false
@@ -219,6 +223,18 @@ const UE = sequelize.define('UE', {
     DefaultHourVolumeHebdo_TD: {
         type: DataTypes.INTEGER,
         allowNull: false
+    },
+    DefaultHourVolumeHebdo_TP: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
+    ResponsibleId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Prof,
+            key: 'Id'
+        }
     },
     Color: {
         type: DataTypes.STRING,
@@ -237,6 +253,63 @@ const UE = sequelize.define('UE', {
         allowNull: false,
         references: {
             model: Layer,
+            key: 'Id'
+        }
+    }
+});
+
+const UE_CM_Teacher = sequelize.define('UE_CM_Teacher', {
+    UEId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: UE,
+            key: 'Id'
+        }
+    },
+    ProfId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Prof,
+            key: 'Id'
+        }
+    }
+});
+
+const UE_TD_Teacher = sequelize.define('UE_TD_Teacher', {
+    UEId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: UE,
+            key: 'Id'
+        }
+    },
+    ProfId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Prof,
+            key: 'Id'
+        }
+    }
+});
+
+const UE_TP_Teacher = sequelize.define('UE_TP_Teacher', {
+    UEId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: UE,
+            key: 'Id'
+        }
+    },
+    ProfId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Prof,
             key: 'Id'
         }
     }
@@ -346,5 +419,8 @@ export {
     Room,
     UE,
     Course,
-    Tokens
+    Tokens,
+    UE_CM_Teacher,
+    UE_TD_Teacher,
+    UE_TP_Teacher
 };

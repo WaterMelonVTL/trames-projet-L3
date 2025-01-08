@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { UE, Layer, Prof } from "../types/types";
+import { UE, Layer, Prof, Room } from "../types/types";
 import { useNavigate } from 'react-router-dom';
 function SetupPage() {
   const navigate = useNavigate();
@@ -7,37 +7,228 @@ function SetupPage() {
 
   const [contextId, setContextId] = React.useState<number>(-1)
   const [setupStage, setSetupStage] = React.useState<number>(1)
+
   const [layers, setCouches] = React.useState<Layer[]>([])
   const [ues, setUes] = React.useState<{ [key: number]: UE[] }>({})
+
+  
+  const [profs, setProfs] = React.useState<Prof[]>([])
+  const [rooms, setRooms] = React.useState<Room[]>([])
+
+
   const [currentLayerIndex, setCurrentLayerIndex] = React.useState<number>(0)
+
+  //Tramme inputs _______________________________________________________________________________________________
+  const [trammeNameInput, setTrammeNameInput] = React.useState<string>('')
+
+  //Layer inputs ________________________________________________________________________________________________
   const [layerNameInput, setLayerNameInput] = React.useState<string>('')
   const [layerColorInput, setLayerColorInput] = React.useState<string>('')
 
 
+  //UE inputs ___________________________________________________________________________________________________
   const [ueProfResponsableInput, setUeProfResponsableInput] = React.useState<string>('')
   const [ueNameInput, setUeNameInput] = React.useState<string>('')
   const [ueColorInput, setUeColorInput] = React.useState<string>('')
   const [ueCMVolumeInput, setUeCMVolumeInput] = React.useState<number>(0)
   const [ueTDVolumeInput, setUeTDVolumeInput] = React.useState<number>(0)
-  const [ueCMProfInput, setUeCMProfInput] = React.useState<string>('')
-  const [profs, setProfs] = React.useState<Prof[]>([])
-  const [ueTDProfInput, setUeTDProfInput] = React.useState<string>('')
+  const [ueTPVolumeInput, setUeTPVolumeInput] = React.useState<number>(0)
+
   const [ueCMVolumeHebdoInput, setUeCMVolumeHebdoInput] = React.useState<number>(0)
   const [ueTDVolumeHebdoInput, setUeTDVolumeHebdoInput] = React.useState<number>(0)
+  const [ueTPVolumeHebdoInput, setUeTPVolumeHebdoInput] = React.useState<number>(0)
+
+
+  const [ueCMProfInput, setUeCMProfInput] = React.useState<number>(0)
+  const [ueTDProfInput, setUeTDProfInput] = React.useState<number>(0)
+  const [ueTPProfInput, setUeTPProfInput] = React.useState<number>(0)
+
+ 
   const [amphiParDefautInput, setAmphiParDefautInput] = React.useState<string>('')
   const [tdParDefautInput, setTdParDefautInput] = React.useState<string>('')
+  //_____________________________________________________________________________________________________________
 
   const defaultColors = ['#FFB3BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF']
 
+  const handleNameInputChange = async (newName: string) => {
+    const response = await fetch(`http://localhost:3000/api/trammes/${trammeId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ Name: newName })
+    });
+    console.log('response:', response);
+    if (response.ok) {
+      const updatedTramme = await response.json();
+      console.log('Tramme name updated:', updatedTramme);
+      setTrammeNameInput(updatedTramme.Name);
+    } else {
+      console.error('Failed to set tramme name');
+    }
+  };
+
+  useEffect(() => { //TEMPORARY, when working with issue  #27, change this effect with your seach query. 
+    const fetchProfs = async () => {
+      console.log("fetching profs")
+      console.log("contextId:", contextId);
+      if (contextId === -1) return;
+      if (contextId != undefined) {
+        const profsData = await searchProfs('');
+        console.log("Updating profs")
+        console.log("profsData:", profsData);
+        setProfs(profsData);
+
+      }
+      console.log("new profs:", profs)
+      return;
+    };
+    console.log("Updating profs")
+    fetchProfs();
+    
+  }, [contextId]);
+
+  useEffect(() => { //TEMPORARY, when working with issue  #27, change this effect with your seach query. 
+    const fetchRooms = async () => {
+      if (contextId === -1) return;
+      if (contextId != undefined) {
+        const roomsData = await searchRooms('');
+        setRooms(roomsData);
+      }
+    };
+    console.log("Updating rooms")
+    fetchRooms();
+  }, [contextId]);
+
+  const searchProfs = async (query: string) => {
+    const searchQuery = query === '' ? '%25all%25' : query;
+    console.log("searching for profs with query:", searchQuery);
+    try {
+      const response = await fetch(`http://localhost:3000/api/profs/search/${contextId}/${searchQuery}`);
+      if (response.ok) {
+        const profsData = await response.json();
+        return profsData;
+      } else {
+        console.error("Error searching profs:", response.statusText);
+        return [];
+      }
+    } catch (error) {
+      console.error("Error searching profs:", error);
+      return [];
+    }
+  };
+
+  const searchRooms = async (query: string) => {
+    const searchQuery = query === '' ? '%25all%25' : query;
+    console.log("searching for rooms with query:", searchQuery);
+
+    try {
+      const response = await fetch(`http://localhost:3000/api/rooms/search/${contextId}/${searchQuery}`);
+      if (response.ok) {
+        const roomsData = await response.json();
+        return roomsData;
+      } else {
+        console.error("Error searching rooms:", response.statusText);
+        return [];
+      }
+    } catch (error) {
+      console.error("Error searching rooms:", error);
+      return [];
+    }
+  };
 
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const trammeResponse = await fetch(`http://localhost:3000/api/trammes/${trammeId}`);
+        if (trammeResponse.ok) {
+          const trammeData = await trammeResponse.json();
+          const contextId = trammeData.ContextId;
+          console.log(trammeData)
+          setContextId(contextId);
+          setTrammeNameInput(trammeData.Name);
+          console.log("contextId:", contextId);
+
+          const layersResponse = await fetch(`http://localhost:3000/api/layers/tramme/${trammeId}`);
+          if (layersResponse.ok) {
+            const layersData = await layersResponse.json();
+            setCouches(layersData);
+
+            const uesResponse = await fetch(`http://localhost:3000/api/ues/tramme/${trammeId}`);
+            if (uesResponse.ok) {
+              const uesData = await uesResponse.json();
+              console.log("uesData:", uesData);
+              const uesByLayer = layersData.reduce((acc, layer) => {
+                acc[layer.Id] = uesData.filter(ue => ue.LayerId === layer.Id);
+                return acc;
+              }, {});
+              setUes(uesByLayer);
+            } else {
+              console.error("Error fetching UEs:", uesResponse.statusText);
+            }
+          } else {
+            console.error("Error fetching layers:", layersResponse.statusText);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
+  }, [trammeId, contextId]);
+
+  const addUE = async () => {
+    if (ueNameInput === '') return;
+    if (ues[layers[currentLayerIndex].Id].findIndex(ue => ue.Name === ueNameInput) !== -1) return;
+    const newUE = {
+      Name: ueNameInput,
+      TotalHourVolume_CM: ueCMVolumeInput,
+      TotalHourVolume_TD: ueTDVolumeInput,
+      DefaultHourVolumeHebdo_CM: ueCMVolumeHebdoInput,
+      DefaultHourVolumeHebdo_TD: ueTDVolumeHebdoInput,
+      ResponsibleId: ueProfResponsableInput,
+      Color: ueColorInput,
+      AmphiParDefaut: amphiParDefautInput,
+      TDParDefaut: tdParDefautInput,
+      LayerId: layers[currentLayerIndex].Id,
+    };
+    const response = await fetch('http://localhost:3000/api/ues', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ue: newUE,  user: { Id: 1 },profs_CM:[], profs_TD:[], profs_TP:[] })
+    });
+    if (response.ok) {
+      const createdUE = await response.json();
+      setUes({
+        ...ues,
+        [layers[currentLayerIndex].Id]: [...ues[layers[currentLayerIndex].Id], createdUE]
+      });
+    }
+  };
+
+  const removeUE = async (index: number) => {
+    const ueToRemove = ues[layers[currentLayerIndex].Id][index];
+    const response = await fetch(`http://localhost:3000/api/ues/${ueToRemove.Id}`, {
+      method: 'DELETE'
+    });
+    if (response.ok) {
+      setUes({
+        ...ues,
+        [layers[currentLayerIndex].Id]: ues[layers[currentLayerIndex].Id].filter((_, i) => i !== index)
+      });
+    }
+  };
+
+  
   const addLayer = async () => {
     if (layerNameInput === '') return
     const response = await fetch('http://localhost:3000/api/layers/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        tramme: {
+        layer: {
           Name: layerNameInput,
           TrammeId: trammeId,
           Color: layerColorInput || defaultColors[layers.length % defaultColors.length]
@@ -64,52 +255,6 @@ function SetupPage() {
     }
   }
 
-  const addUE = async () => {
-    if (ueNameInput === '') return
-    if (ues[layers[currentLayerIndex].Id].findIndex(ue => ue.Name === ueNameInput) !== -1) return
-    const newUE = {
-      Name: ueNameInput,
-      TotalHourVolume_CM: ueCMVolumeInput,
-      TotalHourVolume_TD: ueTDVolumeInput,
-      DefaultHourVolumeHebdo_CM: ueCMVolumeHebdoInput,
-      DefaultHourVolumeHebdo_TD: ueTDVolumeHebdoInput,
-      Color: ueColorInput,
-      DefaultRoomId: 0,
-      LayerId: 0
-    }
-    await fetch('http://localhost:3000/api/ues', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ue: newUE, user: { Id: 1 } }) })
-  }
-
-  const removeUE = async (index: number) => {
-    const ueToRemove = ues[layers[currentLayerIndex].Id][index];
-    const response = await fetch(`http://localhost:3000/api/ues/${ueToRemove.Id}`, {
-      method: 'DELETE'
-    });
-    if (response.ok) {
-      setUes({
-        ...ues,
-        [layers[currentLayerIndex].Id]: ues[layers[currentLayerIndex].Id].filter((_, i) => i !== index)
-      });
-    }
-  };
-
-  useEffect(() => { //TEMPORARY, when working with issue  #27, change this effect with your seach query. 
-    const fetchProfs = async () => {
-      const profsData = await searchProfs('');
-      setProfs(profsData);
-    };
-    fetchProfs();
-  }, []);
-
-  useEffect(() => { //TEMPORARY, when working with issue  #27, change this effect with your seach query. 
-    const fetchRooms = async () => {
-      const roomsData = await searchRooms('');
-      setProfs(roomsData);
-    };
-    fetchRooms();
-  }, []);
-
-
   useEffect(() => {
     if (setupStage === 4 + layers.length) {
       navigate(`/calendar/${trammeId}`)
@@ -127,74 +272,6 @@ function SetupPage() {
     console.log("current Layer : ", currentLayerIndex)
     console.log("current setup stage : ", setupStage)
   }, [setupStage, layers])
-
-  const searchProfs = async (query: string) => {
-    const searchQuery = query === '' ? '%all%' : query;
-    try {
-      const response = await fetch(`http://localhost:3000/api/profs/search/${contextId}/${searchQuery}`);
-      if (response.ok) {
-        const profsData = await response.json();
-        return profsData;
-      } else {
-        console.error("Error searching profs:", response.statusText);
-        return [];
-      }
-    } catch (error) {
-      console.error("Error searching profs:", error);
-      return [];
-    }
-  };
-
-  const searchRooms = async (query: string) => {
-    const searchQuery = query === '' ? '%all%' : query;
-    try {
-      const response = await fetch(`http://localhost:3000/api/rooms/search/${contextId}/${searchQuery}`);
-      if (response.ok) {
-        const roomsData = await response.json();
-        return roomsData;
-      } else {
-        console.error("Error searching rooms:", response.statusText);
-        return [];
-      }
-    } catch (error) {
-      console.error("Error searching rooms:", error);
-      return [];
-    }
-  };
-
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const trammeResponse = await fetch(`http://localhost:3000/api/trammes/${trammeId}`);
-        if (trammeResponse.ok) {
-          const trammeData = await trammeResponse.json();
-          const contextId = trammeData.contextId;
-          setContextId(contextId);
-
-          const layersResponse = await fetch(`http://localhost:3000/api/layers/tramme/${trammeId}`);
-          if (layersResponse.ok) {
-            const layersData = await layersResponse.json();
-            setCouches(layersData);
-
-            const uesResponse = await fetch(`http://localhost:3000/api/ues/tramme/${trammeId}`);
-            if (uesResponse.ok) {
-              const uesData = await uesResponse.json();
-              const uesByLayer = layersData.reduce((acc, layer) => {
-                acc[layer.Id] = uesData.filter(ue => ue.LayerId === layer.Id);
-                return acc;
-              }, {});
-              setUes(uesByLayer);
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-
-    fetchData();
-  }, [trammeId]);
 
 
 
@@ -235,68 +312,13 @@ function SetupPage() {
                 type="text"
                 id="trammeNameInput"
                 className='border-b-2 border-black select-none outline-none p-2'
-                value={layerNameInput}
-                onChange={(e) => setLayerNameInput(e.target.value)}
-                onKeyDown={async (e) => {
-                  if (e.key === 'Enter') {
-                    const response = await fetch(`http://localhost:3000/api/trammes/${trammeId}`, {
-                      method: 'PUT',
-                      headers: {
-                        'Content-Type': 'application/json'
-                      },
-                      body: JSON.stringify({ Name: e.target.value })
-                    });
-                    if (response.ok) {
-                      setLayerNameInput('');
-                      setSetupStage(setupStage + 1);
-                    } else {
-                      console.error('Failed to set tramme name');
-                    }
-                  }
-                }}
+                value={trammeNameInput}
+                onChange={(e) => handleNameInputChange(e.target.value)}
               />
             </div>
           )
         }
-        {
 
-
-          setupStage === 2 &&
-          (<>
-            <div className='flex items-center justify-between mb-8'>
-              <label htmlFor="coucheInput" className='text-xl font-semibold'>Nom de la couche : </label>
-              <input
-                type="text"
-                id="coucheInput"
-                className='border-b-2 border-black select-none outline-none p-2'
-                value={layerNameInput}
-                onChange={(e) => setLayerNameInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && e.ctrlKey && layers.length > 0) {
-                    setSetupStage(setupStage + 1);
-                  } else if (e.key === 'Enter') {
-                    addLayer();
-                  }
-                }}
-              />
-              <button className='h-8 w-16 bg-blue-500 text-white font-bold rounded-md hover:bg-blue-700 transition-all duration-300 hover:scale-105' onClick={addLayer}>+</button>
-
-            </div>
-            {layers.length > 0 ? <div>
-              {layers.map((couche, index) => {
-                return (
-                  <div className='flex items-center justify-between border-2 border-black p-2 mb-2 rounded-xl' key={index} style={{ backgroundColor: defaultColors[index % defaultColors.length] }}>
-                    <p className='ml-4'>{couche.Name}</p>
-                    <button className='mr-4' onClick={() => removeLayer(index)}>X</button>
-                  </div>
-                )
-              })}
-            </div> : <div className='mt-8 text-gray-500'>
-              <h1 className='text-gray-600 font-bold text-xl mb-4'>Aucune couche définie</h1>
-              <p>Ajoutez votre premiere couche</p><h1 className='my-2'> ou </h1><p className='text-blue-500 underline'>importez des layers d'une autre tramme</p>.
-            </div>}
-          </>)
-        }
 
         {setupStage === 2 &&
           (<>
@@ -399,6 +421,14 @@ function SetupPage() {
                     value={ueTDVolumeInput}
                     onChange={(e) => setUeTDVolumeInput(parseInt(e.target.value))}
                   />
+                  <label htmlFor="ueTPVolumeInput" className='text-xl font-semibold'>TP : </label>
+                  <input
+                    type="number"
+                    id="ueTPVolumeInput"
+                    className='border-b-2 border-black select-none outline-none p-2'
+                    value={ueTPVolumeInput}
+                    onChange={(e) => setUeTPVolumeInput(parseInt(e.target.value))}
+                  />
                 </div>
 
                 <div className='flex items-center justify-between mb-4'>
@@ -411,7 +441,7 @@ function SetupPage() {
                     id="ueCMProfInput"
                     className='border-b-2 border-black select-none outline-none p-2'
                     value={ueCMProfInput}
-                    onChange={(e) => setUeCMProfInput(e.target.value)}
+                    onChange={(e) => setUeCMProfInput(parseInt(e.target.value))}
                   >
                     <option value="">Sélectionnez un prof</option>
                     {profs.map((prof, index) => (
@@ -425,7 +455,21 @@ function SetupPage() {
                     id="ueTDProfInput"
                     className='border-b-2 border-black select-none outline-none p-2'
                     value={ueTDProfInput}
-                    onChange={(e) => setUeTDProfInput(e.target.value)}
+                    onChange={(e) => setUeTDProfInput(parseInt(e.target.value))}
+                  >
+                    <option value="">Sélectionnez un prof</option>
+                    {profs.map((prof, index) => (
+                      <option key={index} value={prof.Id}>
+                        {prof.FirstName} {prof.LastName}
+                      </option>
+                    ))}
+                  </select>
+                  <label htmlFor="ueTPProfInput" className='text-xl font-semibold'>Prof TP : </label>
+                  <select
+                    id="ueTPProfInput"
+                    className='border-b-2 border-black select-none outline-none p-2'
+                    value={ueTPProfInput}
+                    onChange={(e) => setUeTPProfInput(parseInt(e.target.value))}
                   >
                     <option value="">Sélectionnez un prof</option>
                     {profs.map((prof, index) => (
@@ -457,25 +501,45 @@ function SetupPage() {
                     value={ueTDVolumeHebdoInput}
                     onChange={(e) => setUeTDVolumeHebdoInput(parseInt(e.target.value))}
                   />
+                  <label htmlFor="ueTPVolumeHebdoInput" className='text-xl font-semibold'> TP : </label>
+                  <input
+                    type="number"
+                    id="ueTPVolumeHebdoInput"
+                    className='border-b-2 border-black select-none outline-none p-2'
+                    value={ueTPVolumeHebdoInput}
+                    onChange={(e) => setUeTPVolumeHebdoInput(parseInt(e.target.value))}
+                  />
                 </div>
 
                 <div className='flex items-center justify-between mb-4'>
                   <label htmlFor="amphiParDefautInput" className='text-xl font-semibold'>Amphi par défaut : </label>
-                  <input
-                    type="text"
-                    id="amphiParDefautInput"
-                    className='border-b-2 border-black select-none outline-none p-2'
-                    value={amphiParDefautInput}
-                    onChange={(e) => setAmphiParDefautInput(e.target.value)}
-                  />
+                  <select
+                  id="amphiParDefautInput"
+                  className='border-b-2 border-black select-none outline-none p-2'
+                  value={amphiParDefautInput}
+                  onChange={(e) => setAmphiParDefautInput(e.target.value)}
+                  >
+                  <option value="">Sélectionnez une salle</option>
+                  {rooms.map((room, index) => (
+                    <option key={index} value={room.Id}>
+                    {room.Name}
+                    </option>
+                  ))}
+                  </select>
                   <label htmlFor="tdParDefautInput" className='text-xl font-semibold'>TD par défaut : </label>
-                  <input
-                    type="text"
-                    id="tdParDefautInput"
-                    className='border-b-2 border-black select-none outline-none p-2'
-                    value={tdParDefautInput}
-                    onChange={(e) => setTdParDefautInput(e.target.value)}
-                  />
+                  <select
+                  id="tdParDefautInput"
+                  className='border-b-2 border-black select-none outline-none p-2'
+                  value={tdParDefautInput}
+                  onChange={(e) => setTdParDefautInput(e.target.value)}
+                  >
+                  <option value="">Sélectionnez une salle</option>
+                  {rooms.map((room, index) => (
+                    <option key={index} value={room.Id}>
+                    {room.Name}
+                    </option>
+                  ))}
+                  </select>
                 </div>
 
 

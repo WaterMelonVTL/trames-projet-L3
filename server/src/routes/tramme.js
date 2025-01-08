@@ -121,7 +121,7 @@ router.get('/:id', async (req, res) => {
 // Update a tramme by ID
 router.put('/:id', async (req, res) => {
     const id = req.params.id;
-
+    console.log("updating context with id: ", id);
     if (!id) {
         res.status(400).send('Id is required');
         return;
@@ -133,9 +133,24 @@ router.put('/:id', async (req, res) => {
         console.error(trammeError);
         res.status(500).send('Internal Server Error');
         return;
+
+    }if (!trammeData) {
+        res.status(404).send('Context not found');
+        return;
     }
 
-    return res.json(trammeData);
+    console.log("updating context with data: ", req.body);
+
+    const [updateError, updatedTramme] = await catchError(trammeData.update(req.body));
+
+    if (updateError) {
+        console.error(updateError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+
+    console.log(updatedTramme);
+    return res.json(updatedTramme);
 });
 
 // Delete a tramme by ID
