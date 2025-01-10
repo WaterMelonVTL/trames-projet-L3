@@ -15,6 +15,7 @@ function SetupContexte() {
     const [salles, setSalles] = React.useState<Room[]>([]);
     const [salleNameInput, setSalleNameInput] = React.useState<string>('');
     const [salleInformatiséeInput, setSalleInformatiséeInput] = React.useState<boolean>(false);
+    const [isAmphi, setIsAmphi] = React.useState<boolean>(false);
     const [salleCapacityInput, setSalleCapacityInput] = React.useState<number | undefined>(undefined);
 
     const addProf = async () => {
@@ -85,6 +86,7 @@ function SetupContexte() {
             Name: salleNameInput,
             Informatised: salleInformatiséeInput,
             Capacity: salleCapacityInput,
+            Amphiteatre: isAmphi,
             ContextId: contextID
         };
         
@@ -233,6 +235,14 @@ function SetupContexte() {
                                 type="checkbox"
                                 checked={salleInformatiséeInput}
                                 onChange={() => setSalleInformatiséeInput(!salleInformatiséeInput)}
+                            />
+                        </div>
+                        <div className='flex items-center mb-2'>
+                            <label className='mr-2'>Amphiteatre:</label>
+                            <input
+                                type="checkbox"
+                                checked={isAmphi}
+                                onChange={() => setIsAmphi(!isAmphi)}
                             />
                         </div>
                         <input

@@ -174,6 +174,11 @@ const Room = sequelize.define('Room', {
         type: DataTypes.STRING,
         allowNull: false,
     },
+    Amphiteatre: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
     Informatised: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
@@ -228,6 +233,24 @@ const UE = sequelize.define('UE', {
         type: DataTypes.INTEGER,
         allowNull: false
     },
+    AmphiByDefaultId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Room,
+            key: 'Id'
+        }
+    },     
+    TP_NeedInformaticRoom: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
+    TD_NeedInformaticRoom: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
     ResponsibleId: {
         type: DataTypes.INTEGER,
         allowNull: false,
@@ -239,14 +262,6 @@ const UE = sequelize.define('UE', {
     Color: {
         type: DataTypes.STRING,
         allowNull: false
-    },
-    DefaultRoomId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: Room,
-            key: 'Id'
-        }
     },
     LayerId: {
         type: DataTypes.INTEGER,
