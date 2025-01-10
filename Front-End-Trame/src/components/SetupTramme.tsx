@@ -45,7 +45,6 @@ function SetupPage() {
 
  
   const [amphiParDefautInput, setAmphiParDefautInput] = React.useState<string>('')
-  const [tdParDefautInput, setTdParDefautInput] = React.useState<string>('')
   //_____________________________________________________________________________________________________________
 
   const defaultColors = ['#FFB3BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF']
@@ -181,16 +180,25 @@ function SetupPage() {
 
   const addUE = async () => {
     if (ueNameInput === '') return;
+    console.log("Adding UE __________________________________________________________")
+    console.log("layers:", layers)
+    console.log("currentLayerIndex:", currentLayerIndex)
+    console.log("layers[currentLayerIndex].Id:", layers[currentLayerIndex].Id)
+    console.log("ues:", ues)
+    console.log("ues[currentLayerIndex]:", ues[layers[currentLayerIndex].Id])
+    console.log("__________________________________________________________")
     if (ues[layers[currentLayerIndex].Id].findIndex(ue => ue.Name === ueNameInput) !== -1) return;
     const newUE = {
       Name: ueNameInput,
       TotalHourVolume_CM: ueCMVolumeInput,
       TotalHourVolume_TD: ueTDVolumeInput,
+      TotalHourVolume_TP : ueTPVolumeInput,
       DefaultHourVolumeHebdo_CM: ueCMVolumeHebdoInput,
       DefaultHourVolumeHebdo_TD: ueTDVolumeHebdoInput,
+      DefaultHourVolumeHebdo_TP: ueTPVolumeHebdoInput,
       ResponsibleId: ueProfResponsableInput,
       Color: ueColorInput,
-      AmphiParDefaut: amphiParDefautInput,
+      AmphiByDefaultId: amphiParDefautInput,
       TDParDefaut: tdParDefautInput,
       LayerId: layers[currentLayerIndex].Id,
     };
@@ -526,20 +534,7 @@ function SetupPage() {
                     </option>
                   ))}
                   </select>
-                  <label htmlFor="tdParDefautInput" className='text-xl font-semibold'>TD par défaut : </label>
-                  <select
-                  id="tdParDefautInput"
-                  className='border-b-2 border-black select-none outline-none p-2'
-                  value={tdParDefautInput}
-                  onChange={(e) => setTdParDefautInput(e.target.value)}
-                  >
-                  <option value="">Sélectionnez une salle</option>
-                  {rooms.map((room, index) => (
-                    <option key={index} value={room.Id}>
-                    {room.Name}
-                    </option>
-                  ))}
-                  </select>
+                  
                 </div>
 
 
@@ -551,7 +546,7 @@ function SetupPage() {
               </div>
 
             </div>
-            {ues[layers[currentLayerIndex].Id].length > 0 ? <div>
+            {ues[layers[currentLayerIndex].Id] && ues[layers[currentLayerIndex].Id].length > 0 ? <div>
               {ues[layers[currentLayerIndex].Id].map((ue, index) => {
                 return (
                   <div className='flex items-center justify-between border-2 border-black p-2 mb-2 rounded-xl' key={index} style={{ backgroundColor: ue.Color }}>
