@@ -103,7 +103,6 @@ function SetupContexte() {
             console.error('Failed to add salle');
         }
         setSalleNameInput('');
-        setSalleInformatiséeInput(false);
         setSalleCapacityInput(undefined);
     };
 
