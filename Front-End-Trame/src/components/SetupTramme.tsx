@@ -199,7 +199,6 @@ function SetupPage() {
       ResponsibleId: ueProfResponsableInput,
       Color: ueColorInput,
       AmphiByDefaultId: amphiParDefautInput,
-      TDParDefaut: tdParDefautInput,
       LayerId: layers[currentLayerIndex].Id,
     };
     const response = await fetch('http://localhost:3000/api/ues', {
