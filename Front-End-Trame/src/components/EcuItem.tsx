@@ -1,18 +1,43 @@
 import React from 'react';
-import {ECU} from '../types/types';
+import { UE, Course } from '../types/types';
+import { useState, useEffect } from 'react';
 
+function EcuItem(props: { darken: boolean, type: string, ueID: number, onHover: () => void, onLeave: () => void, setHoveredItem: (index:number) => void , setCurrentEcu: (ecu: Course | null) => void }) {
+  const [ue, setUE] = useState<UE | null>(null);
+  useEffect(() => {
+    fetch(`http://localhost:3000/api/ues/${props.ueID}`)
+      .then(res => res.json())
+      .then(data => setUE(data));
+  }, [props.ueID]);
 
-function EcuItem(props: { darken: boolean, type: string, ecu: ECU, onHover: () => void, onLeave: () => void , onMouseDown: ()=> void} ) {
-  const ecu = props.ecu;
+  if (ue === null) {
+    return <div className='w-[90%] h-12 rounded-md shadow-md flex select-none items-center justify-between p-4 mb-4 border-2 border-black cursor-pointer transition-colors duration-300 hover:shadow-lg hover:scale-105'
+      style={{ backgroundColor: !props.darken ? '#f4f4f4' : darkenColor('#f4f4f4', 0.2) }}>
 
+      <h1 className='text-xl'>Chargement...</h1>
+    </div>;
+  }
   return (
     <div className='w-[90%] h-12 rounded-md shadow-md flex select-none items-center justify-between p-4 mb-4 border-2 border-black cursor-pointer transition-colors duration-300 hover:shadow-lg hover:scale-105'
-      style={{ backgroundColor: !props.darken ? ecu.color : darkenColor(ecu.color, 0.2) }}
+      style={{ backgroundColor: !props.darken ? ue?.Color : darkenColor(ue.Color, 0.2) }}
       onMouseEnter={props.onHover}
       onMouseLeave={props.onLeave}
-      onMouseDown={props.onMouseDown}
+      onMouseDown={() => {
+        props.setCurrentEcu({
+          Id: -1,
+          UEId: ue.Id,
+          Date: new Date(),
+          StartHour: '08:00',
+          length: 1.5,
+          Type: props.type,
+          TrammeId: -1,
+          RoomId: -1,
+          LayerId: -1
+        });
+        props.setHoveredItem(-1);
+      }}
     >
-      <h1 className='text-xl'>{ecu.name} ({props.type})</h1>
+      <h1 className='text-xl'>{ue.Name} ({props.type})</h1>
     </div>
   );
 }

@@ -1,32 +1,10 @@
 import { useState } from 'react';
 import CoursItem from './CoursItem';
-import { ECU } from '../types/types';
+import { UE, Course } from '../types/types';
 
-type CoursFrame = {
-    name: string,
-    enseignant: string[],
-    type: string,
-    color: string,
-    salle: string,
-    ecu: ECU
-};
 
-interface CalendarEvent {
-    id: number;
-    nom: string;
-    type: string;
-    enseignant: string;
-    salle: string;
-    jour: number;
-    start: number;
-    durée: number;
-    offset: number;
-    couleur: string;
-    groupe: string[];
-    date: string;
-}
 
-function CalendarFrame(props: { currentEcu: CoursFrame | null, setCurrentEcu: (ecu: CoursFrame | null) => void }) {
+function CalendarFrame(props: { currentCours: CoursFrame | null, setCurrentEcu: (ecu: Course | null) => void }) {
     const daysOfWeek = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
     const rows = Array.from({ length: 7 }, (_, i) => i + 1);
     const crenaux = [{ 'start': '8h', 'end': '9h30' }, { 'start': '9h45', 'end': '11h15' }, { 'start': '11h30', 'end': '13h' }, { 'start': '13h15', 'end': '14h45' }, { 'start': '15h00', 'end': '16h30' }, { 'start': '16h45', 'end': '18h15' }, { 'start': '18h30', 'end': '20h00' }];
@@ -79,8 +57,8 @@ function CalendarFrame(props: { currentEcu: CoursFrame | null, setCurrentEcu: (e
                                     style={{ height: `${creneauHeight}rem` }}
                                     onClick={() => { console.log(`vous avez clické sur ${day} ${crenaux[colIndex].start}`) }}
                                     onMouseUp={() => {
-                                        if (props.currentEcu) {
-                                            AddCours(props.currentEcu, index, colIndex);
+                                        if (props.currentCours) {
+                                            AddCours(props.currentCours, index, colIndex);
                                         }
                                     }}
                                     onContextMenu={(e) => { e.preventDefault(); console.log(`right click sur ${day} ${crenaux[colIndex].start}`) }} >

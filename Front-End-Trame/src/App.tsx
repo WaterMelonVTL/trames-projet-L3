@@ -20,7 +20,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
-          <Route path='/calendar' element={<CalendarPage data={data} />} />
+          <Route path='/calendar/:id' element={<CalendarPage />} />
           <Route path="/edit">
             <Route path="context/:id" element={<SetupContexte />} />
             <Route path="tramme/:id" element={<SetupTramme  />} />

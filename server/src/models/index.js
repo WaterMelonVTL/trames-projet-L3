@@ -380,6 +380,10 @@ const Course = sequelize.define('Course', {
             model: Layer,
             key: 'Id'
         }
+    },
+    Type: {
+        type: DataTypes.STRING,
+        allowNull: false
     }
 });
 

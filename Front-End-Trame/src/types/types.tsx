@@ -60,12 +60,16 @@ export type UE = {
     Color: string;
     DefaultRoomId: number;
     LayerId: number;
+    AmphiByDefaultId: number;
+    TP_NeedInformaticRoom: boolean;
+    TD_NeedInformaticRoom: boolean;
 };
 
 export type Course = {
     Id: number;
     UEId: number;
-    Date: string;
+    Type: string;
+    Date: Date;
     StartHour: string;
     length: number;
     TrammeId: number;
