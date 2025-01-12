@@ -18,16 +18,7 @@ router.post('/', async (req, res) => {
     return res.json(courseData);
 });
 
-// Get all Courses
-router.get('/', async (req, res) => {
-    const [courseError, courseData] = await catchError(Course.findAll());
-    if (courseError) {
-        console.error(courseError);
-        res.status(500).send('Internal Server Error');
-        return;
-    }
-    return res.json(courseData);
-});
+
 
 // Search for Courses by layer ID and search query
 router.get('/search/layer/:Layer/:searchQuery', async (req, res) => {
@@ -155,6 +146,17 @@ router.get('/:id', async (req, res) => {
         return;
     }
     return res.json(course);
+});
+
+// Get all Courses
+router.get('/', async (req, res) => {
+    const [courseError, courseData] = await catchError(Course.findAll());
+    if (courseError) {
+        console.error(courseError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+    return res.json(courseData);
 });
 
 // Update a Course by ID
