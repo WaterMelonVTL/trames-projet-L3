@@ -158,10 +158,10 @@ function SetupPage() {
             if (uesResponse.ok) {
               const uesData = await uesResponse.json();
               console.log("uesData:", uesData);
-              const uesByLayer = layersData.reduce((acc, layer) => {
-                acc[layer.Id] = uesData.filter(ue => ue.LayerId === layer.Id);
+              const uesByLayer = layersData.reduce((acc: { [key: string]: UE[] | number[] }, layer: Layer) => { //Des fois typescript me donne envie de me jetter d'un pont (autocompleté par copilot mdr) 
+                acc[layer.Id] = uesData.filter((ue: UE) => ue.LayerId === layer.Id);
                 return acc;
-              }, {});
+              }, {} as { [key: string]: UE[] | number[] });
               setUes(uesByLayer);
             } else {
               console.error("Error fetching UEs:", uesResponse.statusText);
