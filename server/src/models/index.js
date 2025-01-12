@@ -357,6 +357,15 @@ const Course = sequelize.define('Course', {
         type: DataTypes.INTEGER,
         allowNull: false
     },
+    ProfId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Prof,
+            key: 'Id'
+        }
+    },
+    
     TrammeId: {
         type: DataTypes.INTEGER,
         allowNull: false,

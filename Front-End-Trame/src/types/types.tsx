@@ -72,6 +72,7 @@ export type Course = {
     Date: Date;
     StartHour: string;
     length: number;
+    ProfId: number;
     TrammeId: number;
     RoomId: number;
     LayerId: number;
