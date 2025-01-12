@@ -49,11 +49,13 @@ function CalendarFrame(props: { currentCours: Course | null, setCurrentEcu: (ecu
                 method: 'POST',
                 body: JSON.stringify(
                     {
-                        'UEId': ecuId,
-                        'Type': Type,
-                        'Date': getDateForDay(jour),
-                        'StartHour': formatTime(crenaux[start].start),
-                        'length': 1.5
+                        course: {
+                            'UEId': ecuId,
+                            'Type': Type,
+                            'Date': getDateForDay(jour),
+                            'StartHour': formatTime(crenaux[start].start),
+                            'length': 1.5
+                        }, user: { Id: 1 }
                     }),
                 headers: { 'Content-Type': 'application/json' }
             })
