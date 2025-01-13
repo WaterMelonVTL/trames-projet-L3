@@ -31,8 +31,9 @@ function EcuItem(props: { darken: boolean, type: string, ueID: number, onHover: 
           length: 1.5,
           Type: props.type,
           TrammeId: -1,
-          RoomId: -1,
-          LayerId: -1
+          RoomId: ue.AmphiByDefaultId, // à changer plus tard.... La salle doit etre définie par l'emploi du temps cf ADDCOURS
+          LayerId: -1,
+          ProfId: ue.ResponsibleId // à changer plus tard.... On peut recuperer le prof de l'ue par type dans la DB. à fetcher
         });
         props.setHoveredItem(-1);
       }}

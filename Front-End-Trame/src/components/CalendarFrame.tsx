@@ -4,7 +4,7 @@ import { Course } from '../types/types';
 
 
 
-function CalendarFrame(props: { currentCours: Course | null, setCurrentEcu: (ecu: Course | null) => void }) {
+function CalendarFrame(props: { currentCours: Course | null, setCurrentEcu: (ecu: Course | null) => void, AddCours: (cours: Course, date: string, time: string) => void }) {
     const daysOfWeek = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
     const rows = Array.from({ length: 7 }, (_, i) => i + 1);
     const crenaux = [{ 'start': '8h', 'end': '9h30' }, { 'start': '9h45', 'end': '11h15' }, { 'start': '11h30', 'end': '13h' }, { 'start': '13h15', 'end': '14h45' }, { 'start': '15h00', 'end': '16h30' }, { 'start': '16h45', 'end': '18h15' }, { 'start': '18h30', 'end': '20h00' }];
@@ -35,31 +35,7 @@ function CalendarFrame(props: { currentCours: Course | null, setCurrentEcu: (ecu
         return timeDate >= startDate && timeDate < endDate;
     }
 
-    async function AddCours(cours: Course, jour: number, start: number) {
-        const ecuId = cours.UEId;
-        const Type = cours.Type;
-        if (start === 6 || jour === 5) {
-            alert("Etes vous sûr de vouloir vous mettre les élèves à dos?")
-            if (!window.confirm("Etes vous sûr de vouloir vous mettre les élèves à dos?")) {
-                return;
-            }
-        }
-        await fetch(`http://localhost:3000/api/cours/`,
-            {
-                method: 'POST',
-                body: JSON.stringify(
-                    {
-                        course: {
-                            'UEId': ecuId,
-                            'Type': Type,
-                            'Date': getDateForDay(jour),
-                            'StartHour': formatTime(crenaux[start].start),
-                            'length': 1.5
-                        }, user: { Id: 1 }
-                    }),
-                headers: { 'Content-Type': 'application/json' }
-            })
-    }
+
 
     useEffect(() => {
         fetch('http://localhost:3000/api/cours')
@@ -143,7 +119,7 @@ function CalendarFrame(props: { currentCours: Course | null, setCurrentEcu: (ecu
                                         }}
                                         onMouseUp={() => {
                                             if (props.currentCours) {
-                                                AddCours(props.currentCours, index, colIndex);
+                                                props.AddCours(props.currentCours, getDateForDay(index), formatTime(crenaux[colIndex].start));
                                             }
                                         }}
                                         onContextMenu={(e) => {

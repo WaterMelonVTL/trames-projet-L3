@@ -9,6 +9,7 @@ const router = express.Router();
 // Create a new Course
 router.post('/', async (req, res) => {
     const { course, user } = req.body;
+    console.log(course);
     const [courseError, courseData] = await catchError(Course.create(course));
     if (courseError) {
         console.error(courseError);

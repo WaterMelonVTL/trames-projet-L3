@@ -42,10 +42,10 @@ function CalendarPage() {
             if (uesResponse.ok) {
               const uesData = await uesResponse.json();
               console.log("uesData:", uesData);
-              const uesByLayer = layersData.reduce((acc, layer) => {
-                acc[layer.Id] = uesData.filter(ue => ue.LayerId === layer.Id);
+              const uesByLayer = layersData.reduce((acc: { [key: string]: UE[] | number[] }, layer: Layer) => { //Des fois typescript me donne envie de me jetter d'un pont (autocompleté par copilot mdr) 
+                acc[layer.Id] = uesData.filter((ue: UE) => ue.LayerId === layer.Id);
                 return acc;
-              }, {});
+              }, {} as { [key: string]: UE[] | number[] });
               setUes(uesByLayer);
             } else {
               console.error("Error fetching UEs:", uesResponse.statusText);
@@ -60,6 +60,29 @@ function CalendarPage() {
     };
     fetchData();
   }, [trammeId]);
+
+  async function AddCours(cours: Course, date: string, time: string) {
+    await fetch(`http://localhost:3000/api/cours/`,
+      {
+        method: 'POST',
+        body: JSON.stringify(
+          {
+            course: {
+              'UEId': cours.UEId,
+              'Type': cours.Type,
+              'Date': date,
+              'StartHour': time,
+              'TrammeId': trammeId,
+              'LayerId': currentLayerId,
+              'ProfId': cours.ProfId,
+              'length': cours.length,
+              'RoomId': cours.RoomId // à remplacer par la fonction qui trouve la salle libre en fonction de l'heure et du type de cours
+
+            }, user: { Id: 1 }
+          }),
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }
 
 
 
@@ -80,7 +103,7 @@ function CalendarPage() {
       onMouseUp={() => { setCurrentEcu(null) }}>
 
       [<CalendarCoursSelection setCurrentEcu={setCurrentEcu} ecus={currentLayerId ? ues[currentLayerId] : []} />]
-      <CalendarFrame setCurrentEcu={setCurrentEcu} currentCours={currentCours} />
+      <CalendarFrame setCurrentEcu={setCurrentEcu} currentCours={currentCours} AddCours={AddCours} />
       {
         currentCours &&
         <div className="absolute z-[100] -translate-x-1/2 translate-y-1/2 text-black text-xl w-80" style={{ top: `${mousePosition.y}px`, left: `${mousePosition.x}px` }}>
