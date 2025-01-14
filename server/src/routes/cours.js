@@ -2,7 +2,8 @@ import express from 'express';
 import dotenv from 'dotenv';
 import { catchError } from '../utils/HandleErrors.js';
 import { Course, Sequelize, sequelize } from '../models/index.js';
-
+import chalk from 'chalk';
+import {Op} from 'sequelize';
 dotenv.config();
 const router = express.Router();
 
@@ -133,6 +134,30 @@ router.get('/UE/:id', async (req, res) => {
         console.error(courseError);
         res.status(500).send('Internal Server Error');
         return;
+    }
+    console.log(chalk.green(courses));
+    return res.json(courses);
+});
+
+//get amm Courses by its date
+router.get('/date/:TrammeId/:date', async (req, res) => {
+    const trammeId = req.params.TrammeId;
+    const date = req.params.date;
+    console.log(chalk.green(date));
+    console.log(chalk.green(trammeId));
+    const [courseError, courses] = await catchError(Course.findAll({
+        where: {
+            [Op.and]: [
+                sequelize.where(sequelize.fn('DATE', sequelize.col('Date')), date),
+                { TrammeId: trammeId }
+            ]
+        }
+    }));
+    
+    if (courseError) {
+        console.error('Error fetching courses:', courseError);
+    } else {
+        console.log(courses);
     }
     return res.json(courses);
 });
