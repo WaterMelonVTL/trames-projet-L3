@@ -16,10 +16,29 @@
         "type": "shell",
         "command": "cd .\\server\\src\\ ; node index.js",
         "problemMatcher": [],
+        "isBackground": false,
         "presentation": {
           "reveal": "always",
           "panel": "dedicated"
         }
+      },
+      {
+        "label": "Kill Server",
+        "type": "shell",
+        "command": "pkill -f 'node index.js'", // On Linux/macOS
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "silent",
+          "panel": "dedicated"
+        },
+        "windows": {
+          "command": "taskkill /IM node.exe /F" // For Windows
+        }
+      },
+      {
+        "label": "Restart Server",
+        "dependsOn": ["Kill Server", "Start Both"],
+        "problemMatcher": []
       },
       {
         "label": "Start Both",
