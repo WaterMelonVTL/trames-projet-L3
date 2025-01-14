@@ -1,0 +1,34 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Start Frontend",
+        "type": "shell",
+        "command": "cd .\\Front-End-Trame\\; npm run dev",
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always",
+          "panel": "dedicated"
+        }
+      },
+      {
+        "label": "Start Backend",
+        "type": "shell",
+        "command": "cd .\\server\\src\\ ; node index.js",
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always",
+          "panel": "dedicated"
+        }
+      },
+      {
+        "label": "Start Both",
+        "dependsOn": ["Start Frontend", "Start Backend"],
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always"
+        }
+      }
+    ]
+  }
+  
