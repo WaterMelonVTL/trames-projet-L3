@@ -4,23 +4,25 @@ import { Course } from '../types/types';
 
 
 
-function CalendarFrame(props: { currentCours: Course | null, setCurrentEcu: (ecu: Course | null) => void, AddCours: (cours: Course, date: string, time: string) => void }) {
+function CalendarFrame(props: {date:Date, fetchedCourse:Course[], currentCours: Course | null, setCurrentEcu: (ecu: Course | null) => void, trammeId:string|undefined, AddCours: (cours: Course, date: string, time: string) => void }) {
     const daysOfWeek = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
     const rows = Array.from({ length: 7 }, (_, i) => i + 1);
     const crenaux = [{ 'start': '8h', 'end': '9h30' }, { 'start': '9h45', 'end': '11h15' }, { 'start': '11h30', 'end': '13h' }, { 'start': '13h15', 'end': '14h45' }, { 'start': '15h00', 'end': '16h30' }, { 'start': '16h45', 'end': '18h15' }, { 'start': '18h30', 'end': '20h00' }];
-    const [cours, setCours] = useState<Course[]>([])
+    const [cours, setCours] = useState<Course[]>(props.fetchedCourse)
     const creneauHeight = 6;
     const breakHeight = creneauHeight * 15 / 90;
 
-
-    const [defaultDate, setDefaultDate] = useState<Date>(new Date('2001-01-01')); // Starting date
-
+    const defaultDate = props.date;
 
 
-    function getDateForDay(jour: number): string {
+
+
+
+
+    function getDateForDay(jour: number): Date {
         const date = new Date(defaultDate);
         date.setDate(defaultDate.getDate() + jour);
-        return date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+        return date; // Format as YYYY-MM-DD
     }
 
     function formatTime(start: string): string {
@@ -28,23 +30,18 @@ function CalendarFrame(props: { currentCours: Course | null, setCurrentEcu: (ecu
         return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
     }
 
+
+
     function isTimeInCreneau(time: string, start: string, end: string): boolean {
-        const timeDate = new Date(`1970-01-01T${time}:00`);
-        const startDate = new Date(`1970-01-01T${formatTime(start)}:00`);
-        const endDate = new Date(`1970-01-01T${formatTime(end)}:00`);
+
+        const timeDate = new Date(`1970-01-01T${time}`);
+        const startDate = new Date(`1970-01-01T${formatTime(start)}`);
+        const endDate = new Date(`1970-01-01T${formatTime(end)}`);
         return timeDate >= startDate && timeDate < endDate;
     }
 
 
 
-    useEffect(() => {
-        fetch('http://localhost:3000/api/cours')
-            .then(response => response.json())
-            .then(data => setCours(data))
-            .catch(error => {
-                console.error('Error:', error);
-            });
-    }, []);
 
     function RemoveCours(id: number) {
         fetch(`http://localhost:3000/api/cours/${id}`, { method: 'DELETE' })
@@ -60,30 +57,11 @@ function CalendarFrame(props: { currentCours: Course | null, setCurrentEcu: (ecu
             });
     }
 
-    function getMonday(date: Date): Date {
-        const day = date.getDay();
-        const diff = date.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is Sunday
-        return new Date(date.setDate(diff));
-    }
-
-    async function fetchClassesForWeek(monday: Date) {
-        const classes = [];
-        for (let i = 0; i < 7; i++) {
-            const date = new Date(monday);
-            date.setDate(monday.getDate() + i);
-            const response = await fetch(`http://localhost:3000/api/classes?date=${date.toISOString().split('T')[0]}`);
-            const dayClasses = await response.json();
-            classes.push(dayClasses);
-        }
-        return classes;
-    }
-
     useEffect(() => {
-        fetchClassesForWeek(getMonday(new Date())).then(classes => {
-            setCours(classes.flat());
-            console.log(classes);
-        });
-    }, []);
+        console.log("cours from jsp ou:", cours);
+    }, [cours]);
+
+
 
     return (
         <div className="w-[80vw] text-black select-none ">
@@ -119,7 +97,7 @@ function CalendarFrame(props: { currentCours: Course | null, setCurrentEcu: (ecu
                                         }}
                                         onMouseUp={() => {
                                             if (props.currentCours) {
-                                                props.AddCours(props.currentCours, getDateForDay(index), formatTime(crenaux[colIndex].start));
+                                                props.AddCours(props.currentCours, getDateForDay(index).toISOString().split('T')[0], formatTime(crenaux[colIndex].start));
                                             }
                                         }}
                                         onContextMenu={(e) => {
@@ -129,16 +107,19 @@ function CalendarFrame(props: { currentCours: Course | null, setCurrentEcu: (ecu
                                     >
                                         {cours.map((cours) => {
                                             const courseDate = new Date(cours.Date); // Convert string to Date object
-                                            const courseStartTime = formatTime(cours.StartHour);
-
+                                            const courseStartTime =  cours.StartHour;
+                                            if (courseDate.toDateString() !== currentDate.toDateString()) {
+                                                return null;
+                                            }
                                             if (
-                                                courseDate.toDateString() === currentDate &&
                                                 isTimeInCreneau(courseStartTime, crenaux[colIndex].start, crenaux[colIndex].end)
                                             ) {
+                                                
                                                 return (
                                                     <CoursItem
-                                                        key={cours.Id}
+                                                        key={cours.Id.toString()}
                                                         cours={cours}
+                                                        créneau={crenaux[colIndex]}
                                                         onMouseDown={(e) => {
                                                             if (e.button === 0) {
                                                                 // Only listen to left click

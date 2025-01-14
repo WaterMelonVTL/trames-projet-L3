@@ -15,8 +15,12 @@ function CalendarPage() {
   const [contextId, setContextId] = useState<number | null>(null);
   const [trammeName, setTrammeName] = useState<string | null>(null);
   const [layers, setLayers] = useState<Layer[]>([]);
+  const [cours, setCours] = useState<Course[]>([]);
   const [currentLayerId, setCurrentLayerId] = useState<number | null>(null);
   const [ues, setUes] = React.useState<{ [key: number]: UE[] }>({})
+
+  const [defaultDate, setDefaultDate] = useState<Date>(new Date('2001-01-01')); // Starting date
+
 
 
 
@@ -61,28 +65,66 @@ function CalendarPage() {
     fetchData();
   }, [trammeId]);
 
-  async function AddCours(cours: Course, date: string, time: string) {
+  async function AddCours(course: Course, date: string, time: string) {
+    console.log("called add cours");
     await fetch(`http://localhost:3000/api/cours/`,
       {
         method: 'POST',
         body: JSON.stringify(
           {
             course: {
-              'UEId': cours.UEId,
-              'Type': cours.Type,
+              'UEId': course.UEId,
+              'Type': course.Type,
               'Date': date,
               'StartHour': time,
               'TrammeId': trammeId,
               'LayerId': currentLayerId,
-              'ProfId': cours.ProfId,
-              'length': cours.length,
-              'RoomId': cours.RoomId // à remplacer par la fonction qui trouve la salle libre en fonction de l'heure et du type de cours
+              'ProfId': course.ProfId,
+              'length': course.length,
+              'RoomId': course.RoomId // à remplacer par la fonction qui trouve la salle libre en fonction de l'heure et du type de cours
 
             }, user: { Id: 1 }
           }),
         headers: { 'Content-Type': 'application/json' }
       })
+      .then(response => {
+        if (response.ok) {
+          fetch(`http://localhost:3000/api/cours/date/${trammeId}/${date}`)
+            .then(res => res.json())
+
+            .then(data => setCours([...cours, data[data.length - 1]]));
+        } else {
+          console.error('Failed to add the course');
+        }
+      })
   }
+
+  function getMonday(date: Date): Date { // will be usefull later
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is Sunday
+    return new Date(date.setDate(diff));
+  }
+
+  async function fetchClassesForWeek(monday: Date) {
+    const classes = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + i);
+      const response = await fetch(`http://localhost:3000/api/cours/date/${trammeId}/${date.toISOString().split('T')[0]}`);
+      const dayClasses = await response.json();
+      classes.push(dayClasses);
+    }
+    return classes;
+  }
+
+
+
+  useEffect(() => {
+    fetchClassesForWeek(defaultDate).then(classes => {
+      setCours(classes.flat());
+      console.log("classes:", classes);
+    });
+  }, [defaultDate]);
 
 
 
@@ -103,7 +145,7 @@ function CalendarPage() {
       onMouseUp={() => { setCurrentEcu(null) }}>
 
       [<CalendarCoursSelection setCurrentEcu={setCurrentEcu} ecus={currentLayerId ? ues[currentLayerId] : []} />]
-      <CalendarFrame setCurrentEcu={setCurrentEcu} currentCours={currentCours} AddCours={AddCours} />
+      <CalendarFrame setCurrentEcu={setCurrentEcu} currentCours={currentCours} AddCours={AddCours} fetchedCourse={cours} trammeId={trammeId} date={defaultDate} />
       {
         currentCours &&
         <div className="absolute z-[100] -translate-x-1/2 translate-y-1/2 text-black text-xl w-80" style={{ top: `${mousePosition.y}px`, left: `${mousePosition.x}px` }}>
