@@ -31,4 +31,10 @@
       }
     ]
   }
+  // Placez ce code dans le fichier keybindings.json : CTRL + SHIFT + P -> Open Keyboard Shortcuts (JSON)
+  //     {
+  //  "key": "ctrl+shift+r",
+  //  "command": "workbench.action.tasks.runTask",
+  //  "args": "Start Both"
+ // }
   
