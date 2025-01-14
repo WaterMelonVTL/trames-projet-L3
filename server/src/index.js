@@ -34,6 +34,21 @@ app.use('/api/UEs', UERoutes);
 app.use('/api/cours', coursRoutes); 
 app.use('/api/rooms', roomsRoutes);
 
+let requestCount = 0;
+
+// Middleware to count requests
+app.use((req, res, next) => {
+    requestCount++;
+    next();
+});
+
+// Function to print the number of requests every minute
+setInterval(() => {
+    console.log(`Number of requests in the last minute: ${requestCount}`);
+    requestCount = 0;
+}, 60000);
+
 app.listen(port, () => {
     console.log(`Server is running on http://${ip}:${port}`);
 });
+
