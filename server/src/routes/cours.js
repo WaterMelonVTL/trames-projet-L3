@@ -2,13 +2,15 @@ import express from 'express';
 import dotenv from 'dotenv';
 import { catchError } from '../utils/HandleErrors.js';
 import { Course, Sequelize, sequelize } from '../models/index.js';
-
+import chalk from 'chalk';
+import {Op} from 'sequelize';
 dotenv.config();
 const router = express.Router();
 
 // Create a new Course
-router.put('/', async (req, res) => {
+router.post('/', async (req, res) => {
     const { course, user } = req.body;
+    console.log(course);
     const [courseError, courseData] = await catchError(Course.create(course));
     if (courseError) {
         console.error(courseError);
@@ -18,16 +20,7 @@ router.put('/', async (req, res) => {
     return res.json(courseData);
 });
 
-// Get all Courses
-router.get('/', async (req, res) => {
-    const [courseError, courseData] = await catchError(Course.findAll());
-    if (courseError) {
-        console.error(courseError);
-        res.status(500).send('Internal Server Error');
-        return;
-    }
-    return res.json(courseData);
-});
+
 
 // Search for Courses by layer ID and search query
 router.get('/search/layer/:Layer/:searchQuery', async (req, res) => {
@@ -142,6 +135,30 @@ router.get('/UE/:id', async (req, res) => {
         res.status(500).send('Internal Server Error');
         return;
     }
+    console.log(chalk.green(courses));
+    return res.json(courses);
+});
+
+//get amm Courses by its date
+router.get('/date/:TrammeId/:date', async (req, res) => {
+    const trammeId = req.params.TrammeId;
+    const date = req.params.date;
+    console.log(chalk.green(date));
+    console.log(chalk.green(trammeId));
+    const [courseError, courses] = await catchError(Course.findAll({
+        where: {
+            [Op.and]: [
+                sequelize.where(sequelize.fn('DATE', sequelize.col('Date')), date),
+                { TrammeId: trammeId }
+            ]
+        }
+    }));
+    
+    if (courseError) {
+        console.error('Error fetching courses:', courseError);
+    } else {
+        console.log(courses);
+    }
     return res.json(courses);
 });
 
@@ -157,8 +174,19 @@ router.get('/:id', async (req, res) => {
     return res.json(course);
 });
 
+// Get all Courses
+router.get('/', async (req, res) => {
+    const [courseError, courseData] = await catchError(Course.findAll());
+    if (courseError) {
+        console.error(courseError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+    return res.json(courseData);
+});
+
 // Update a Course by ID
-router.post('/:id', async (req, res) => {
+router.put('/:id', async (req, res) => {
     const id = req.params.id;
     const { course } = req.body;
     const [courseError, courseData] = await catchError(Course.update(course, { where: { id } }));

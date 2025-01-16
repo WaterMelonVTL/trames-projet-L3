@@ -1,0 +1,8 @@
+# Ignore node_modules in front-end and server directories
+/Front-End-Trame/node_modules/
+/server/node_modules/
+
+# Optionally, ignore other common files and directories
+.DS_Store
+*.log
+.env

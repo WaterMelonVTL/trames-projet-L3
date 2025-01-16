@@ -1,36 +1,80 @@
-export type ECU = {
-    name: string,
-    numberOfCM: number,
-    numberOfTD: number,
-    enseignantCM: string,
-    enseignantTD: string[],
-    color: string,
-    AmphiParDefaut: string,
-    TDParDefaut: string,
-    TDHebdo: number,
-    CMHebdo: number,
+export type User = {
+    Id: number;
+    FirstName: string;
+    LastName: string;
+    Email: string;
+    Password: string;
+    Points: number;
+    Picture?: string;
+    Role: string;
+};
 
+export type Context = {
+    Id: number;
+    Name: string;
+    Owner: number;
 };
-export type CoursFrame = {
-    name: string,
-    enseignant: string[],
-    type: string,
-    color: string,
-    salle: string,
-    ecu: ECU
+
+export type Tramme = {
+    Id: number;
+    Name: string;
+    Owner: number;
+    Year: number;
+    ContextId: number;
 };
-export type Cours = {
-    id: number,
-    nom: string,
-    type: string,
-    enseignant: string,
-    date: string,
-    jour: number,
-    start: number,
-    salle: string,
-    groupe: string[],
-    offset: number,
-    couleur: string,
-    durée: number
-}
+
+export type Layer = {
+    Id: number;
+    Name: string;
+    TrammeId: number;
+    Color: string;
+};
+
+export type Prof = {
+    Id: number;
+    FirstName: string;
+    LastName: string;
+    Status: string;
+    Sexe?: string;
+    ContextId: number;
+};
+
+export type Room = {
+    Id: number;
+    Name: string;
+    Informatised: boolean;
+    ContextId: number;
+    Capacity?: number;
+};
+
+export type UE = {
+    Id: number;
+    Name: string;
+    TotalHourVolume_CM: number;
+    TotalHourVolume_TD: number;
+    TotalHourVolume_TP: number;
+    DefaultHourVolumeHebdo_CM: number;
+    DefaultHourVolumeHebdo_TD: number;
+    DefaultHourVolumeHebdo_TP: number;
+    ResponsibleId: number;
+    Color: string;
+    DefaultRoomId: number;
+    LayerId: number;
+    AmphiByDefaultId: number;
+    TP_NeedInformaticRoom: boolean;
+    TD_NeedInformaticRoom: boolean;
+};
+
+export type Course = {
+    Id: number;
+    UEId: number;
+    Type: string;
+    Date: Date;
+    StartHour: string;
+    length: number;
+    ProfId: number;
+    TrammeId: number;
+    RoomId: number;
+    LayerId: number;
+};
 

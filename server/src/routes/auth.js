@@ -11,7 +11,7 @@ const router = express.Router();
 router.use(cookieParser());
 
 const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
-const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
+const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET; 
 console.log(accessTokenSecret);
 console.log(refreshTokenSecret);
 

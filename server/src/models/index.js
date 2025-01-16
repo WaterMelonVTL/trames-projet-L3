@@ -82,6 +82,14 @@ const Tramme = sequelize.define('Tramme', {
         type: DataTypes.STRING,
         allowNull: false
     },
+    ContextId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Context,
+            key: 'Id'
+        }
+    },
     Owner: {
         type: DataTypes.INTEGER,
         allowNull: false,
@@ -145,11 +153,11 @@ const Prof = sequelize.define('Prof', {
         type: DataTypes.STRING,
         allowNull: true
     },
-    TrammeId: {
+    ContextId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: Tramme,
+            model: Context,
             key: 'Id'
         }
     }
@@ -166,6 +174,11 @@ const Room = sequelize.define('Room', {
         type: DataTypes.STRING,
         allowNull: false,
     },
+    Amphiteatre: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
     Informatised: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
@@ -178,6 +191,10 @@ const Room = sequelize.define('Room', {
             model: Context,
             key: 'Id'
         }
+    },
+    Capacity: {
+        type: DataTypes.INTEGER,
+        allowNull: true
     }
 });
 
@@ -200,6 +217,10 @@ const UE = sequelize.define('UE', {
         type: DataTypes.INTEGER,
         allowNull: false
     },
+    TotalHourVolume_TP: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
     DefaultHourVolumeHebdo_CM: {
         type: DataTypes.INTEGER,
         allowNull: false
@@ -208,15 +229,102 @@ const UE = sequelize.define('UE', {
         type: DataTypes.INTEGER,
         allowNull: false
     },
+    DefaultHourVolumeHebdo_TP: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
+    AmphiByDefaultId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Room,
+            key: 'Id'
+        }
+    },     
+    TP_NeedInformaticRoom: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
+    TD_NeedInformaticRoom: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
+    ResponsibleId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Prof,
+            key: 'Id'
+        }
+    },
     Color: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    TrammeId: {
+    LayerId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: Tramme,
+            model: Layer,
+            key: 'Id'
+        }
+    }
+});
+
+const UE_CM_Teacher = sequelize.define('UE_CM_Teacher', {
+    UEId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: UE,
+            key: 'Id'
+        }
+    },
+    ProfId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Prof,
+            key: 'Id'
+        }
+    }
+});
+
+const UE_TD_Teacher = sequelize.define('UE_TD_Teacher', {
+    UEId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: UE,
+            key: 'Id'
+        }
+    },
+    ProfId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Prof,
+            key: 'Id'
+        }
+    }
+});
+
+const UE_TP_Teacher = sequelize.define('UE_TP_Teacher', {
+    UEId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: UE,
+            key: 'Id'
+        }
+    },
+    ProfId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Prof,
             key: 'Id'
         }
     }
@@ -249,6 +357,15 @@ const Course = sequelize.define('Course', {
         type: DataTypes.INTEGER,
         allowNull: false
     },
+    ProfId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Prof,
+            key: 'Id'
+        }
+    },
+    
     TrammeId: {
         type: DataTypes.INTEGER,
         allowNull: false,
@@ -272,6 +389,10 @@ const Course = sequelize.define('Course', {
             model: Layer,
             key: 'Id'
         }
+    },
+    Type: {
+        type: DataTypes.STRING,
+        allowNull: false
     }
 });
 
@@ -326,5 +447,8 @@ export {
     Room,
     UE,
     Course,
-    Tokens
+    Tokens,
+    UE_CM_Teacher,
+    UE_TD_Teacher,
+    UE_TP_Teacher
 };

@@ -1,0 +1,59 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Start Frontend",
+        "type": "shell",
+        "command": "cd .\\Front-End-Trame\\; npm run dev",
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always",
+          "panel": "dedicated"
+        }
+      },
+      {
+        "label": "Start Backend",
+        "type": "shell",
+        "command": "cd .\\server\\src\\ ; node index.js",
+        "problemMatcher": [],
+        "isBackground": false,
+        "presentation": {
+          "reveal": "always",
+          "panel": "dedicated"
+        }
+      },
+      {
+        "label": "Kill Server",
+        "type": "shell",
+        "command": "pkill -f 'node index.js'", // On Linux/macOS
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "silent",
+          "panel": "dedicated"
+        },
+        "windows": {
+          "command": "taskkill /IM node.exe /F" // For Windows
+        }
+      },
+      {
+        "label": "Restart Server",
+        "dependsOn": ["Kill Server", "Start Both"],
+        "problemMatcher": []
+      },
+      {
+        "label": "Start Both",
+        "dependsOn": ["Start Frontend", "Start Backend"],
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always"
+        }
+      }
+    ]
+  }
+  // Placez ce code dans le fichier keybindings.json : CTRL + SHIFT + P -> Open Keyboard Shortcuts (JSON)
+  //     {
+  //  "key": "ctrl+shift+r",
+  //  "command": "workbench.action.tasks.runTask",
+  //  "args": "Start Both"
+ // }
+  

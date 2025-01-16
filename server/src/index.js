@@ -8,6 +8,7 @@ import layerRoutes from './routes/layers.js';
 import trammeRoutes from './routes/tramme.js';
 import authRoutes from './routes/auth.js';
 import contextRoutes from './routes/context.js';
+import roomsRoutes from './routes/rooms.js';
 import UERoutes from './routes/UE.js';
 
 const app = express();
@@ -25,8 +26,29 @@ app.use(cookieParser());
 // Use routes
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
-//app.use('/api/cours', coursRoutes); (exemple)
+app.use('/api/profs', profRoutes);
+app.use('/api/layers', layerRoutes);
+app.use('/api/trammes', trammeRoutes);
+app.use('/api/contexts', contextRoutes);
+app.use('/api/UEs', UERoutes);
+app.use('/api/cours', coursRoutes); 
+app.use('/api/rooms', roomsRoutes);
+
+let requestCount = 0;
+
+// Middleware to count requests
+app.use((req, res, next) => {
+    requestCount++;
+    next();
+});
+
+// Function to print the number of requests every minute
+setInterval(() => {
+    console.log(`Number of requests in the last minute: ${requestCount}`);
+    requestCount = 0;
+}, 60000);
 
 app.listen(port, () => {
     console.log(`Server is running on http://${ip}:${port}`);
 });
+

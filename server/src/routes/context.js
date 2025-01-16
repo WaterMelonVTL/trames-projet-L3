@@ -7,9 +7,10 @@ dotenv.config();
 const router = express.Router();
 
 // Create a new Context
-router.put('/', async (req, res) => {
-    const { context, user } = req.body;
-    const [contextError, contextData] = await catchError(Context.create(context));
+router.post('/', async (req, res) => {
+    const { ContextName, User } = req.body;
+    const data = {Name: ContextName, Owner: User.Id};
+    const [contextError, contextData] = await catchError(Context.create(data));
     if (contextError) {
         console.error(contextError);
         res.status(500).send('Internal Server Error');
@@ -107,13 +108,22 @@ router.put('/:id', async (req, res) => {
         return;
     }
 
-    const [updateError, updatedContext] = await contextData.update(req.body);
+    if (!contextData) {
+        res.status(404).send('Context not found');
+        return;
+    }
+
+    console.log("updating context with data: ", req.body);
+
+    const [updateError, updatedContext] = await catchError(contextData.update(req.body));
 
     if (updateError) {
         console.error(updateError);
         res.status(500).send('Internal Server Error');
         return;
     }
+
+    console.log(updatedContext);
 
     return res.json(updatedContext);
 });

@@ -1,55 +1,66 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import CoursItem from './CoursItem';
-import { ECU } from '../types/types';
+import { Course } from '../types/types';
 
-type CoursFrame = {
-    name: string,
-    enseignant: string[],
-    type: string,
-    color: string,
-    salle: string,
-    ecu: ECU
-};
 
-interface CalendarEvent {
-    id: number;
-    nom: string;
-    type: string;
-    enseignant: string;
-    salle: string;
-    jour: number;
-    start: number;
-    durée: number;
-    offset: number;
-    couleur: string;
-    groupe: string[];
-    date: string;
-}
 
-function CalendarFrame(props: { currentEcu: CoursFrame | null, setCurrentEcu: (ecu: CoursFrame | null) => void }) {
+function CalendarFrame(props: {date:Date, fetchedCourse:Course[], currentCours: Course | null, setCours: (ecu: Course[] | null) => void, setCurrentEcu: (ecu: Course | null) => void, trammeId:string|undefined, AddCours: (cours: Course, date: string, time: string) => void }) {
     const daysOfWeek = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
     const rows = Array.from({ length: 7 }, (_, i) => i + 1);
     const crenaux = [{ 'start': '8h', 'end': '9h30' }, { 'start': '9h45', 'end': '11h15' }, { 'start': '11h30', 'end': '13h' }, { 'start': '13h15', 'end': '14h45' }, { 'start': '15h00', 'end': '16h30' }, { 'start': '16h45', 'end': '18h15' }, { 'start': '18h30', 'end': '20h00' }];
-    const [cours, setCours] = useState<CalendarEvent[]>([])
     const creneauHeight = 6;
     const breakHeight = creneauHeight * 15 / 90;
 
-    function AddCours(ecu: CoursFrame, jour: number, start: number) {
-        console.log(`ajout de cours ${ecu.name} le ${daysOfWeek[jour]} à ${crenaux[start].start}`)
-        if (start === 6 || jour === 5) {
-            alert("Etes vous sûr de vouloir vous mettre les élèves à dos?")
-            if (!window.confirm("Etes vous sûr de vouloir vous mettre les élèves à dos?")) {
-                return;
-            }
-        }
-        setCours([...cours, { 'id': Date.now(), 'nom': ecu.name, 'type': ecu.type, 'enseignant': ecu.enseignant[0], 'salle': ecu.salle, 'jour': jour, 'start': start, 'durée': 1, 'offset': 0, 'couleur': ecu.color, 'groupe': ["2024-L1-A"], date: "2024-11-11" }])
+    const defaultDate = props.date;
 
+
+
+
+
+
+    function getDateForDay(jour: number): Date {
+        const date = new Date(defaultDate);
+        date.setDate(defaultDate.getDate() + jour);
+        return date; // Format as YYYY-MM-DD
     }
 
-    function RemoveCours(jour: number, start: number) {
-        console.log(`suppression de cours le ${daysOfWeek[jour]} à ${crenaux[start].start}`)
-        setCours(cours.filter(cours => !(cours.jour === jour && cours.start === start)))
+    function formatTime(start: string): string {
+        const [hour, minute] = start.split('h').map(Number);
+        return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
     }
+
+
+
+    function isTimeInCreneau(time: string, start: string, end: string): boolean {
+
+        const timeDate = new Date(`1970-01-01T${time}`);
+        const startDate = new Date(`1970-01-01T${formatTime(start)}`);
+        const endDate = new Date(`1970-01-01T${formatTime(end)}`);
+        return timeDate >= startDate && timeDate < endDate;
+    }
+
+
+
+
+    function RemoveCours(id: number) {
+        fetch(`http://localhost:3000/api/cours/${id}`, { method: 'DELETE' })
+            .then(response => {
+                if (response.ok) {
+                    props.setCours(props.fetchedCourse.filter((cours) => cours.Id !== id));
+                } else {
+                    console.error('Failed to delete the course');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    }
+
+    useEffect(() => {
+        console.log("cours from jsp ou:", props.fetchedCourse);
+    }, [props.fetchedCourse]);
+
+
 
     return (
         <div className="w-[80vw] text-black select-none ">
@@ -68,54 +79,64 @@ function CalendarFrame(props: { currentEcu: CoursFrame | null, setCurrentEcu: (e
                         </>
                     ))}
                 </div>
-                {daysOfWeek.map((day, index) => (
+                {daysOfWeek.map((day, index) => {
+                    const currentDate = getDateForDay(index); // Get the date for the current day index
 
-
-                    <div key={day} className="flex flex-col flex-grow">
-                        <div className="flex flex-col bg-gray-400 border border-black font-bold h-8 ">{`${day}`}</div>
-                        {rows.map((_, colIndex) => (
-                            <>
-                                <div key={colIndex} className="bg-white border border-black hover:bg-gray-300 cursor-pointer relative"
-                                    style={{ height: `${creneauHeight}rem` }}
-                                    onClick={() => { console.log(`vous avez clické sur ${day} ${crenaux[colIndex].start}`) }}
-                                    onMouseUp={() => {
-                                        if (props.currentEcu) {
-                                            AddCours(props.currentEcu, index, colIndex);
-                                        }
-                                    }}
-                                    onContextMenu={(e) => { e.preventDefault(); console.log(`right click sur ${day} ${crenaux[colIndex].start}`) }} >
-                                    {cours.map((cours) => {
-                                        if (cours.jour === index && cours.start === colIndex) {
-                                            return (
-                                                <CoursItem cours={cours} onMouseDown={(e) => {
-                                                    if (e.button === 0) { // Only listen to left click
-                                                        props.setCurrentEcu({
-                                                            name: cours.nom, enseignant: [cours.enseignant], type: cours.type, color: cours.couleur, salle: cours.salle, ecu: {
-                                                                name: cours.nom,
-                                                                numberOfCM: 0,
-                                                                numberOfTD: 0,
-                                                                enseignantCM: cours.enseignant,
-                                                                enseignantTD: [cours.enseignant],
-                                                                color: cours.couleur,
-                                                                AmphiParDefaut: cours.salle,
-                                                                TDParDefaut: cours.salle,
-                                                                TDHebdo: 0,
-                                                                CMHebdo: 0,
+                    return (
+                        <div key={day} className="flex flex-col flex-grow">
+                            <div className="flex flex-col bg-gray-400 border border-black font-bold h-8 ">{`${day}`}</div>
+                            {rows.map((_, colIndex) => (
+                                <>
+                                    <div
+                                        key={colIndex}
+                                        className="bg-white border border-black hover:bg-gray-300 cursor-pointer relative"
+                                        style={{ height: `${creneauHeight}rem` }}
+                                        onClick={() => {
+                                            console.log(`vous avez clické sur ${day} ${crenaux[colIndex].start}`);
+                                        }}
+                                        onMouseUp={() => {
+                                            if (props.currentCours) {
+                                                props.AddCours(props.currentCours, getDateForDay(index).toISOString().split('T')[0], formatTime(crenaux[colIndex].start));
+                                            }
+                                        }}
+                                        onContextMenu={(e) => {
+                                            e.preventDefault();
+                                            console.log(`right click sur ${day} ${crenaux[colIndex].start}`);
+                                        }}
+                                    >
+                                        {props.fetchedCourse.map((cours) => {
+                                            const courseDate = new Date(cours.Date); // Convert string to Date object
+                                            const courseStartTime =  cours.StartHour;
+                                            if (courseDate.toDateString() !== currentDate.toDateString()) {
+                                                return null;
+                                            }
+                                            if (
+                                                isTimeInCreneau(courseStartTime, crenaux[colIndex].start, crenaux[colIndex].end)
+                                            ) {
+                                                
+                                                return (
+                                                    <CoursItem
+                                                        key={cours.Id.toString()}
+                                                        cours={cours}
+                                                        créneau={crenaux[colIndex]}
+                                                        onMouseDown={(e) => {
+                                                            if (e.button === 0) {
+                                                                // Only listen to left click
+                                                                props.setCurrentEcu(cours);
+                                                                RemoveCours(cours.Id);
                                                             }
-                                                        });
-                                                        RemoveCours(index, colIndex);
-                                                    }
-                                                }} />
-                                            )
-                                        }
-                                    })}
-                                </div>
-                                <div style={{ height: `${breakHeight}rem` }}></div>
-                            </>
-                        ))}
-                    </div>
-
-                ))}
+                                                        }}
+                                                    />
+                                                );
+                                            }
+                                        })}
+                                    </div>
+                                    <div style={{ height: `${breakHeight}rem` }}></div>
+                                </>
+                            ))}
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

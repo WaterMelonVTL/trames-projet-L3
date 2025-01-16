@@ -2,13 +2,15 @@ import express from 'express';
 import dotenv from 'dotenv';
 import { catchError } from '../utils/HandleErrors.js';
 import { Prof, Sequelize, sequelize } from '../models/index.js';
+import chalk from "chalk";
 
 dotenv.config();
 const router = express.Router();
 
 // Create a new prof
-router.put('/', async (req, res) => {
+router.post('/', async (req, res) => {
     const { prof, user } = req.body;
+    console.log(prof);
     const [profError, profData] = await catchError(Prof.create(prof));
     if (profError) {
         console.error(profError);
@@ -31,6 +33,7 @@ router.get('/', async (req, res) => {
 
 // Search for profs
 router.get('/search/:Context/:searchQuery', async (req, res) => {
+    console.log(chalk.blue("searching for profs"));
     const searchQuery = req.params.searchQuery;
     const Context = req.params.Context;
     let profs;

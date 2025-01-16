@@ -1,20 +1,58 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { catchError } from '../utils/HandleErrors.js';
-import { UE, Sequelize } from '../models/index.js';
+import { UE, Layer, Sequelize, UE_CM_Teacher, UE_TD_Teacher, UE_TP_Teacher } from '../models/index.js';
+import chalk from 'chalk';
 
 dotenv.config();
 const router = express.Router();
 
 // Create a new UE
-router.put('/', async (req, res) => {
-    const { ue, user } = req.body;
+router.post('/', async (req, res) => {
+    const { ue, profs_CM, profs_TD, profs_TP, user } = req.body;
+    const createTeacherRelations = async (ueId, profs, model) => {
+        const relations = profs.map(profId => ({ UEId: ueId, ProfId: profId }));
+        const [error, data] = await catchError(model.bulkCreate(relations));
+        if (error) {
+            console.error(error);
+            throw new Error('Error creating teacher relations');
+        }
+        return data;
+    };
+
     const [ueError, ueData] = await catchError(UE.create(ue));
     if (ueError) {
         console.error(ueError);
         res.status(500).send('Internal Server Error');
         return;
     }
+
+    if (!profs_CM) {
+        return res.status(400).send('No profs_CM provided');
+    }
+
+    const [errorCM, profsCM] = await catchError(createTeacherRelations(ueData.Id, profs_CM, UE_CM_Teacher));
+    if (errorCM) {
+        console.error(errorCM);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+
+    if (profs_TD) {
+        const [errorTD, profsTD] = await catchError(createTeacherRelations(ueData.Id, profs_TD, UE_TD_Teacher));
+        if (errorTD) {
+            console.error(errorTD);
+        }
+    }
+
+    if (profs_TP) {
+        const [errorTP, profsTP] = await catchError(createTeacherRelations(ueData.Id, profs_TP, UE_TP_Teacher));
+        if (errorTP) {
+            console.error(errorTP);
+        }
+    }
+
+    console.log(chalk.red(JSON.stringify(ue)));
     return res.json(ueData);
 });
 
@@ -56,12 +94,34 @@ router.get('/search/:searchQuery', async (req, res) => {
 // Get UEs by tramme ID
 router.get('/tramme/:id', async (req, res) => {
     const id = req.params.id;
-    const [ueError, ues] = await catchError(UE.findAll({ where: { TrammeId: id } }));
+    const [layersError, layers] = await catchError(Layer.findAll({ where: { TrammeId: id } }));
+    if (layersError) {
+        console.error(layersError);
+        res.status(500).send('Internal Server Error');
+    }
+
+    const layerIds = layers.map(layer => layer.Id);
+    const [ueError, ues] = await catchError(UE.findAll({ where: { LayerId: layerIds } }));
+
     if (ueError) {
         console.error(ueError);
         res.status(500).send('Internal Server Error');
         return;
     }
+
+    return res.json(ues);
+});
+
+// Get UEs by layer ID
+router.get('/layer/:id', async (req, res) => {
+    const id = req.params.id;
+    const [ueError, ues] = await catchError(UE.findAll({ where: { LayerId: id } }));
+    if (ueError) {
+        console.error(ueError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+
     return res.json(ues);
 });
 
