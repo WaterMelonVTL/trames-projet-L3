@@ -4,11 +4,10 @@ import { Course } from '../types/types';
 
 
 
-function CalendarFrame(props: {date:Date, fetchedCourse:Course[], currentCours: Course | null, setCurrentEcu: (ecu: Course | null) => void, trammeId:string|undefined, AddCours: (cours: Course, date: string, time: string) => void }) {
+function CalendarFrame(props: {date:Date, fetchedCourse:Course[], currentCours: Course | null, setCours: (ecu: Course[] | null) => void, setCurrentEcu: (ecu: Course | null) => void, trammeId:string|undefined, AddCours: (cours: Course, date: string, time: string) => void }) {
     const daysOfWeek = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
     const rows = Array.from({ length: 7 }, (_, i) => i + 1);
     const crenaux = [{ 'start': '8h', 'end': '9h30' }, { 'start': '9h45', 'end': '11h15' }, { 'start': '11h30', 'end': '13h' }, { 'start': '13h15', 'end': '14h45' }, { 'start': '15h00', 'end': '16h30' }, { 'start': '16h45', 'end': '18h15' }, { 'start': '18h30', 'end': '20h00' }];
-    const [cours, setCours] = useState<Course[]>(props.fetchedCourse)
     const creneauHeight = 6;
     const breakHeight = creneauHeight * 15 / 90;
 
@@ -47,7 +46,7 @@ function CalendarFrame(props: {date:Date, fetchedCourse:Course[], currentCours: 
         fetch(`http://localhost:3000/api/cours/${id}`, { method: 'DELETE' })
             .then(response => {
                 if (response.ok) {
-                    setCours(cours.filter((cours) => cours.Id !== id));
+                    props.setCours(props.fetchedCourse.filter((cours) => cours.Id !== id));
                 } else {
                     console.error('Failed to delete the course');
                 }
@@ -58,8 +57,8 @@ function CalendarFrame(props: {date:Date, fetchedCourse:Course[], currentCours: 
     }
 
     useEffect(() => {
-        console.log("cours from jsp ou:", cours);
-    }, [cours]);
+        console.log("cours from jsp ou:", props.fetchedCourse);
+    }, [props.fetchedCourse]);
 
 
 
@@ -105,7 +104,7 @@ function CalendarFrame(props: {date:Date, fetchedCourse:Course[], currentCours: 
                                             console.log(`right click sur ${day} ${crenaux[colIndex].start}`);
                                         }}
                                     >
-                                        {cours.map((cours) => {
+                                        {props.fetchedCourse.map((cours) => {
                                             const courseDate = new Date(cours.Date); // Convert string to Date object
                                             const courseStartTime =  cours.StartHour;
                                             if (courseDate.toDateString() !== currentDate.toDateString()) {

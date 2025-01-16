@@ -110,14 +110,14 @@ function Home() {
         <>
           <h2>Selectionnez un contexte :</h2>
           <div className="grid grid-cols-4 gap-2 w-[70vw]">
-            <div className='w-full h-40 border-2 border-black rounded-lg flex items-center justify-between hover:cursor-pointer hover:bg-blue-500 hover:text-white transition-all duration-300' onClick={CreateContext}>
+            <div className='w-full h-40 border-2 border-black rounded-lg flex items-center p-8 justify-between hover:cursor-pointer hover:bg-blue-500 hover:text-white transition-all duration-300' onClick={CreateContext}>
               <h1 className='w-1/2 text-2xl font-bold'>Créer un nouveau contexte</h1>
               <div className='w-1/4 h-1/2 flex justify-center items-center mr-8'>{ARROW}</div>
             </div>
             {contexts.length > 0 ? (
 
               contexts.map((context, index) => (
-                <div className='w-full h-40 border-2 flex flex-row justify-between p-8 border-black rounded-lg hover:cursor-pointer hover:bg-blue-500 hover:text-white transition-all duration-300' onClick={() => { setContextID(context.Id) }} key={index}>
+                <div className='w-full h-40 border-2 flex flex-row justify-between p-8 border-black rounded-lg items-center hover:cursor-pointer hover:bg-blue-500 hover:text-white transition-all duration-300' onClick={() => { setContextID(context.Id) }} key={index}>
 
                   <div className='flex flex-col justify-around'>
                     <h1>{context.Name}</h1>
@@ -143,14 +143,14 @@ function Home() {
         <>
           <h2>Selectionnez une Tramme :</h2>
           <div className="grid grid-cols-4 gap-2 w-[70vw]">
-            <div className='w-full h-40 border-2 border-black rounded-lg flex items-center justify-between hover:cursor-pointer hover:bg-blue-500 hover:text-white transition-all duration-300' onClick={CreateTramme}>
+            <div className='w-full h-40 border-2 border-black rounded-lg flex items-center p-8 justify-between hover:cursor-pointer hover:bg-blue-500 hover:text-white transition-all duration-300' onClick={CreateTramme}>
               <h1 className='w-1/2 text-2xl font-bold'>Créer une nouvelle tramme</h1>
               <div className='w-1/4 h-1/2 flex justify-center items-center mr-8'>{ARROW}</div>
             </div>
             {trammes.length > 0 ? (
 
               trammes.map((tramme, index) => (
-                <div className='w-full h-40 border-2 flex flex-row justify-between p-8 border-black rounded-lg' key={index}>
+                <div className='w-full h-40 border-2 flex flex-row justify-between items-center p-8 border-black rounded-lg' key={index}>
 
                   <div className='flex flex-col justify-around'>
                     <h1>{tramme.Name}</h1>
