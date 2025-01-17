@@ -246,7 +246,7 @@ function SetupPage() {
     if (response.ok) {
       const newLayer = await response.json()
       setCouches([...layers, newLayer])
-      setUes({ ...ues, [newLayer]: [] })
+      setUes({ ...ues, [newLayer.Id]: [] })
       setLayerNameInput('');
       setLayerColorInput('');
     }
