@@ -144,7 +144,7 @@ function CalendarPage() {
     <div className="w-screen h-screen bg-gray-200 flex justify-around items-start pt-8"
       onMouseUp={() => { setCurrentEcu(null) }}>
 
-      [<CalendarCoursSelection setCurrentEcu={setCurrentEcu} ecus={currentLayerId ? ues[currentLayerId] : []} />]
+      <CalendarCoursSelection setCurrentEcu={setCurrentEcu} ecus={currentLayerId ? ues[currentLayerId] : [{Name:"No currentLayerId"}]} />
       <CalendarFrame setCurrentEcu={setCurrentEcu} currentCours={currentCours} AddCours={AddCours} fetchedCourse={cours} setCours={setCours} trammeId={trammeId} date={defaultDate} />
       {
         currentCours &&

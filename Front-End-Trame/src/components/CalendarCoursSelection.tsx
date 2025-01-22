@@ -1,21 +1,23 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import EcuItem from './EcuItem';
 import { UE, Course } from '../types/types';
 
 function CalendarCoursSelection(props: { setCurrentEcu: (ecu: Course | null) => void, ecus: UE[] }) {
-    const ecus = props.ecus;
 
     const [hoveredItem, setHoveredItem] = useState<number>(-1);
     const [isSearching, setIsSearching] = useState<string>("");
-    const [filteredList, setFilteredList] = useState<UE[]>(ecus);
+    const [filteredList, setFilteredList] = useState<UE[]>(props.ecus);
+
+    useEffect(() => {
+        if (isSearching === "") {
+            setFilteredList(props.ecus);
+        } else {
+            setFilteredList(props.ecus.filter(ecu => ecu.Name.toLowerCase().includes(isSearching.toLowerCase())));
+        }
+    }, [props.ecus, isSearching]);
 
     const search = (search: string) => {
         setIsSearching(search);
-        if (search === "") {
-            setFilteredList(ecus);
-        } else {
-            setFilteredList(ecus.filter(ecu => ecu.Name.toLowerCase().includes(search.toLowerCase())));
-        }
     };
 
     return (
@@ -32,29 +34,32 @@ function CalendarCoursSelection(props: { setCurrentEcu: (ecu: Course | null) => 
                     />
                 </div>
                 <div className='mt-16 z-50'>
-                    {filteredList.length > 0 ? filteredList.map((ecu, index) => (
-                        <div key={ecu.Id} className='flex flex-col flex-gap-2 mb-4 w-80 items-center'>
-                            <EcuItem
-                                darken={hoveredItem !== -1 && hoveredItem !== index}
-                                type="CM"
-                                ueID={ecu.Id}
-                                onHover={() => setHoveredItem(index)}
-                                onLeave={() => setHoveredItem(-1)}
-                                setHoveredItem={setHoveredItem}
-                                setCurrentEcu={props.setCurrentEcu}
-                                
-                            />
-                            <EcuItem
-                                darken={hoveredItem !== -1 && hoveredItem !== index + ecus.length}
-                                type="TD"
-                                ueID={ecu.Id}
-                                onHover={() => setHoveredItem(index+ ecus.length)}
-                                onLeave={() => setHoveredItem(-1)}
-                                setHoveredItem={setHoveredItem}
-                                setCurrentEcu={props.setCurrentEcu}
-                            />
-                        </div>
-                    )) : <div><h1>Aucunes UEs définies</h1></div>}
+                    {filteredList?.length > 0 ? (
+                        filteredList.map((ecu, index) => (
+                            <div key={ecu.Id} className='flex flex-col flex-gap-2 mb-4 w-80 items-center'>
+                                <EcuItem
+                                    darken={hoveredItem !== -1 && hoveredItem !== index}
+                                    type="CM"
+                                    ueID={ecu.Id}
+                                    onHover={() => setHoveredItem(index)}
+                                    onLeave={() => setHoveredItem(-1)}
+                                    setHoveredItem={setHoveredItem}
+                                    setCurrentEcu={props.setCurrentEcu}
+                                />
+                                <EcuItem
+                                    darken={hoveredItem !== -1 && hoveredItem !== index + props.ecus.length}
+                                    type="TD"
+                                    ueID={ecu.Id}
+                                    onHover={() => setHoveredItem(index + props.ecus.length)}
+                                    onLeave={() => setHoveredItem(-1)}
+                                    setHoveredItem={setHoveredItem}
+                                    setCurrentEcu={props.setCurrentEcu}
+                                />
+                            </div>
+                        ))
+                    ) : (
+                        <div><h1>Aucunes UEs définies</h1></div>
+                    )}
                 </div>
             </div>
         </div>
