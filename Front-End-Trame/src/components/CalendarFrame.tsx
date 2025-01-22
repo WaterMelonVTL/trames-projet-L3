@@ -4,7 +4,7 @@ import { Course } from '../types/types';
 
 
 
-function CalendarFrame(props: {date:Date, fetchedCourse:Course[], currentCours: Course | null, setCours: (ecu: Course[] | null) => void, setCurrentEcu: (ecu: Course | null) => void, trammeId:string|undefined, AddCours: (cours: Course, date: string, time: string) => void }) {
+function CalendarFrame(props: {date:Date, fetchedCourse:Course[], currentCours: Course | null, setCours: (ecu: Course[] | null) => void, setCurrentEcu: (ecu: Course | null) => void, trammeId:string|undefined, AddCours: (cours: Course, date: string, time: string) => void , color:string}) {
     const daysOfWeek = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
     const rows = Array.from({ length: 7 }, (_, i) => i + 1);
     const crenaux = [{ 'start': '8h', 'end': '9h30' }, { 'start': '9h45', 'end': '11h15' }, { 'start': '11h30', 'end': '13h' }, { 'start': '13h15', 'end': '14h45' }, { 'start': '15h00', 'end': '16h30' }, { 'start': '16h45', 'end': '18h15' }, { 'start': '18h30', 'end': '20h00' }];
@@ -64,14 +64,16 @@ function CalendarFrame(props: {date:Date, fetchedCourse:Course[], currentCours: 
 
     return (
         <div className="w-[80vw] text-black select-none ">
-            <div className="border-2 border-black flex flex-row w-full justify-around rounded-lg ">
+            <div className="border-2 border-black flex flex-row w-full justify-around rounded-lg rounded-tl-none">
 
                 <div key={"horaires"} className="flex flex-col w-20 ">
-                    <div className="flex flex-col bg-gray-400 border border-black font-bold h-8">
+                    <div className="flex flex-col  border border-black font-bold h-8"
+                     style={{backgroundColor : props.color}}>
                     </div>
                     {rows.map((_, colIndex) => (
                         <>
-                            <div key={colIndex} className={`bg-gray-400 flex flex-col justify-between border border-black`} style={{ height: `${creneauHeight}rem` }}>
+                            <div key={colIndex} className={` flex flex-col justify-between border border-black`} style={{ height: `${creneauHeight}rem`,
+                        backgroundColor : props.color}}> 
                                 <div>{crenaux[colIndex].start} </div>
                                 <div>{crenaux[colIndex].end}</div>
                             </div>
@@ -84,7 +86,7 @@ function CalendarFrame(props: {date:Date, fetchedCourse:Course[], currentCours: 
 
                     return (
                         <div key={day} className="flex flex-col flex-grow">
-                            <div className="flex flex-col bg-gray-400 border border-black font-bold h-8 ">{`${day}`}</div>
+                            <div className="flex flex-col  border border-black font-bold h-8 " style={{backgroundColor : props.color}}>{`${day}`}</div>
                             {rows.map((_, colIndex) => (
                                 <>
                                     <div

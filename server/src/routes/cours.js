@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import { catchError } from '../utils/HandleErrors.js';
 import { Course, Sequelize, sequelize } from '../models/index.js';
 import chalk from 'chalk';
-import {Op} from 'sequelize';
+import { Op } from 'sequelize';
 dotenv.config();
 const router = express.Router();
 
@@ -140,20 +140,36 @@ router.get('/UE/:id', async (req, res) => {
 });
 
 //get amm Courses by its date
-router.get('/date/:TrammeId/:date', async (req, res) => {
+router.get('/date/:TrammeId/:LayerId/:date', async (req, res) => {
     const trammeId = req.params.TrammeId;
+    const layerId = req.params.LayerId;
     const date = req.params.date;
     console.log(chalk.green(date));
     console.log(chalk.green(trammeId));
-    const [courseError, courses] = await catchError(Course.findAll({
-        where: {
-            [Op.and]: [
-                sequelize.where(sequelize.fn('DATE', sequelize.col('Date')), date),
-                { TrammeId: trammeId }
-            ]
-        }
-    }));
-    
+    console.log(chalk.green(layerId));
+    let courses;
+    let courseError;
+    if (layerId === 'all') {
+        [courseError, courses] = await catchError(Course.findAll({
+            where: {
+                [Op.and]: [
+                    sequelize.where(sequelize.fn('DATE', sequelize.col('Date')), date),
+                    { TrammeId: trammeId }
+                ]
+            }
+        }));
+    } else {
+        [courseError, courses] = await catchError(Course.findAll({
+            where: {
+                [Op.and]: [
+                    sequelize.where(sequelize.fn('DATE', sequelize.col('Date')), date),
+                    { TrammeId: trammeId },
+                    { LayerId: layerId }
+                ]
+            }
+        }));
+    }
+
     if (courseError) {
         console.error('Error fetching courses:', courseError);
     } else {

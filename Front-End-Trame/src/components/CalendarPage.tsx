@@ -4,6 +4,7 @@ import CalendarCoursSelection from './CalendarCoursSelection'
 import EcuItem from './EcuItem';
 import { Course, UE, Layer } from '../types/types';
 import { useLocation } from 'react-router-dom';
+import CalendarLayerSelection from './CalendarLayerSelection';
 
 function CalendarPage() {
   //TODO: Keep the cours data when dragging, make it use an other type that can keep it.
@@ -89,7 +90,7 @@ function CalendarPage() {
       })
       .then(response => {
         if (response.ok) {
-          fetch(`http://localhost:3000/api/cours/date/${trammeId}/${date}`)
+          fetch(`http://localhost:3000/api/cours/date/${trammeId}/${currentLayerId}/${date}`)
             .then(res => res.json())
 
             .then(data => setCours([...cours, data[data.length - 1]]));
@@ -110,7 +111,7 @@ function CalendarPage() {
     for (let i = 0; i < 7; i++) {
       const date = new Date(monday);
       date.setDate(monday.getDate() + i);
-      const response = await fetch(`http://localhost:3000/api/cours/date/${trammeId}/${date.toISOString().split('T')[0]}`);
+      const response = await fetch(`http://localhost:3000/api/cours/date/${trammeId}/${currentLayerId}/${date.toISOString().split('T')[0]}`);
       const dayClasses = await response.json();
       classes.push(dayClasses);
     }
@@ -124,7 +125,7 @@ function CalendarPage() {
       setCours(classes.flat());
       console.log("classes:", classes);
     });
-  }, [defaultDate]);
+  }, [defaultDate, currentLayerId]);
 
 
 
@@ -141,11 +142,17 @@ function CalendarPage() {
   }, []);
 
   return (
-    <div className="w-screen h-screen bg-gray-200 flex justify-around items-start pt-8"
+    <div className="w-screen h-screen bg-gray-200  pt-8"
       onMouseUp={() => { setCurrentEcu(null) }}>
 
-      <CalendarCoursSelection setCurrentEcu={setCurrentEcu} ecus={currentLayerId ? ues[currentLayerId] : [{Name:"No currentLayerId"}]} />
-      <CalendarFrame setCurrentEcu={setCurrentEcu} currentCours={currentCours} AddCours={AddCours} fetchedCourse={cours} setCours={setCours} trammeId={trammeId} date={defaultDate} />
+      <div className='flex justify-around items-start relative mt-16'>
+        <CalendarCoursSelection setCurrentEcu={setCurrentEcu} ecus={currentLayerId ? ues[currentLayerId] : [{Name:"No currentLayerId"}]} />
+        <div className='flex flex-col'>
+          <CalendarLayerSelection layers={layers} onClick={(id: number) => setCurrentLayerId(id)} currentLayerId={currentLayerId || -1} />
+          <CalendarFrame setCurrentEcu={setCurrentEcu} currentCours={currentCours} AddCours={AddCours} fetchedCourse={cours} setCours={setCours} trammeId={trammeId} date={defaultDate} color={currentLayerId ? layers.find(layer => layer.Id === currentLayerId)?.Color || "#ffffff" : "#ffffff"}/>
+          
+        </div>
+      </div>
       {
         currentCours &&
         <div className="absolute z-[100] -translate-x-1/2 translate-y-1/2 text-black text-xl w-80" style={{ top: `${mousePosition.y}px`, left: `${mousePosition.x}px` }}>
