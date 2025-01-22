@@ -18,7 +18,7 @@ const ARROW = <svg fill="#000000" height="200px" width="200px" version="1.1" id=
 
 function Home() {
   const userID = 1 // Later get it from authentification
-  const username = "Beaugosse" // Later get it from authentification
+  const username = "Louis" // Later get it from authentification
 
   const [contexts, setContexts] = useState([] as Context[])
   const [contextID, setContextID] = useState(-1)
@@ -150,7 +150,7 @@ function Home() {
             {trammes.length > 0 ? (
 
               trammes.map((tramme, index) => (
-                <div className='w-full h-40 border-2 flex flex-row justify-between items-center p-8 border-black rounded-lg' key={index}>
+                <div className='w-full h-40 border-2 flex flex-row justify-between items-center p-8 border-black rounded-lg hover:cursor-pointer hover:bg-blue-500 hover:text-white transition-all duration-300' key={index} onClick={() => navigate(`/calendar/${tramme.Id}`)}>
 
                   <div className='flex flex-col justify-around'>
                     <h1>{tramme.Name}</h1>
