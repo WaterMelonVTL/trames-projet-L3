@@ -11,14 +11,14 @@ function EcuItem(props: { darken: boolean, type: string, ueID: number, onHover: 
   }, [props.ueID]);
 
   if (ue === null) {
-    return <div className='w-[90%] h-12 rounded-md shadow-md flex select-none items-center justify-between p-4 mb-4 border-2 border-black cursor-pointer transition-colors duration-300 hover:shadow-lg hover:scale-105'
+    return <div className='w-full h-12 rounded-md shadow-md flex select-none items-center justify-between p-4 mb-4 border-2 border-black cursor-pointer transition-colors duration-300 hover:shadow-lg hover:scale-105'
       style={{ backgroundColor: !props.darken ? '#f4f4f4' : darkenColor('#f4f4f4', 0.2) }}>
 
       <h1 className='text-xl'>Chargement...</h1>
     </div>;
   }
   return (
-    <div className='w-[90%] h-12 rounded-md shadow-md flex select-none items-center justify-between p-4 mb-4 border-2 border-black cursor-pointer transition-colors duration-300 hover:shadow-lg hover:scale-105'
+    <div className='w-full h-12 rounded-md shadow-md flex select-none items-center justify-between p-4 mb-4 border-2 border-black cursor-pointer transition-colors duration-300 hover:shadow-lg hover:scale-105'
       style={{ backgroundColor: !props.darken ? ue?.Color : darkenColor(ue.Color, 0.2) }}
       onMouseEnter={props.onHover}
       onMouseLeave={props.onLeave}
