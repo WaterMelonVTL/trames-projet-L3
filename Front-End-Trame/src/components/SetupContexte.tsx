@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import * as XLSX from 'xlsx';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Prof, Room } from '../types/types';
 function SetupContexte() {
@@ -8,8 +9,7 @@ function SetupContexte() {
     const [contextName, setContextName] = React.useState<string>('');
     const [setupStage, setSetupStage] = React.useState<number>(1);
     const [profs, setProfs] = React.useState<Prof[]>([]);
-    const [profFirstNameInput, setProfFirstNameInput] = React.useState<string>('');
-    const [profLastNameInput, setProfLastNameInput] = React.useState<string>('');
+    const [profFullNameInput, setProfFullNameInput] = React.useState<string>('');
     const [profGenreInput, setProfGenreInput] = React.useState<string>('M');
     const [profStatusInput, setProfStatusInput] = React.useState<string>('');
     const [salles, setSalles] = React.useState<Room[]>([]);
@@ -17,28 +17,90 @@ function SetupContexte() {
     const [salleInformatiséeInput, setSalleInformatiséeInput] = React.useState<boolean>(false);
     const [isAmphi, setIsAmphi] = React.useState<boolean>(false);
     const [salleCapacityInput, setSalleCapacityInput] = React.useState<number | undefined>(undefined);
+    const [isFileValid, setIsFileValid] = React.useState<boolean>(false);
+    const [fileData, setFileData] = React.useState<any[]>([]);
+    const [selectedFullName, setSelectedFullName] = React.useState<string>('');
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+          console.log(file);
+        }
+      };
+      
+      const handleFileUpload = () => {
+        const fileInput = document.getElementById('fileInput') as HTMLInputElement;
+        const file = fileInput.files?.[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      
+            const requiredColumn = 'FullName';
+            const firstRow = jsonData[0] as string[];
+            const isValid = firstRow.includes(requiredColumn);
+      
+            if (isValid) {
+              console.log('File is valid');
+              setIsFileValid(true);
+      
+              const processedData = jsonData.slice(1)
+                .flatMap((row: any) => {
+                    const fullNames = row[firstRow.indexOf('FullName')];
+                    return fullNames ? fullNames.split('/').map((name: string) => name.trim()) : [];
+                })
+                .filter((fullName: string) => fullName && fullName.trim().length > 0);
+      
+              setFileData(processedData);
+              console.log('Processed Data:', processedData);
+            } else {
+              console.error('File is invalid. Missing required column.');
+              setIsFileValid(false);
+            }
+          };
+          reader.readAsArrayBuffer(file);
+        }
+      };
+
+
+      const handleFullNameChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setSelectedFullName(e.target.value);
+        setProfFullNameInput(e.target.value);
+      };
+      
+      const resetFileState = () => {
+        setIsFileValid(false);
+        setFileData([]);
+        setSelectedFullName('');
+      };
 
     const addProf = async () => {
-        if (contextID ==='' || profFirstNameInput === '' || profLastNameInput === '' || profGenreInput === '' || profStatusInput === '') return;
+        if (contextID === '' || profFullNameInput === '' || profGenreInput === '' || profStatusInput === '') return;
         const newProf = {
-            FirstName: profFirstNameInput,
-            LastName: profLastNameInput,
-            Sexe: profGenreInput,
-            Status: profStatusInput,
-            ContextId: contextID 
+          FullName: profFullNameInput,
+          Sexe: profGenreInput,
+          Status: profStatusInput,
+          ContextId: contextID 
         };
-
+      
         console.log(newProf);
-
-        const response = await fetch('http://localhost:3000/api/profs/', { method: 'POST', body: JSON.stringify({ prof: newProf, user: { userId: 1 } }), headers: { 'Content-Type': 'application/json' } });
+        const response = await fetch('http://localhost:3000/api/profs/', {
+          method: 'POST',
+          body: JSON.stringify({ prof: newProf, user: { userId: 1 } }),
+          headers: { 'Content-Type': 'application/json' }
+        });
         if (response.ok) {
             const addedProf = await response.json();
             setProfs([...profs, addedProf]);
         } else {
             console.error('Failed to add prof');
         }   
-        setProfFirstNameInput('');
-        setProfLastNameInput('');
+
+        setProfFullNameInput('');
         setProfGenreInput('M');
         setProfStatusInput('');
     };
@@ -167,56 +229,88 @@ function SetupContexte() {
                     />
                 </>
             )}
-            {setupStage === 2 && (
-                <>
-                    <h1 className='font-bold text-xl mb-4'>Ajoutez de nouveaux profs</h1>
-                    <div className='flex flex-col mb-4'>
-                        <input
-                            type="text"
-                            placeholder="First Name"
-                            className='border-b-2 border-black select-none outline-none p-2 mb-2'
-                            value={profFirstNameInput}
-                            onChange={(e) => setProfFirstNameInput(e.target.value)}
-                        />
-                        <input
-                            type="text"
-                            placeholder="Last Name"
-                            className='border-b-2 border-black select-none outline-none p-2 mb-2'
-                            value={profLastNameInput}
-                            onChange={(e) => setProfLastNameInput(e.target.value)}
-                        />
-                        <div className='flex items-center mb-2'>
-                            <label className='mr-2'>Genre:</label>
-                            <input
-                                type="checkbox"
-                                checked={profGenreInput === 'M'}
-                                onChange={() => setProfGenreInput(profGenreInput === 'M' ? 'F' : 'M')}
-                            />
-                            <span className='ml-2'>{profGenreInput}</span>
-                        </div>
-                        <select
-                            className='border-b-2 border-black select-none outline-none p-2 mb-2'
-                            value={profStatusInput}
-                            onChange={(e) => setProfStatusInput(e.target.value)}
-                        >
-                            <option value="">Select Status</option>
-                            <option value="Permanent">Permanent</option>
-                            <option value="Contract">Contract</option>
-                        </select>
-                        <button className='h-8 w-16 bg-blue-500 text-white font-bold rounded-md hover:bg-blue-700 transition-all duration-300 hover:scale-105' onClick={addProf}>+</button>
-                    </div>
-                    {profs.length > 0 && (
-                        <div>
-                            {profs.map((prof, index) => (
-                                <div className='flex items-center justify-between border-2 border-black p-2 mb-2 rounded-xl' key={index}>
-                                    <p className='ml-4'>{`${prof.FirstName} ${prof.LastName} (${prof.Sexe})`}</p>
-                                    <button className='mr-4' onClick={() => removeProf(index)}>X</button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </>
-            )}
+ {setupStage === 2 && (
+  <>
+    <h1 className='font-bold text-xl mb-4'>Ajoutez de nouveaux profs</h1>
+    {!isFileValid && (
+      <div className='flex items-center justify-between mb-4'>
+        <label htmlFor="fileInput" className='text-xl font-semibold'>Ajouter en masse via un fichier : </label>
+        <input
+          type="file"
+          id="fileInput"
+          className='border-b-2 border-black select-none outline-none p-2'
+          onChange={handleFileChange}
+        />
+        <button
+          className='bg-blue-500 text-white p-2 rounded ml-4'
+          onClick={handleFileUpload}
+        >
+          Upload
+        </button>
+      </div>
+    )}
+    {isFileValid && (
+      <div className='flex items-center justify-between mb-4'>
+        <label htmlFor="fullNameSelect" className='text-xl font-semibold'>Sélectionner un nom complet : </label>
+        <select
+          id="fullNameSelect"
+          className='border-b-2 border-black select-none outline-none p-2'
+          value={selectedFullName}
+          onChange={handleFullNameChange}
+        >
+          <option value="">Sélectionner un nom complet</option>
+          {fileData.map((fullName, index) => (
+            <option key={index} value={fullName}>{fullName}</option>
+          ))}
+        </select>
+        <button
+          className='bg-red-500 text-white p-2 rounded ml-4'
+          onClick={resetFileState}
+        >
+          Changer de fichier
+        </button>
+      </div>
+    )}
+    <div className='flex flex-col mb-4'>
+      <input
+        type="text"
+        placeholder="FullName"
+        className='border-b-2 border-black select-none outline-none p-2 mb-2'
+        value={profFullNameInput}
+        onChange={(e) => setProfFullNameInput(e.target.value)}
+      />
+      <div className='flex items-center mb-2'>
+            <label className='mr-2'>Genre:</label>
+            <input
+                type="checkbox"
+                checked={profGenreInput === 'M'}
+                onChange={() => setProfGenreInput(profGenreInput === 'M' ? 'F' : 'M')}
+            />
+            <span className='ml-2'>{profGenreInput}</span>
+      </div>
+      <select
+        className='border-b-2 border-black select-none outline-none p-2 mb-2'
+        value={profStatusInput}
+        onChange={(e) => setProfStatusInput(e.target.value)}
+      >
+        <option value="">Select Status</option>
+        <option value="Permanent">Permanent</option>
+        <option value="Contract">Contract</option>
+      </select>
+      <button className='h-8 w-16 bg-blue-500 text-white font-bold rounded-md hover:bg-blue-700 transition-all duration-300 hover:scale-105' onClick={addProf}>+</button>
+    </div>
+    {profs.length > 0 && (
+      <div>
+        {profs.map((prof, index) => (
+          <div className='flex items-center justify-between border-2 border-black p-2 mb-2 rounded-xl' key={index}>
+            <p className='ml-4'>{`${prof.FullName} (${prof.Sexe})`}</p>
+            <button className='mr-4' onClick={() => removeProf(index)}>X</button>
+          </div>
+        ))}
+      </div>
+    )}
+  </>
+)}
             {setupStage === 3 && (
                 <>
                     <h1 className='text-xl font-semibold mb-4'>Ajoutez de nouvelles salles</h1>

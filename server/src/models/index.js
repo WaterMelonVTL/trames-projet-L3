@@ -136,11 +136,7 @@ const Prof = sequelize.define('Prof', {
         primaryKey: true,
         autoIncrement: true,
     },
-    FirstName: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    LastName: {
+    FullName: {
         type: DataTypes.STRING,
         allowNull: false
     },

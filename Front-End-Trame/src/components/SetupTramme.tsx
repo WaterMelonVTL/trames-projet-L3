@@ -527,7 +527,7 @@ function SetupPage() {
                     <option value="">Sélectionnez un prof</option>
                     {profs.map((prof, index) => (
                       <option key={index} value={prof.Id}>
-                        {prof.FirstName} {prof.LastName}
+                        {prof.FullName}
                       </option>
                     ))}
                   </select>
@@ -575,7 +575,7 @@ function SetupPage() {
                     <option value="">Sélectionnez un prof</option>
                     {profs.map((prof, index) => (
                       <option key={index} value={prof.Id}>
-                        {prof.FirstName} {prof.LastName}
+                        {prof.FullName}
                       </option>
                     ))}
                   </select>
@@ -589,7 +589,7 @@ function SetupPage() {
                     <option value="">Sélectionnez un prof</option>
                     {profs.map((prof, index) => (
                       <option key={index} value={prof.Id}>
-                        {prof.FirstName} {prof.LastName}
+                        {prof.FullName}
                       </option>
                     ))}
                   </select>
@@ -603,7 +603,7 @@ function SetupPage() {
                     <option value="">Sélectionnez un prof</option>
                     {profs.map((prof, index) => (
                       <option key={index} value={prof.Id}>
-                        {prof.FirstName} {prof.LastName}
+                        {prof.F}
                       </option>
                     ))}
                   </select>
