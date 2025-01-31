@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { UE, Layer, Prof, Room } from "../types/types";
 import { useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 function SetupPage() {
   const navigate = useNavigate();
   const trammeId = location.pathname.split('/').pop();
@@ -48,6 +49,91 @@ function SetupPage() {
   //_____________________________________________________________________________________________________________
 
   const defaultColors = ['#FFB3BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF']
+
+  const [isFileValid, setIsFileValid] = React.useState<boolean>(true);
+  const [fileData, setFileData] = React.useState<any[]>([]);
+  const [selectedUECode, setSelectedUECode] = React.useState<string>('');
+  
+
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      console.log(file);
+    }
+  };
+  
+  const handleFileUpload = () => {
+    const fileInput = document.getElementById('fileInput') as HTMLInputElement;
+    const file = fileInput.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+  
+        const requiredColumns = [
+          'Code UE',
+          'Libellé long',
+          'Effectifs 21-22',
+          'Nb Heures - CM',
+          'Nb Heures - TD',
+          'Nb Heures - TP',
+          'Nb Heures - terrain'
+        ];
+  
+        const firstRow = jsonData[0] as string[];
+        const isValid = requiredColumns.every(col => firstRow.includes(col));
+  
+        if (isValid) {
+          console.log('File is valid');
+          setIsFileValid(false);
+  
+          const processedData = jsonData.slice(1).map((row: any) => ({
+            'Code UE': row[firstRow.indexOf('Code UE')],
+            'Nb Heures - CM': Math.round(row[firstRow.indexOf('Nb Heures - CM')]),
+            'Nb Heures - TD': Math.round(row[firstRow.indexOf('Nb Heures - TD')]),
+            'Nb Heures - TP': Math.round(row[firstRow.indexOf('Nb Heures - TP')])
+          }));
+  
+          setFileData(processedData);
+          console.log('Processed Data:', processedData);
+        } else {
+          console.error('File is invalid. Missing required columns.');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  };
+
+  const roundToNonZero = (value: number) => {
+    const roundedValue = Math.round(value);
+    return roundedValue > 0 ? roundedValue : value > 0 ? 1 : 0;
+  };
+
+  const handleUECodeChange = (code: string) => {
+    setSelectedUECode(code);
+    const selectedUE = fileData.find(ue => ue['Code UE'] === code);
+    if (selectedUE) {
+      setUeNameInput(selectedUE['Code UE']);
+      setUeCMVolumeInput(selectedUE['Nb Heures - CM']);
+      setUeTDVolumeInput(selectedUE['Nb Heures - TD']);
+      setUeTPVolumeInput(selectedUE['Nb Heures - TP']);
+      setUeCMVolumeHebdoInput(roundToNonZero(selectedUE['Nb Heures - CM'] / 16));
+      setUeTDVolumeHebdoInput(roundToNonZero(selectedUE['Nb Heures - TD'] / 16));
+      setUeTPVolumeHebdoInput(roundToNonZero(selectedUE['Nb Heures - TP'] / 16));
+    }
+  };
+
+  const resetFileState = () => {
+    setIsFileValid(true);
+    setFileData([]);
+    setSelectedUECode('');
+  };
+  
 
   const handleNameInputChange = async (newName: string) => {
     const response = await fetch(`http://localhost:3000/api/trammes/${trammeId}`, {
@@ -372,10 +458,46 @@ function SetupPage() {
         {setupStage >= 3 && setupStage < 3 + layers.length &&
           (<>
             <div className='flex flex-col items-center justify-between mb-8'>
-
-
-
               <div className='flex flex-col items-start justify-between mb-8'>
+              {isFileValid && (
+                    <div className='flex items-center justify-between mb-4'>
+                      <label htmlFor="fileInput" className='text-xl font-semibold'>Ajouter en masse via un fichier : </label>
+                      <input
+                        type="file"
+                        id="fileInput"
+                        className='border-b-2 border-black select-none outline-none p-2'
+                        onChange={handleFileChange}
+                      />
+                      <button
+                        className='bg-blue-500 text-white p-2 rounded ml-4'
+                        onClick={handleFileUpload}
+                      >
+                        Upload
+                      </button>
+                    </div>
+                )}
+                {!isFileValid && (
+                    <div className='flex items-center justify-between mb-4'>
+                      <label htmlFor="ueCodeSelect" className='text-xl font-semibold'>Sélectionner un Code UE : </label>
+                      <select
+                        id="ueCodeSelect"
+                        className='border-b-2 border-black select-none outline-none p-2'
+                        value={selectedUECode}
+                        onChange={(e) => handleUECodeChange(e.target.value)}
+                      >
+                        <option value="">Sélectionner un Code UE</option>
+                        {fileData.map((ue, index) => (
+                          <option key={index} value={ue['Code UE']}>{ue['Code UE']}</option>
+                        ))}
+                      </select>
+                      <button
+                        className='bg-red-500 text-white p-2 rounded ml-4'
+                        onClick={resetFileState}
+                      >
+                        Changer de fichier
+                      </button>
+                    </div>
+                )}
                 <div className='flex items-center justify-between mb-4'>
                   <label htmlFor="ueNameInput" className='text-xl font-semibold'>Nom de l'UE : </label>
                   <input
