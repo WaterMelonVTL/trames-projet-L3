@@ -110,7 +110,7 @@ function CoursItem(props: { cours: Course, onMouseDown: (e: React.MouseEvent<HTM
       onMouseDown={(e) => { if (!showOption) { props.onMouseDown(e) } }}
       onContextMenu={handleContextMenu} >
       <h1 className="text-xl font-bold">{ue.Name}</h1>
-      <h1 className="text-xl ">{prof?.FirstName} {prof?.LastName}</h1>
+      <h1 className="text-xl ">{prof?.FullName}</h1>
       <h1 className="text-xl ">{room?.Name}</h1>
       {
         showOption && <CalendarOptionMenu ue={ue} setUe={setUe} close={() => setShowOption(false)} position={menuPosition}/>

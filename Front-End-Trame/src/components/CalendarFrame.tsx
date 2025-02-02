@@ -17,7 +17,6 @@ function CalendarFrame(props: {date:Date, fetchedCourse:Course[], currentCours: 
 
 
 
-
     function getDateForDay(jour: number): Date {
         const date = new Date(defaultDate);
         date.setDate(defaultDate.getDate() + jour);
