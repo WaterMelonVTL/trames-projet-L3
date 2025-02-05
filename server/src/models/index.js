@@ -289,6 +289,14 @@ const Course = sequelize.define('Course', {
             key: 'Id'
         }
     },
+    RoomId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: Room,
+            key: 'Id'
+        }
+    },
     LayerId: {
         type: DataTypes.INTEGER,
         allowNull: false,
