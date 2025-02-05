@@ -287,127 +287,127 @@ function SetupContexte() {
                     />
                 </>
             )}
-{setupStage === 2 && (
-  <>
-    <h1 className='font-bold text-xl mb-4'>Ajoutez de nouveaux profs</h1>
-    {!isFileValid && (
-      <div className='flex items-center justify-between mb-4'>
-        <label htmlFor="fileInput" className='text-xl font-semibold'>Ajouter en masse via un fichier : </label>
-        <input
-          type="file"
-          id="fileInput"
-          className='border-b-2 border-black select-none outline-none p-2'
-          onChange={handleFileChange}
-        />
-        <button
-          className='bg-blue-500 text-white p-2 rounded ml-4'
-          onClick={handleFileUpload}
-        >
-          Upload
-        </button>
-      </div>
-    )}
-    {isFileValid && (
-      <div className='flex items-center justify-between mb-4'>
-        <button
-          className='bg-green-500 text-white p-2 rounded'
-          onClick={openModal}
-        >
-          Rechercher et ajouter des profs
-        </button>
-        <button
-          className='bg-red-500 text-white p-2 rounded ml-4'
-          onClick={resetFileState}
-        >
-          Changer de fichier
-        </button>
-      </div>
-    )}
-    <div className='flex flex-col mb-4'>
-      <input
-        type="text"
-        placeholder="FullName"
-        className='border-b-2 border-black select-none outline-none p-2 mb-2'
-        value={profFullNameInput}
-        onChange={(e) => setProfFullNameInput(e.target.value)}
-      />
-      <select
-        className='border-b-2 border-black select-none outline-none p-2 mb-2'
-        value={profStatusInput}
-        onChange={(e) => setProfStatusInput(e.target.value)}
-      >
-        <option value="">Select Status</option>
-        <option value="Permanent">Permanent</option>
-        <option value="Contract">Contract</option>
-      </select>
-      <button className='h-8 w-16 bg-blue-500 text-white font-bold rounded-md hover:bg-blue-700 transition-all duration-300 hover:scale-105' onClick={addProf}>+</button>
-    </div>
-    {profs.length > 0 && (
-      <div className='max-h-64 overflow-y-auto'>
-        {profs.map((prof, index) => (
-          <div className='flex items-center justify-between border-2 border-black p-2 mb-2 rounded-xl' key={index}>
-            <p className='ml-4'>{`${prof.FullName}`}</p>
-            <button className='mr-4' onClick={() => removeProf(index)}>X</button>
-          </div>
-        ))}
-      </div>
-    )}
-    {isModalOpen && (
-      <div className='fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center'>
-        <div className='bg-white p-4 rounded-lg'>
-          <h2 className='text-xl font-bold mb-4'>Rechercher des profs</h2>
-          <input
-            type="text"
-            placeholder="Rechercher..."
-            className='border-b-2 border-black select-none outline-none p-2 mb-4'
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setFilteredProfs(fileData.filter(fullName => fullName.toLowerCase().includes(e.target.value.toLowerCase())));
-            }}
-          />
-          <div className='max-h-64 overflow-y-auto'>
-            {filteredProfs.map((fullName, index) => (
-              <div key={index} className='flex items-center justify-between mb-2'>
-                <input
-                  type="checkbox"
-                  checked={selectedProfs.includes(fullName)}
-                  data-index={index}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
-                <p>{fullName}</p>
-                <button
-                  className='bg-blue-500 text-white p-2 rounded'
-                  onClick={() => addSelectedProf(fullName)}
-                >
-                  Ajouter
-                </button>
-              </div>
-            ))}
-          </div>
-          <button
-            className='bg-green-500 text-white p-2 rounded mt-4'
-            onClick={addSelectedProfs}
-          >
-            Ajouter sélectionnés
-          </button>
-          <button
-            className='bg-green-500 text-white p-2 rounded mt-4 ml-4'
-            onClick={addAllFilteredProfs}
-          >
-            Ajouter tous
-          </button>
-          <button
-            className='bg-red-500 text-white p-2 rounded mt-4 ml-4'
-            onClick={closeModal}
-          >
-            Fermer
-          </button>
-        </div>
-      </div>
-    )}
-  </>
-)}
+            {setupStage === 2 && (
+                <>
+                    <h1 className='font-bold text-xl mb-4'>Ajoutez de nouveaux profs</h1>
+                    {!isFileValid && (
+                      <div className='flex items-center justify-between mb-4'>
+                        <label htmlFor="fileInput" className='text-xl font-semibold'>Ajouter en masse via un fichier : </label>
+                        <input
+                          type="file"
+                          id="fileInput"
+                          className='border-b-2 border-black select-none outline-none p-2'
+                          onChange={handleFileChange}
+                        />
+                        <button
+                          className='bg-blue-500 text-white p-2 rounded ml-4'
+                          onClick={handleFileUpload}
+                        >
+                          Upload
+                        </button>
+                      </div>
+                    )}
+                    {isFileValid && (
+                      <div className='flex items-center justify-between mb-4'>
+                        <button
+                          className='bg-green-500 text-white p-2 rounded'
+                          onClick={openModal}
+                        >
+                          Rechercher et ajouter des profs
+                        </button>
+                        <button
+                          className='bg-red-500 text-white p-2 rounded ml-4'
+                          onClick={resetFileState}
+                        >
+                          Changer de fichier
+                        </button>
+                      </div>
+                    )}
+                    <div className='flex flex-col mb-4'>
+                      <input
+                        type="text"
+                        placeholder="FullName"
+                        className='border-b-2 border-black select-none outline-none p-2 mb-2'
+                        value={profFullNameInput}
+                        onChange={(e) => setProfFullNameInput(e.target.value)}
+                      />
+                      <select
+                        className='border-b-2 border-black select-none outline-none p-2 mb-2'
+                        value={profStatusInput}
+                        onChange={(e) => setProfStatusInput(e.target.value)}
+                      >
+                        <option value="">Select Status</option>
+                        <option value="Permanent">Permanent</option>
+                        <option value="Contract">Contract</option>
+                      </select>
+                      <button className='h-8 w-16 bg-blue-500 text-white font-bold rounded-md hover:bg-blue-700 transition-all duration-300 hover:scale-105' onClick={addProf}>+</button>
+                    </div>
+                    {profs.length > 0 && (
+                      <div className='max-h-64 overflow-y-auto'>
+                        {profs.map((prof, index) => (
+                          <div className='flex items-center justify-between border-2 border-black p-2 mb-2 rounded-xl' key={index}>
+                            <p className='ml-4'>{`${prof.FullName}`}</p>
+                            <button className='mr-4' onClick={() => removeProf(index)}>X</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {isModalOpen && (
+                      <div className='fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center'>
+                        <div className='bg-white p-4 rounded-lg'>
+                          <h2 className='text-xl font-bold mb-4'>Rechercher des profs</h2>
+                          <input
+                            type="text"
+                            placeholder="Rechercher..."
+                            className='border-b-2 border-black select-none outline-none p-2 mb-4'
+                            value={searchQuery}
+                            onChange={(e) => {
+                              setSearchQuery(e.target.value);
+                              setFilteredProfs(fileData.filter(fullName => fullName.toLowerCase().includes(e.target.value.toLowerCase())));
+                            }}
+                          />
+                          <div className='max-h-64 overflow-y-auto'>
+                            {filteredProfs.map((fullName, index) => (
+                              <div key={index} className='flex items-center justify-between mb-2'>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedProfs.includes(fullName)}
+                                  data-index={index}
+                                  onChange={(e) => handleCheckboxChange(e, index)}
+                                />
+                                <p>{fullName}</p>
+                                <button
+                                  className='bg-blue-500 text-white p-2 rounded'
+                                  onClick={() => addSelectedProf(fullName)}
+                                >
+                                  Ajouter
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          <button
+                            className='bg-green-500 text-white p-2 rounded mt-4'
+                            onClick={addSelectedProfs}
+                          >
+                            Ajouter sélectionnés
+                          </button>
+                          <button
+                            className='bg-green-500 text-white p-2 rounded mt-4 ml-4'
+                            onClick={addAllFilteredProfs}
+                          >
+                            Ajouter tous
+                          </button>
+                          <button
+                            className='bg-red-500 text-white p-2 rounded mt-4 ml-4'
+                            onClick={closeModal}
+                          >
+                            Fermer
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                </>
+            )}
             {setupStage === 3 && (
                 <>
                     <h1 className='text-xl font-semibold mb-4'>Ajoutez de nouvelles salles</h1>
