@@ -84,28 +84,46 @@ function SetupContexte() {
       setSearchQuery('');
       setFilteredProfs([]);
     };
+
+    const sendProfToServer = async (newProf: { FullName: string, Status: string, ContextId: string }) => {
+      const response = await fetch('http://localhost:3000/api/profs/', {
+        method: 'POST',
+        body: JSON.stringify({ prof: newProf, user: { userId: 1 } }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (response.ok) {
+        return await response.json();
+      } else {
+        console.error('Failed to add prof:', newProf.FullName);
+        return null;
+      }
+    };
     
-    const addSelectedProfs = () => {
-      const newProfs = selectedProfs.map(fullName => ({
+    const addProfs = async (profsToAdd: string[]) => {
+      const newProfs = profsToAdd.map(fullName => ({
         FullName: fullName,
         Status: 'Permanent',
         ContextId: contextID
       }));
     
-      setProfs([...profs, ...newProfs]);
+      try {
+        const responses = await Promise.all(newProfs.map(prof => sendProfToServer(prof)));
+        const addedProfs = responses.filter(prof => prof !== null);
+        setProfs([...profs, ...addedProfs]);
+      } catch (error) {
+        console.error('Failed to add profs:', error);
+      }
+    
       setSelectedProfs([]);
       closeModal();
     };
+
+    const addSelectedProfs = () => {
+      addProfs(selectedProfs);
+    };
     
     const addAllFilteredProfs = () => {
-      const newProfs = filteredProfs.map(fullName => ({
-        FullName: fullName,
-        Status: 'Permanent',
-        ContextId: contextID
-      }));
-    
-      setProfs([...profs, ...newProfs]);
-      closeModal();
+      addProfs(filteredProfs);
     };
 
     const handleCheckboxChange = useCallback((e: React.ChangeEvent<HTMLInputElement>, index: number) => {
@@ -139,28 +157,21 @@ function SetupContexte() {
     }, [filteredProfs]);
 
     const addProf = async () => {
-        if (contextID === '' || profFullNameInput === '' || profStatusInput === '') return;
-        const newProf = {
-          FullName: profFullNameInput,
-          Status: profStatusInput,
-          ContextId: contextID 
-        };
-      
-        console.log(newProf);
-        const response = await fetch('http://localhost:3000/api/profs/', {
-          method: 'POST',
-          body: JSON.stringify({ prof: newProf, user: { userId: 1 } }),
-          headers: { 'Content-Type': 'application/json' }
-        });
-        if (response.ok) {
-            const addedProf = await response.json();
-            setProfs([...profs, addedProf]);
-        } else {
-            console.error('Failed to add prof');
-        }   
-
-        setProfFullNameInput('');
-        setProfStatusInput('');
+      if (contextID === '' || profFullNameInput === '' || profStatusInput === '') return;
+      const newProf = {
+        FullName: profFullNameInput,
+        Status: profStatusInput,
+        ContextId: contextID
+      };
+    
+      console.log(newProf);
+      const addedProf = await sendProfToServer(newProf);
+      if (addedProf) {
+        setProfs([...profs, addedProf]);
+      }
+    
+      setProfFullNameInput('');
+      setProfStatusInput('');
     };
 
     const removeProf = async (index: number) => {
