@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { UE, Layer, Prof, Room } from "../types/types";
+import { UE, Layer, Prof } from "../types/types";
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 function SetupPage() {
@@ -14,8 +14,6 @@ function SetupPage() {
 
   
   const [profs, setProfs] = React.useState<Prof[]>([])
-  const [rooms, setRooms] = React.useState<Room[]>([])
-
 
   const [currentLayerIndex, setCurrentLayerIndex] = React.useState<number>(0)
 
@@ -34,18 +32,7 @@ function SetupPage() {
   const [ueCMVolumeInput, setUeCMVolumeInput] = React.useState<number>(0)
   const [ueTDVolumeInput, setUeTDVolumeInput] = React.useState<number>(0)
   const [ueTPVolumeInput, setUeTPVolumeInput] = React.useState<number>(0)
-
-  const [ueCMVolumeHebdoInput, setUeCMVolumeHebdoInput] = React.useState<number>(0)
-  const [ueTDVolumeHebdoInput, setUeTDVolumeHebdoInput] = React.useState<number>(0)
-  const [ueTPVolumeHebdoInput, setUeTPVolumeHebdoInput] = React.useState<number>(0)
-
-
-  const [ueCMProfInput, setUeCMProfInput] = React.useState<number>(0)
-  const [ueTDProfInput, setUeTDProfInput] = React.useState<number>(0)
-  const [ueTPProfInput, setUeTPProfInput] = React.useState<number>(0)
-
  
-  const [amphiParDefautInput, setAmphiParDefautInput] = React.useState<string>('')
   //_____________________________________________________________________________________________________________
 
   const defaultColors = ['#FFB3BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF']
@@ -109,11 +96,6 @@ function SetupPage() {
     }
   };
 
-  const roundToNonZero = (value: number) => {
-    const roundedValue = Math.round(value);
-    return roundedValue > 0 ? roundedValue : value > 0 ? 1 : 0;
-  };
-
   const handleUECodeChange = (code: string) => {
     setSelectedUECode(code);
     const selectedUE = fileData.find(ue => ue['Code UE'] === code);
@@ -122,9 +104,6 @@ function SetupPage() {
       setUeCMVolumeInput(selectedUE['Nb Heures - CM']);
       setUeTDVolumeInput(selectedUE['Nb Heures - TD']);
       setUeTPVolumeInput(selectedUE['Nb Heures - TP']);
-      setUeCMVolumeHebdoInput(roundToNonZero(selectedUE['Nb Heures - CM'] / 16));
-      setUeTDVolumeHebdoInput(roundToNonZero(selectedUE['Nb Heures - TD'] / 16));
-      setUeTPVolumeHebdoInput(roundToNonZero(selectedUE['Nb Heures - TP'] / 16));
     }
   };
 
@@ -171,18 +150,6 @@ function SetupPage() {
     console.log("Updating profs")
     fetchProfs();
     
-  }, [contextId]);
-
-  useEffect(() => { //TEMPORARY, when working with issue  #27, change this effect with your seach query. 
-    const fetchRooms = async () => {
-      if (contextId === -1) return;
-      if (contextId != undefined) {
-        const roomsData = await searchRooms('');
-        setRooms(roomsData);
-      }
-    };
-    console.log("Updating rooms")
-    fetchRooms();
   }, [contextId]);
 
   const searchProfs = async (query: string) => {
@@ -279,18 +246,14 @@ function SetupPage() {
       TotalHourVolume_CM: ueCMVolumeInput,
       TotalHourVolume_TD: ueTDVolumeInput,
       TotalHourVolume_TP : ueTPVolumeInput,
-      DefaultHourVolumeHebdo_CM: ueCMVolumeHebdoInput,
-      DefaultHourVolumeHebdo_TD: ueTDVolumeHebdoInput,
-      DefaultHourVolumeHebdo_TP: ueTPVolumeHebdoInput,
       ResponsibleId: ueProfResponsableInput,
       Color: ueColorInput,
-      AmphiByDefaultId: amphiParDefautInput,
-      LayerId: layers[currentLayerIndex].Id,
+      LayerId: layers[currentLayerIndex].Id
     };
     const response = await fetch('http://localhost:3000/api/ues', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ue: newUE,  user: { Id: 1 },profs_CM:[], profs_TD:[], profs_TP:[] })
+      body: JSON.stringify({ ue: newUE,  user: { Id: 1 } })
     });
     if (response.ok) {
       const createdUE = await response.json();
@@ -559,105 +522,6 @@ function SetupPage() {
                     onChange={(e) => setUeTPVolumeInput(parseInt(e.target.value))}
                   />
                 </div>
-
-                <div className='flex items-center justify-between mb-4'>
-
-                </div>
-
-                <div className='flex items-center justify-between mb-4'>
-                  <label htmlFor="ueCMProfInput" className='text-xl font-semibold'>Prof CM : </label>
-                  <select
-                    id="ueCMProfInput"
-                    className='border-b-2 border-black select-none outline-none p-2'
-                    value={ueCMProfInput}
-                    onChange={(e) => setUeCMProfInput(parseInt(e.target.value))}
-                  >
-                    <option value="">Sélectionnez un prof</option>
-                    {profs.map((prof, index) => (
-                      <option key={index} value={prof.Id}>
-                        {prof.FullName}
-                      </option>
-                    ))}
-                  </select>
-                  <label htmlFor="ueTDProfInput" className='text-xl font-semibold'>Prof TD : </label>
-                  <select
-                    id="ueTDProfInput"
-                    className='border-b-2 border-black select-none outline-none p-2'
-                    value={ueTDProfInput}
-                    onChange={(e) => setUeTDProfInput(parseInt(e.target.value))}
-                  >
-                    <option value="">Sélectionnez un prof</option>
-                    {profs.map((prof, index) => (
-                      <option key={index} value={prof.Id}>
-                        {prof.FullName}
-                      </option>
-                    ))}
-                  </select>
-                  <label htmlFor="ueTPProfInput" className='text-xl font-semibold'>Prof TP : </label>
-                  <select
-                    id="ueTPProfInput"
-                    className='border-b-2 border-black select-none outline-none p-2'
-                    value={ueTPProfInput}
-                    onChange={(e) => setUeTPProfInput(parseInt(e.target.value))}
-                  >
-                    <option value="">Sélectionnez un prof</option>
-                    {profs.map((prof, index) => (
-                      <option key={index} value={prof.Id}>
-                        {prof.F}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className='flex items-center justify-between mb-4'>
-
-                </div>
-
-                <div className='flex items-center justify-between mb-4'>
-                  <label htmlFor="ueCMVolumeHebdoInput" className='text-xl font-semibold'>Volume horaire hebdo CM : </label>
-                  <input
-                    type="number"
-                    id="ueCMVolumeHebdoInput"
-                    className='border-b-2 border-black select-none outline-none p-2'
-                    value={ueCMVolumeHebdoInput}
-                    onChange={(e) => setUeCMVolumeHebdoInput(parseInt(e.target.value))}
-                  />
-                  <label htmlFor="ueTDVolumeHebdoInput" className='text-xl font-semibold'> TD : </label>
-                  <input
-                    type="number"
-                    id="ueTDVolumeHebdoInput"
-                    className='border-b-2 border-black select-none outline-none p-2'
-                    value={ueTDVolumeHebdoInput}
-                    onChange={(e) => setUeTDVolumeHebdoInput(parseInt(e.target.value))}
-                  />
-                  <label htmlFor="ueTPVolumeHebdoInput" className='text-xl font-semibold'> TP : </label>
-                  <input
-                    type="number"
-                    id="ueTPVolumeHebdoInput"
-                    className='border-b-2 border-black select-none outline-none p-2'
-                    value={ueTPVolumeHebdoInput}
-                    onChange={(e) => setUeTPVolumeHebdoInput(parseInt(e.target.value))}
-                  />
-                </div>
-
-                <div className='flex items-center justify-between mb-4'>
-                  <label htmlFor="amphiParDefautInput" className='text-xl font-semibold'>Amphi par défaut : </label>
-                  <select
-                  id="amphiParDefautInput"
-                  className='border-b-2 border-black select-none outline-none p-2'
-                  value={amphiParDefautInput}
-                  onChange={(e) => setAmphiParDefautInput(e.target.value)}
-                  >
-                  <option value="">Sélectionnez une salle</option>
-                  {rooms.map((room, index) => (
-                    <option key={index} value={room.Id}>
-                    {room.Name}
-                    </option>
-                  ))}
-                  </select>
-                  
-                </div>
-
 
                 <div className='flex items-center justify-between mb-4'>
 

@@ -213,26 +213,6 @@ const UE = sequelize.define('UE', {
         type: DataTypes.INTEGER,
         allowNull: false
     },
-    DefaultHourVolumeHebdo_CM: {
-        type: DataTypes.INTEGER,
-        allowNull: false
-    },
-    DefaultHourVolumeHebdo_TD: {
-        type: DataTypes.INTEGER,
-        allowNull: false
-    },
-    DefaultHourVolumeHebdo_TP: {
-        type: DataTypes.INTEGER,
-        allowNull: false
-    },
-    AmphiByDefaultId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: Room,
-            key: 'Id'
-        }
-    },     
     TP_NeedInformaticRoom: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
@@ -260,63 +240,6 @@ const UE = sequelize.define('UE', {
         allowNull: false,
         references: {
             model: Layer,
-            key: 'Id'
-        }
-    }
-});
-
-const UE_CM_Teacher = sequelize.define('UE_CM_Teacher', {
-    UEId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: UE,
-            key: 'Id'
-        }
-    },
-    ProfId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: Prof,
-            key: 'Id'
-        }
-    }
-});
-
-const UE_TD_Teacher = sequelize.define('UE_TD_Teacher', {
-    UEId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: UE,
-            key: 'Id'
-        }
-    },
-    ProfId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: Prof,
-            key: 'Id'
-        }
-    }
-});
-
-const UE_TP_Teacher = sequelize.define('UE_TP_Teacher', {
-    UEId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: UE,
-            key: 'Id'
-        }
-    },
-    ProfId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: Prof,
             key: 'Id'
         }
     }
@@ -366,14 +289,6 @@ const Course = sequelize.define('Course', {
             key: 'Id'
         }
     },
-    RoomId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: Room,
-            key: 'Id'
-        }
-    },
     LayerId: {
         type: DataTypes.INTEGER,
         allowNull: false,
@@ -412,8 +327,6 @@ const Tokens = sequelize.define('Tokens', {
 
 // UE relationships
 UE.belongsToMany(Prof, { as: 'Responsibles', through: 'UE_Responsibles', foreignKey: 'UEId' });
-UE.belongsToMany(Prof, { as: 'ProfCMs', through: 'UE_ProfCMs', foreignKey: 'UEId' });
-UE.belongsToMany(Prof, { as: 'ProfTDs', through: 'UE_ProfTDs', foreignKey: 'UEId' });
 
 // Course relationships
 Course.belongsToMany(Prof, { as: 'Teachers', through: 'Course_Teachers', foreignKey: 'CourseId' });
@@ -439,8 +352,5 @@ export {
     Room,
     UE,
     Course,
-    Tokens,
-    UE_CM_Teacher,
-    UE_TD_Teacher,
-    UE_TP_Teacher
+    Tokens
 };
