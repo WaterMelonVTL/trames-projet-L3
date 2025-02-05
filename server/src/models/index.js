@@ -145,10 +145,6 @@ const Prof = sequelize.define('Prof', {
         allowNull: false,
         defaultValue: 'Enseignant Titulaire'
     },
-    Sexe: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
     ContextId: {
         type: DataTypes.INTEGER,
         allowNull: false,
