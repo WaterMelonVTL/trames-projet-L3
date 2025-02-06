@@ -1,7 +1,9 @@
-import React, { useEffect } from 'react'
-import { UE, Layer, Prof, Room } from "../types/types";
+import React, { useState, useRef, useCallback,useEffect } from 'react'
+import { UE, Layer, Prof } from "../types/types";
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
+import randomColor from 'randomcolor';
+
 function SetupPage() {
   const navigate = useNavigate();
   const trammeId = location.pathname.split('/').pop();
@@ -14,8 +16,6 @@ function SetupPage() {
 
   
   const [profs, setProfs] = React.useState<Prof[]>([])
-  const [rooms, setRooms] = React.useState<Room[]>([])
-
 
   const [currentLayerIndex, setCurrentLayerIndex] = React.useState<number>(0)
 
@@ -34,25 +34,18 @@ function SetupPage() {
   const [ueCMVolumeInput, setUeCMVolumeInput] = React.useState<number>(0)
   const [ueTDVolumeInput, setUeTDVolumeInput] = React.useState<number>(0)
   const [ueTPVolumeInput, setUeTPVolumeInput] = React.useState<number>(0)
-
-  const [ueCMVolumeHebdoInput, setUeCMVolumeHebdoInput] = React.useState<number>(0)
-  const [ueTDVolumeHebdoInput, setUeTDVolumeHebdoInput] = React.useState<number>(0)
-  const [ueTPVolumeHebdoInput, setUeTPVolumeHebdoInput] = React.useState<number>(0)
-
-
-  const [ueCMProfInput, setUeCMProfInput] = React.useState<number>(0)
-  const [ueTDProfInput, setUeTDProfInput] = React.useState<number>(0)
-  const [ueTPProfInput, setUeTPProfInput] = React.useState<number>(0)
-
  
-  const [amphiParDefautInput, setAmphiParDefautInput] = React.useState<string>('')
   //_____________________________________________________________________________________________________________
 
   const defaultColors = ['#FFB3BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF']
 
-  const [isFileValid, setIsFileValid] = React.useState<boolean>(true);
+  const [isFileValid, setIsFileValid] = React.useState<boolean>(false);
   const [fileData, setFileData] = React.useState<any[]>([]);
-  const [selectedUECode, setSelectedUECode] = React.useState<string>('');
+  const [isModalOpen, setIsModalOpen] = React.useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = React.useState<string>('');
+  const [filteredUEs, setFilteredUEs] = React.useState<string[]>([]);
+  const [selectedUEs, setSelectedUEs] = React.useState<string[]>([]);
+  const lastChecked = useRef<number | null>(null);
   
 
 
@@ -63,12 +56,12 @@ function SetupPage() {
     }
   };
   
-  const handleFileUpload = () => {
+  const handleFileUpload = async () => {
     const fileInput = document.getElementById('fileInput') as HTMLInputElement;
     const file = fileInput.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheetName = workbook.SheetNames[0];
@@ -82,76 +75,158 @@ function SetupPage() {
           'Nb Heures - CM',
           'Nb Heures - TD',
           'Nb Heures - TP',
-          'Nb Heures - terrain'
+          'Nb Heures - terrain',
+          'RESP_ELP'
         ];
   
         const firstRow = jsonData[0] as string[];
+        console.log('First Row:', firstRow);
+        console.log('Required Columns:', requiredColumns);
         const isValid = requiredColumns.every(col => firstRow.includes(col));
   
         if (isValid) {
           console.log('File is valid');
-          setIsFileValid(false);
+          setIsFileValid(true);
   
-          const processedData = jsonData.slice(1).map((row: any) => ({
-            'Code UE': row[firstRow.indexOf('Code UE')],
-            'Nb Heures - CM': Math.round(row[firstRow.indexOf('Nb Heures - CM')]),
-            'Nb Heures - TD': Math.round(row[firstRow.indexOf('Nb Heures - TD')]),
-            'Nb Heures - TP': Math.round(row[firstRow.indexOf('Nb Heures - TP')])
+          const processedData = new Map();
+          await Promise.all(jsonData.slice(1).map(async (row: any) => {
+            const codeUE = row[firstRow.indexOf('Code UE')];
+            const responsible = row[firstRow.indexOf('RESP_ELP')];
+            if (responsible) {
+              const responsibleId = await getProfIdByFullName(responsible.split('/')[0].trim());
+              if (responsibleId) {
+                if (!processedData.has(codeUE)) { // Ligne ajoutée pour vérifier l'unicité
+                  processedData.set(codeUE, {
+                    'Code UE': codeUE,
+                    'Nb Heures - CM': Math.round(row[firstRow.indexOf('Nb Heures - CM')]),
+                    'Nb Heures - TD': Math.round(row[firstRow.indexOf('Nb Heures - TD')]),
+                    'Nb Heures - TP': Math.round(row[firstRow.indexOf('Nb Heures - TP')]),
+                    'ResponsibleId': responsibleId
+                  });
+                }
+              } else {
+                console.error(`Responsible ${responsible.split('/')[0].trim()} not found for UE ${codeUE}`);
+              }
+            }
           }));
   
-          setFileData(processedData);
-          console.log('Processed Data:', processedData);
+          const validData = Array.from(processedData.values());
+          setFileData(validData);
+          console.log('Processed Data:', validData);
         } else {
           console.error('File is invalid. Missing required columns.');
+          setIsFileValid(false);
         }
       };
       reader.readAsArrayBuffer(file);
     }
   };
 
-  const roundToNonZero = (value: number) => {
-    const roundedValue = Math.round(value);
-    return roundedValue > 0 ? roundedValue : value > 0 ? 1 : 0;
+  const openModal = () => {
+    setIsModalOpen(true);
+    setFilteredUEs(fileData);
   };
 
-  const handleUECodeChange = (code: string) => {
-    setSelectedUECode(code);
-    const selectedUE = fileData.find(ue => ue['Code UE'] === code);
-    if (selectedUE) {
-      setUeNameInput(selectedUE['Code UE']);
-      setUeCMVolumeInput(selectedUE['Nb Heures - CM']);
-      setUeTDVolumeInput(selectedUE['Nb Heures - TD']);
-      setUeTPVolumeInput(selectedUE['Nb Heures - TP']);
-      setUeCMVolumeHebdoInput(roundToNonZero(selectedUE['Nb Heures - CM'] / 16));
-      setUeTDVolumeHebdoInput(roundToNonZero(selectedUE['Nb Heures - TD'] / 16));
-      setUeTPVolumeHebdoInput(roundToNonZero(selectedUE['Nb Heures - TP'] / 16));
-    }
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSearchQuery('');
+    setFilteredUEs([]);
   };
 
   const resetFileState = () => {
-    setIsFileValid(true);
+    setIsFileValid(false);
     setFileData([]);
-    setSelectedUECode('');
   };
   
-
-  const handleNameInputChange = async (newName: string) => {
-    const response = await fetch(`http://localhost:3000/api/trammes/${trammeId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ Name: newName })
-    });
-    console.log('response:', response);
-    if (response.ok) {
-      const updatedTramme = await response.json();
-      console.log('Tramme name updated:', updatedTramme);
-      setTrammeNameInput(updatedTramme.Name);
+  const handleCheckboxChange = useCallback((e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    const ueCode = filteredUEs[index]['Code UE'];
+  
+    if (lastChecked.current !== null && e.nativeEvent.shiftKey) {
+      setSelectedUEs((prev) => {
+        const start = Math.min(lastChecked.current!, index);
+        const end = Math.max(lastChecked.current!, index);
+        const newSelectedUEs = [...prev];
+  
+        for (let i = start; i <= end; i++) {
+          const code = filteredUEs[i]['Code UE'];
+          if (!newSelectedUEs.includes(code)) {
+            newSelectedUEs.push(code);
+          }
+        }
+  
+        return newSelectedUEs;
+      });
+      return;
+    }
+  
+    if (e.target.checked) {
+      lastChecked.current = index;
+      setSelectedUEs((prev) => [...prev, ueCode]);
     } else {
-      console.error('Failed to set tramme name');
+      lastChecked.current = null;
+      setSelectedUEs((prev) => prev.filter((code) => code !== ueCode));
+    }
+  }, [filteredUEs]);
+
+  const getProfIdByFullName = async (fullName: string) => {
+    const profsData = await searchProfs(fullName);
+    const prof = profsData.find((prof: Prof) => prof.FullName === fullName);
+    return prof ? prof.Id : null;
+  };
+
+  const addUEs = async (uesToAdd: any[]) => {
+    const newUEs = await Promise.all(uesToAdd.map(async (ue) => {
+      return {
+        Name: ue['Code UE'],
+        TotalHourVolume_CM: ue['Nb Heures - CM'],
+        TotalHourVolume_TD: ue['Nb Heures - TD'],
+        TotalHourVolume_TP: ue['Nb Heures - TP'],
+        ResponsibleId: ue['ResponsibleId'],
+        Color: randomColor(),
+        LayerId: layers[currentLayerIndex].Id
+      };
+    }));
+  
+    try {
+      const responses = await Promise.all(newUEs.map(ue => sendUEToServer(ue)));
+      const addedUEs = responses.filter(ue => ue !== null);
+      setUes({
+        ...ues,
+        [layers[currentLayerIndex].Id]: [...ues[layers[currentLayerIndex].Id], ...addedUEs]
+      });
+    } catch (error) {
+      console.error('Failed to add UEs:', error);
+    }
+  
+    setSelectedUEs([]);
+    closeModal();
+  };
+  
+  const sendUEToServer = async (newUE: any) => {
+    const response = await fetch('http://localhost:3000/api/ues', {
+      method: 'POST',
+      body: JSON.stringify({ ue: newUE, user: { Id: 1 } }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (response.ok) {
+      return await response.json();
+    } else {
+      console.error('Failed to add UE:', newUE.Name);
+      return null;
     }
   };
+
+  const addSelectedUEs = () => {
+    const uesToAdd = selectedUEs.map(ueCode => fileData.find(ue => ue['Code UE'] === ueCode)).filter(ue => ue !== undefined);
+    console.log('UES to add:', uesToAdd);
+    addUEs(uesToAdd);
+  };
+  
+  const addAllFilteredUEs = () => {
+    addUEs(filteredUEs);
+  };
+
+
 
   useEffect(() => { //TEMPORARY, when working with issue  #27, change this effect with your seach query. 
     const fetchProfs = async () => {
@@ -173,18 +248,6 @@ function SetupPage() {
     
   }, [contextId]);
 
-  useEffect(() => { //TEMPORARY, when working with issue  #27, change this effect with your seach query. 
-    const fetchRooms = async () => {
-      if (contextId === -1) return;
-      if (contextId != undefined) {
-        const roomsData = await searchRooms('');
-        setRooms(roomsData);
-      }
-    };
-    console.log("Updating rooms")
-    fetchRooms();
-  }, [contextId]);
-
   const searchProfs = async (query: string) => {
     const searchQuery = query === '' ? '%25all%25' : query;
     console.log("searching for profs with query:", searchQuery);
@@ -202,26 +265,6 @@ function SetupPage() {
       return [];
     }
   };
-
-  const searchRooms = async (query: string) => {
-    const searchQuery = query === '' ? '%25all%25' : query;
-    console.log("searching for rooms with query:", searchQuery);
-
-    try {
-      const response = await fetch(`http://localhost:3000/api/rooms/search/${contextId}/${searchQuery}`);
-      if (response.ok) {
-        const roomsData = await response.json();
-        return roomsData;
-      } else {
-        console.error("Error searching rooms:", response.statusText);
-        return [];
-      }
-    } catch (error) {
-      console.error("Error searching rooms:", error);
-      return [];
-    }
-  };
-
 
   useEffect(() => {
     const fetchData = async () => {
@@ -279,18 +322,14 @@ function SetupPage() {
       TotalHourVolume_CM: ueCMVolumeInput,
       TotalHourVolume_TD: ueTDVolumeInput,
       TotalHourVolume_TP : ueTPVolumeInput,
-      DefaultHourVolumeHebdo_CM: ueCMVolumeHebdoInput,
-      DefaultHourVolumeHebdo_TD: ueTDVolumeHebdoInput,
-      DefaultHourVolumeHebdo_TP: ueTPVolumeHebdoInput,
       ResponsibleId: ueProfResponsableInput,
       Color: ueColorInput,
-      AmphiByDefaultId: amphiParDefautInput,
-      LayerId: layers[currentLayerIndex].Id,
+      LayerId: layers[currentLayerIndex].Id
     };
     const response = await fetch('http://localhost:3000/api/ues', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ue: newUE,  user: { Id: 1 },profs_CM:[], profs_TD:[], profs_TP:[] })
+      body: JSON.stringify({ ue: newUE,  user: { Id: 1 } })
     });
     if (response.ok) {
       const createdUE = await response.json();
@@ -347,6 +386,24 @@ function SetupPage() {
       setCouches(layers.filter((_, i) => i !== index))
     }
   }
+
+  const handleNameInputChange = async (newName: string) => {
+    const response = await fetch(`http://localhost:3000/api/trammes/${trammeId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ Name: newName })
+    });
+    console.log('response:', response);
+    if (response.ok) {
+      const updatedTramme = await response.json();
+      console.log('Tramme name updated:', updatedTramme);
+      setTrammeNameInput(updatedTramme.Name);
+    } else {
+      console.error('Failed to set tramme name');
+    }
+  };
 
   useEffect(() => {
     if (setupStage === 4 + layers.length) {
@@ -455,233 +512,172 @@ function SetupPage() {
           </div>)
         }
 
-        {setupStage >= 3 && setupStage < 3 + layers.length &&
-          (<>
-            <div className='flex flex-col items-center justify-between mb-8'>
-              <div className='flex flex-col items-start justify-between mb-8'>
-              {isFileValid && (
-                    <div className='flex items-center justify-between mb-4'>
-                      <label htmlFor="fileInput" className='text-xl font-semibold'>Ajouter en masse via un fichier : </label>
-                      <input
-                        type="file"
-                        id="fileInput"
-                        className='border-b-2 border-black select-none outline-none p-2'
-                        onChange={handleFileChange}
-                      />
-                      <button
-                        className='bg-blue-500 text-white p-2 rounded ml-4'
-                        onClick={handleFileUpload}
-                      >
-                        Upload
-                      </button>
-                    </div>
-                )}
-                {!isFileValid && (
-                    <div className='flex items-center justify-between mb-4'>
-                      <label htmlFor="ueCodeSelect" className='text-xl font-semibold'>Sélectionner un Code UE : </label>
-                      <select
-                        id="ueCodeSelect"
-                        className='border-b-2 border-black select-none outline-none p-2'
-                        value={selectedUECode}
-                        onChange={(e) => handleUECodeChange(e.target.value)}
-                      >
-                        <option value="">Sélectionner un Code UE</option>
-                        {fileData.map((ue, index) => (
-                          <option key={index} value={ue['Code UE']}>{ue['Code UE']}</option>
-                        ))}
-                      </select>
-                      <button
-                        className='bg-red-500 text-white p-2 rounded ml-4'
-                        onClick={resetFileState}
-                      >
-                        Changer de fichier
-                      </button>
-                    </div>
-                )}
-                <div className='flex items-center justify-between mb-4'>
-                  <label htmlFor="ueNameInput" className='text-xl font-semibold'>Nom de l'UE : </label>
-                  <input
-                    type="text"
-                    id="ueNameInput"
-                    className='border-b-2 border-black select-none outline-none p-2'
-                    value={ueNameInput}
-                    onChange={(e) => setUeNameInput(e.target.value)}
-                  />
-                  <input
-                    type="color"
-                    id="ueColorInput"
-                    className='border-b-2 border-black select-none outline-none p-2'
-                    value={ueColorInput}
-                    onChange={(e) => setUeColorInput(e.target.value)}
-                  />
-                </div>
+{setupStage >= 3 && setupStage < 3 + layers.length && (
+  <>
+    <div className='flex flex-col items-center justify-between mb-8'>
+      <div className='flex flex-col items-start justify-between mb-8'>
+      {!isFileValid && (
+        <div className='flex items-center justify-between mb-4'>
+          <label htmlFor="fileInput" className='text-xl font-semibold'>Ajouter en masse via un fichier : </label>
+          <input
+            type="file"
+            id="fileInput"
+            className='border-b-2 border-black select-none outline-none p-2'
+            onChange={handleFileChange}
+          />
+          <button
+            className='bg-blue-500 text-white p-2 rounded ml-4'
+            onClick={handleFileUpload}
+          >
+            Upload
+          </button>
+        </div>
+      )}
+        {isFileValid && (
+          <div className='flex items-center justify-between mb-4'>
+            <button
+              className='bg-green-500 text-white p-2 rounded'
+              onClick={openModal}
+            >
+              Rechercher et ajouter des UEs
+            </button>
+            <button
+              className='bg-red-500 text-white p-2 rounded ml-4'
+              onClick={resetFileState}
+            >
+              Changer de fichier
+            </button>
+          </div>
+        )}
+        <div className='flex items-center justify-between mb-4'>
+          <label htmlFor="ueNameInput" className='text-xl font-semibold'>Nom de l'UE : </label>
+          <input
+            type="text"
+            id="ueNameInput"
+            className='border-b-2 border-black select-none outline-none p-2'
+            value={ueNameInput}
+            onChange={(e) => setUeNameInput(e.target.value)}
+          />
+          <input
+            type="color"
+            id="ueColorInput"
+            className='border-b-2 border-black select-none outline-none p-2'
+            value={ueColorInput}
+            onChange={(e) => setUeColorInput(e.target.value)}
+          />
+        </div>
 
-                <div className='flex items-center justify-between mb-4'>
-                  <label htmlFor="ueProfResponsableInput" className='text-xl font-semibold'>Prof responsable : </label>
-                  <select
-                    id="ueProfResponsableInput"
-                    className='border-b-2 border-black select-none outline-none p-2'
-                    value={ueProfResponsableInput}
-                    onChange={(e) => setUeProfResponsableInput(e.target.value)}
-                  >
-                    <option value="">Sélectionnez un prof</option>
-                    {profs.map((prof, index) => (
-                      <option key={index} value={prof.Id}>
-                        {prof.FullName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+        <div className='flex items-center justify-between mb-4'>
+          <label htmlFor="ueProfResponsableInput" className='text-xl font-semibold'>Prof responsable : </label>
+          <select
+            id="ueProfResponsableInput"
+            className='border-b-2 border-black select-none outline-none p-2'
+            value={ueProfResponsableInput}
+            onChange={(e) => setUeProfResponsableInput(e.target.value)}
+          >
+            <option value="">Sélectionnez un prof</option>
+            {profs.map((prof, index) => (
+              <option key={index} value={prof.Id}>
+                {prof.FullName}
+              </option>
+            ))}
+          </select>
+        </div>
 
-                <div className='flex items-center justify-between mb-4'>
-                  <label htmlFor="ueCMVolumeInput" className='text-xl font-semibold'>Volume horaire CM : </label>
-                  <input
-                    type="number"
-                    id="ueCMVolumeInput"
-                    className='border-b-2 border-black select-none outline-none p-2'
-                    value={ueCMVolumeInput}
-                    onChange={(e) => setUeCMVolumeInput(parseInt(e.target.value))}
-                  />
-                  <label htmlFor="ueTDVolumeInput" className='text-xl font-semibold'>TD : </label>
-                  <input
-                    type="number"
-                    id="ueTDVolumeInput"
-                    className='border-b-2 border-black select-none outline-none p-2'
-                    value={ueTDVolumeInput}
-                    onChange={(e) => setUeTDVolumeInput(parseInt(e.target.value))}
-                  />
-                  <label htmlFor="ueTPVolumeInput" className='text-xl font-semibold'>TP : </label>
-                  <input
-                    type="number"
-                    id="ueTPVolumeInput"
-                    className='border-b-2 border-black select-none outline-none p-2'
-                    value={ueTPVolumeInput}
-                    onChange={(e) => setUeTPVolumeInput(parseInt(e.target.value))}
-                  />
-                </div>
-
-                <div className='flex items-center justify-between mb-4'>
-
-                </div>
-
-                <div className='flex items-center justify-between mb-4'>
-                  <label htmlFor="ueCMProfInput" className='text-xl font-semibold'>Prof CM : </label>
-                  <select
-                    id="ueCMProfInput"
-                    className='border-b-2 border-black select-none outline-none p-2'
-                    value={ueCMProfInput}
-                    onChange={(e) => setUeCMProfInput(parseInt(e.target.value))}
-                  >
-                    <option value="">Sélectionnez un prof</option>
-                    {profs.map((prof, index) => (
-                      <option key={index} value={prof.Id}>
-                        {prof.FullName}
-                      </option>
-                    ))}
-                  </select>
-                  <label htmlFor="ueTDProfInput" className='text-xl font-semibold'>Prof TD : </label>
-                  <select
-                    id="ueTDProfInput"
-                    className='border-b-2 border-black select-none outline-none p-2'
-                    value={ueTDProfInput}
-                    onChange={(e) => setUeTDProfInput(parseInt(e.target.value))}
-                  >
-                    <option value="">Sélectionnez un prof</option>
-                    {profs.map((prof, index) => (
-                      <option key={index} value={prof.Id}>
-                        {prof.FullName}
-                      </option>
-                    ))}
-                  </select>
-                  <label htmlFor="ueTPProfInput" className='text-xl font-semibold'>Prof TP : </label>
-                  <select
-                    id="ueTPProfInput"
-                    className='border-b-2 border-black select-none outline-none p-2'
-                    value={ueTPProfInput}
-                    onChange={(e) => setUeTPProfInput(parseInt(e.target.value))}
-                  >
-                    <option value="">Sélectionnez un prof</option>
-                    {profs.map((prof, index) => (
-                      <option key={index} value={prof.Id}>
-                        {prof.F}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className='flex items-center justify-between mb-4'>
-
-                </div>
-
-                <div className='flex items-center justify-between mb-4'>
-                  <label htmlFor="ueCMVolumeHebdoInput" className='text-xl font-semibold'>Volume horaire hebdo CM : </label>
-                  <input
-                    type="number"
-                    id="ueCMVolumeHebdoInput"
-                    className='border-b-2 border-black select-none outline-none p-2'
-                    value={ueCMVolumeHebdoInput}
-                    onChange={(e) => setUeCMVolumeHebdoInput(parseInt(e.target.value))}
-                  />
-                  <label htmlFor="ueTDVolumeHebdoInput" className='text-xl font-semibold'> TD : </label>
-                  <input
-                    type="number"
-                    id="ueTDVolumeHebdoInput"
-                    className='border-b-2 border-black select-none outline-none p-2'
-                    value={ueTDVolumeHebdoInput}
-                    onChange={(e) => setUeTDVolumeHebdoInput(parseInt(e.target.value))}
-                  />
-                  <label htmlFor="ueTPVolumeHebdoInput" className='text-xl font-semibold'> TP : </label>
-                  <input
-                    type="number"
-                    id="ueTPVolumeHebdoInput"
-                    className='border-b-2 border-black select-none outline-none p-2'
-                    value={ueTPVolumeHebdoInput}
-                    onChange={(e) => setUeTPVolumeHebdoInput(parseInt(e.target.value))}
-                  />
-                </div>
-
-                <div className='flex items-center justify-between mb-4'>
-                  <label htmlFor="amphiParDefautInput" className='text-xl font-semibold'>Amphi par défaut : </label>
-                  <select
-                  id="amphiParDefautInput"
-                  className='border-b-2 border-black select-none outline-none p-2'
-                  value={amphiParDefautInput}
-                  onChange={(e) => setAmphiParDefautInput(e.target.value)}
-                  >
-                  <option value="">Sélectionnez une salle</option>
-                  {rooms.map((room, index) => (
-                    <option key={index} value={room.Id}>
-                    {room.Name}
-                    </option>
-                  ))}
-                  </select>
-                  
-                </div>
-
-
-                <div className='flex items-center justify-between mb-4'>
-
-                </div>
-
-                <button className=' w-24 self-center bg-blue-500 text-white font-bold rounded-md hover:bg-blue-700 transition-all duration-300 hover:scale-105 p-2' onClick={addUE}>Ajouter</button>
-              </div>
-
-            </div>
-            {ues[layers[currentLayerIndex].Id] && ues[layers[currentLayerIndex].Id].length > 0 ? <div>
-              {ues[layers[currentLayerIndex].Id].map((ue, index) => {
-                return (
-                  <div className='flex items-center justify-between border-2 border-black p-2 mb-2 rounded-xl' key={index} style={{ backgroundColor: ue.Color }}>
-                    <p className='ml-4'>{ue.Name}</p>
-                    <button className='mr-4' onClick={() => removeUE(index)}>X</button>
-                  </div>
-                )
-              })}
-            </div> : <div className='mt-8 text-gray-500'>
-              <h1 className='text-gray-600 font-bold text-xl mb-4'>Aucune UE définie</h1>
-              <p>Ajoutez votre premiere UE</p><h1 className='my-2'> ou </h1><p className='text-blue-500 underline'>importez des Ues d'une autre tramme</p>.
-            </div>}
-          </>)
-        }
+        <div className='flex items-center justify-between mb-4'>
+          <label htmlFor="ueCMVolumeInput" className='text-xl font-semibold'>Volume horaire CM : </label>
+          <input
+            type="number"
+            id="ueCMVolumeInput"
+            className='border-b-2 border-black select-none outline-none p-2'
+            value={ueCMVolumeInput}
+            onChange={(e) => setUeCMVolumeInput(parseInt(e.target.value))}
+          />
+          <label htmlFor="ueTDVolumeInput" className='text-xl font-semibold'>TD : </label>
+          <input
+            type="number"
+            id="ueTDVolumeInput"
+            className='border-b-2 border-black select-none outline-none p-2'
+            value={ueTDVolumeInput}
+            onChange={(e) => setUeTDVolumeInput(parseInt(e.target.value))}
+          />
+          <label htmlFor="ueTPVolumeInput" className='text-xl font-semibold'>TP : </label>
+          <input
+            type="number"
+            id="ueTPVolumeInput"
+            className='border-b-2 border-black select-none outline-none p-2'
+            value={ueTPVolumeInput}
+            onChange={(e) => setUeTPVolumeInput(parseInt(e.target.value))}
+          />
+        </div>
+        <button className='h-8 w-16 bg-blue-500 text-white font-bold rounded-md hover:bg-blue-700 transition-all duration-300 hover:scale-105' onClick={addUE}>+</button>
+      </div>
+    </div>
+    {ues[layers[currentLayerIndex].Id] && ues[layers[currentLayerIndex].Id].length > 0 ? (
+      <div>
+        {ues[layers[currentLayerIndex].Id].map((ue, index) => (
+          <div className='flex items-center justify-between border-2 border-black p-2 mb-2 rounded-xl' key={index} style={{ backgroundColor: ue.Color }}>
+            <p className='ml-4'>{ue.Name}</p>
+            <button className='mr-4' onClick={() => removeUE(index)}>X</button>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div className='mt-8 text-gray-500'>
+        <h1 className='text-gray-600 font-bold text-xl mb-4'>Aucune UE définie</h1>
+        <p>Ajoutez votre première UE</p><h1 className='my-2'> ou </h1><p className='text-blue-500 underline'>importez des UEs d'une autre tramme</p>.
+      </div>
+    )}
+  </>
+)}
+{isModalOpen && (
+  <div className='fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center'>
+    <div className='bg-white p-4 rounded-lg'>
+      <h2 className='text-xl font-bold mb-4'>Rechercher des UEs</h2>
+      <input
+        type="text"
+        placeholder="Rechercher..."
+        className='border-b-2 border-black select-none outline-none p-2 mb-4'
+        value={searchQuery}
+        onChange={(e) => {
+          setSearchQuery(e.target.value);
+          setFilteredUEs(fileData.filter(ue => ue['Code UE'].toLowerCase().includes(e.target.value.toLowerCase())));
+        }}
+      />
+      <div className='max-h-64 overflow-y-auto'>
+        {filteredUEs.map((ue, index) => (
+          <div key={index} className='flex items-center justify-between mb-2'>
+            <input
+              type="checkbox"
+              checked={selectedUEs.includes(ue['Code UE'])}
+              data-index={index}
+              onChange={(e) => handleCheckboxChange(e, index)}
+            />
+            <p>{ue['Code UE']}</p>
+          </div>
+        ))}
+      </div>
+      <button
+        className='bg-green-500 text-white p-2 rounded mt-4'
+        onClick={addSelectedUEs}
+      >
+        Ajouter sélectionnés
+      </button>
+      <button
+        className='bg-green-500 text-white p-2 rounded mt-4 ml-4'
+        onClick={addAllFilteredUEs}
+      >
+        Ajouter tous
+      </button>
+      <button
+        className='bg-red-500 text-white p-2 rounded mt-4 ml-4'
+        onClick={closeModal}
+      >
+        Fermer
+      </button>
+    </div>
+  </div>
+)}
 
 
       </div>
