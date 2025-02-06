@@ -47,7 +47,7 @@ router.get('/search/:Context/:searchQuery', async (req, res) => {
             where: {
                 ContextId: Context,
                 [Sequelize.Op.or]: [
-                    { Name: { [Sequelize.Op.like]: `%${searchQuery}%` } }
+                    { FullName: { [Sequelize.Op.like]: `%${searchQuery}%` } }
                 ]
             }
         }));

@@ -31,43 +31,64 @@ function SetupContexte() {
         }
       };
       
-    const handleFileUpload = () => {
-      const fileInput = document.getElementById('fileInput') as HTMLInputElement;
-      const file = fileInput.files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const firstSheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[firstSheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-    
-          const requiredColumn = 'FullName';
-          const firstRow = jsonData[0] as string[];
-          const isValid = firstRow.includes(requiredColumn);
-    
-          if (isValid) {
-            console.log('File is valid');
-            setIsFileValid(true);
-    
-            const processedData = jsonData.slice(1)
-              .flatMap((row: any) => {
-                const fullNames = row[firstRow.indexOf('FullName')];
-                return fullNames ? fullNames.split('/').map((name: string) => name.trim()) : [];
-              })
-              .filter((fullName: string) => fullName && fullName.trim().length > 0);
-    
-            setFileData(processedData);
-            console.log('Processed Data:', processedData);
-          } else {
-            console.error('File is invalid. Missing required column.');
-            setIsFileValid(false);
-          }
-        };
-        reader.readAsArrayBuffer(file);
-      }
-    };
+      const handleFileUpload = async () => {
+        const fileInput = document.getElementById('fileInput') as HTMLInputElement;
+        const file = fileInput.files?.[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = async (e) => {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      
+            const requiredColumns = [
+              'Code UE',
+              'Libellé long',
+              'Effectifs 21-22',
+              'Nb Heures - CM',
+              'Nb Heures - TD',
+              'Nb Heures - TP',
+              'Nb Heures - terrain',
+              'RESP_ELP'
+            ];
+      
+            const firstRow = jsonData[0] as string[];
+            console.log('First Row:', firstRow);
+            console.log('Required Columns:', requiredColumns);
+            const isValid = requiredColumns.every(col => firstRow.includes(col));
+      
+            if (isValid) {
+              console.log('File is valid');
+              setIsFileValid(true);
+      
+              const processedData = new Set<string>();
+              const profsToAdd = new Set<string>();
+      
+              await Promise.all(jsonData.slice(1).map(async (row: any) => {
+                const responsible = row[firstRow.indexOf('RESP_ELP')];
+                if (responsible) {
+                  const responsibleNames = responsible.split('/').map((name: string) => name.trim());
+                  responsibleNames.forEach((name: string) => {
+                    if (!profsToAdd.has(name)) {
+                      profsToAdd.add(name);
+                    }
+                  });
+                }
+              }));
+      
+              const validData = Array.from(profsToAdd);
+              setFileData(validData);
+              console.log('Processed Data:', validData);
+            } else {
+              console.error('File is invalid. Missing required columns.');
+              setIsFileValid(false);
+            }
+          };
+          reader.readAsArrayBuffer(file);
+        }
+      };
 
     const resetFileState = () => {
       setIsFileValid(false);
