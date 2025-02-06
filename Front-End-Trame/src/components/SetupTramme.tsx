@@ -653,7 +653,7 @@ function SetupPage() {
               data-index={index}
               onChange={(e) => handleCheckboxChange(e, index)}
             />
-            <p>{ue['Code UE']}</p>
+            <p className='flex-grow text-left ml-2'>{ue['Code UE']}</p>
           </div>
         ))}
       </div>

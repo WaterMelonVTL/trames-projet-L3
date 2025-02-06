@@ -407,13 +407,7 @@ function SetupContexte() {
                                   data-index={index}
                                   onChange={(e) => handleCheckboxChange(e, index)}
                                 />
-                                <p>{fullName}</p>
-                                <button
-                                  className='bg-blue-500 text-white p-2 rounded'
-                                  onClick={() => addSelectedProf(fullName)}
-                                >
-                                  Ajouter
-                                </button>
+                                <p className='flex-grow text-left ml-2'>{fullName}</p>
                               </div>
                             ))}
                           </div>
