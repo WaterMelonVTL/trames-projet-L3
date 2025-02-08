@@ -129,6 +129,18 @@ const Layer = sequelize.define('Layer', {
     }
 });
 
+const Group = sequelize.define('Group', {
+    Id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+    },
+    Name: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+});
+
 // Define Prof model
 const Prof = sequelize.define('Prof', {
     Id: {
@@ -155,40 +167,7 @@ const Prof = sequelize.define('Prof', {
     }
 });
 
-// Define Room model
-const Room = sequelize.define('Room', {
-    Id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-    },
-    Name: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    Amphiteatre: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: false
-    },
-    Informatised: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: false
-    },
-    ContextId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: Context,
-            key: 'Id'
-        }
-    },
-    Capacity: {
-        type: DataTypes.INTEGER,
-        allowNull: true
-    }
-});
+
 
 // Define UE model
 const UE = sequelize.define('UE', {
@@ -289,19 +268,12 @@ const Course = sequelize.define('Course', {
             key: 'Id'
         }
     },
-    RoomId: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        references: {
-            model: Room,
-            key: 'Id'
-        }
-    },
-    LayerId: {
+
+    GroupId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: Layer,
+            model: Group,
             key: 'Id'
         }
     },
@@ -347,6 +319,19 @@ Context.belongsTo(User, { foreignKey: 'Owner' });
 User.hasMany(Tramme, { foreignKey: 'Owner' });
 Tramme.belongsTo(User, { foreignKey: 'Owner' });
 
+// group relationships
+Group.belongsToMany(Layer, { through: 'Layer_Groups', foreignKey: 'GroupId' });
+Layer.belongsToMany(Group, { through: 'Layer_Groups', foreignKey: 'LayerId' });
+
+/* Note :  (Group, Layer) = N-N can use those : 
+group.getLayers()
+group.setLayers()
+group.addLayer()
+layer.getGroups()
+layer.setGroups()
+layer.addGroup()
+*/
+
 sequelize.sync();
 
 export {
@@ -357,8 +342,8 @@ export {
     Tramme,
     Layer,
     Prof,
-    Room,
     UE,
     Course,
-    Tokens
+    Tokens,
+    Group
 };

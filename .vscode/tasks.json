@@ -14,7 +14,7 @@
       {
         "label": "Start Backend",
         "type": "shell",
-        "command": "cd .\\server\\src\\ ; node index.js",
+        "command": "cd .\\server; npm run dev",
         "problemMatcher": [],
         "isBackground": false,
         "presentation": {
