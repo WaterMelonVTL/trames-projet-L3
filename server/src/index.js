@@ -9,6 +9,7 @@ import trammeRoutes from './routes/tramme.js';
 import authRoutes from './routes/auth.js';
 import contextRoutes from './routes/context.js';
 import UERoutes from './routes/UE.js';
+import groupRoutes from './routes/groups.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -50,6 +51,7 @@ app.use('/api/trammes', trammeRoutes);
 app.use('/api/contexts', contextRoutes);
 app.use('/api/UEs', UERoutes);
 app.use('/api/cours', coursRoutes); 
+app.use('/api/groups', groupRoutes); // added new groups route
 
 // Function to print the number of requests every minute
 setInterval(() => {
