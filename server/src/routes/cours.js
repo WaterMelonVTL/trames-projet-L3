@@ -10,13 +10,30 @@ const router = express.Router();
 
 // Create a new Course
 router.post('/', async (req, res) => {
-    const { course, user } = req.body;
+    const { course, groups } = req.body;
     console.log(course);
     const [courseError, courseData] = await catchError(Course.create(course));
     if (courseError) {
         console.error(courseError);
         res.status(500).send('Internal Server Error');
         return;
+    }
+    if (groups && Array.isArray(groups) && groups.length > 0) {
+        const [groupError] = await catchError(courseData.setGroups(groups));
+        if (groupError) {
+            console.error(groupError);
+            res.status(500).send('Internal Server Error');
+            return;
+        }
+    } else {
+        console.log(chalk.red('No groups provided'));
+        const [deleteError, _] = await catchError(courseData.destroy());
+        if (deleteError) {
+            console.error(deleteError);
+            res.status(500).send('Internal Server Error');
+            return;
+        }
+        return res.status(400).send('No groups provided');
     }
     return res.json(courseData);
 });

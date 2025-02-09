@@ -66,8 +66,13 @@ function CalendarPage() {
     fetchData();
   }, [trammeId]);
 
-  async function AddCours(course: Course, date: string, time: string) {
+  async function AddCours(course: Course, date: string, time: string, groups?: number[]) {
     console.log("called add cours");
+    if (!groups) {
+      await fetch(`http://localhost:3000/api/groups/layer/${currentLayerId}?onlyDefault=true`)
+        .then(res => res.json())
+        .then(data => data.map((group: { Id: number }) => group.Id));
+    }
     await fetch(`http://localhost:3000/api/cours/`,
       {
         method: 'POST',
@@ -78,13 +83,9 @@ function CalendarPage() {
               'Type': course.Type,
               'Date': date,
               'StartHour': time,
-              'TrammeId': trammeId,
-              'LayerId': currentLayerId,
-              'ProfId': course.ProfId,
               'length': course.length,
-              'RoomId': course.RoomId // à remplacer par la fonction qui trouve la salle libre en fonction de l'heure et du type de cours
 
-            }, user: { Id: 1 }
+            }, groups: groups
           }),
         headers: { 'Content-Type': 'application/json' }
       })

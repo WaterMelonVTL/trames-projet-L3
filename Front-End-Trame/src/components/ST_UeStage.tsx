@@ -38,6 +38,9 @@ const ST_UeStage: React.FC<UeStageProps> = ({ trammeId, index }) => {
   // New state for manual form toggle
   const [showManualForm, setShowManualForm] = useState<boolean>(false);
 
+  // NEW loading state for file processing
+  const [isLoading, setIsLoading] = useState<boolean>(false)
+
   // Fetch layers and set current layer from index (similar to group stage)
   useEffect(() => {
     const fetchLayers = async () => {
@@ -87,16 +90,23 @@ const ST_UeStage: React.FC<UeStageProps> = ({ trammeId, index }) => {
     }
   }, [currentLayerId])
 
-  // ...existing file upload and processing code...
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // ...existing code...
-    const file = e.target.files?.[0]
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    resetFileState();
+    const file = e.target.files?.[0];
     if (file) {
-      setSelectedFile(file)
+      setIsLoading(true);
+      setSelectedFile(file);
     }
   }
 
+  useEffect(() => {
+    if (selectedFile) {
+      handleFileUpload();
+    }
+  }, [selectedFile])
+
   const handleFileUpload = async () => {
+    if (!selectedFile) console.log('No file selected');
     if (!selectedFile) return;
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -117,17 +127,14 @@ const ST_UeStage: React.FC<UeStageProps> = ({ trammeId, index }) => {
         'RESP_ELP'
       ];
       const firstRow = jsonData[0] as string[];
-      console.log('First Row:', firstRow);
-      console.log('Required Columns:', requiredColumns);
       const isValid = requiredColumns.every(col => firstRow.includes(col));
       if (!isValid) {
-        console.error('File is invalid. Missing required columns.');
-        setIsFileValid(false);
+        alert('Fichier invalide : colonnes requises manquantes.');
+        resetFileState();
+        setIsLoading(false);
         return;
-      } else {
-        console.log('File is valid');
-        setIsFileValid(true);
       }
+      setIsFileValid(true);
 
       const processedData = new Map();
       await Promise.all(
@@ -150,7 +157,12 @@ const ST_UeStage: React.FC<UeStageProps> = ({ trammeId, index }) => {
       );
       const validData = Array.from(processedData.values());
       setFileData(validData);
-      console.log('Processed Data:', validData);
+      setIsLoading(false);
+    };
+    reader.onerror = () => {
+      alert('Erreur lors du chargement du fichier.');
+      resetFileState();
+      setIsLoading(false);
     };
     reader.readAsArrayBuffer(selectedFile);
   }
@@ -322,62 +334,52 @@ const ST_UeStage: React.FC<UeStageProps> = ({ trammeId, index }) => {
 
         {/* File upload section */}
         <div className="mb-8 p-4 bg-white rounded-lg shadow-md">
-          {!isFileValid ? (
-            <div className="flex flex-row items-center space-x-4">
-              {/* Custom file select button */}
-              <div>
-                <input
-                  type="file"
-                  id="fileInput"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <label
-                  htmlFor="fileInput"
-                  className="cursor-pointer flex items-center justify-center w-16 h-16 bg-gray-200 rounded-md hover:bg-gray-300"
-                >
+          <div className="flex flex-row items-center space-x-4">
+            {/* Custom file select button */}
+            <div>
+              <input
+                type="file"
+                id="fileInput"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <label
+                htmlFor="fileInput"
+                className="cursor-pointer flex items-center justify-center w-16 h-16 bg-gray-200 rounded-md hover:bg-gray-300"
+                style = {{ backgroundColor: isFileValid ? '#10B981' : '#e5e7eb' }}
+              > 
+                {isLoading ? (
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-600"></div>
+                ) : (
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-8 w-8 text-gray-600"
+                    className={`h-8 w-8 ${isFileValid? "text-white":"text-gray-600"}`}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4a1 1 0 011-1h8a1 1 0 011 1v12m-8 4h8m-8-4h8" />
                   </svg>
-                </label>
-              </div>
-              <div className="flex flex-col space-y-2 flex-grow">
-                <span className="text-lg font-semibold text-gray-700">
-                  Importez des UEs en masse
-                </span>
-                {/* Cool styled upload button */}
-                <button
-                  onClick={handleFileUpload}
-                  className="py-2 px-4 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium rounded-md shadow-lg transform transition duration-300 hover:scale-105"
-                >
-                  Upload
-                </button>
-              </div>
+                )}
+              </label>
             </div>
-          ) : (
-            <div className="flex flex-row items-center space-x-4">
+            <div className="flex flex-col space-y-2 flex-grow">
+              <span className="text-lg font-semibold text-gray-700">
+                Importez des UEs en masse
+              </span>
               <button
                 onClick={openModal}
-                className="py-2 px-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium rounded-md shadow-lg transition-colors"
+                disabled={!isFileValid}
+                className="py-2 px-4 bg-gradient-to-r from-blue-500 to-purple-500 
+                           hover:from-blue-600 hover:to-purple-600 text-white font-medium 
+                           rounded-md shadow-lg transform transition duration-300 hover:scale-105 disabled:opacity-50"
               >
-                Rechercher et ajouter des UEs
-              </button>
-              <button
-                onClick={resetFileState}
-                className="py-2 px-4 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-md shadow-lg transition-colors"
-              >
-                Changer de fichier
+                Ajouter des UEs
               </button>
             </div>
-          )}
+          </div>
         </div>
-        
+
         <div className="flex justify-center items-center mx-4">
           <div className="relative h-32">
             <div className="absolute left-1/2 transform -translate-x-1/2 h-full border-l border-gray-300"></div>

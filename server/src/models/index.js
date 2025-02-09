@@ -100,6 +100,11 @@ const Group = sequelize.define('Group', {
         type: DataTypes.STRING,
         allowNull: false
     },
+    IsSpecial: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
 });
 
 // Define Prof model
@@ -210,22 +215,12 @@ const Course = sequelize.define('Course', {
     },
     ProfId: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
         references: {
             model: Prof,
             key: 'Id'
         }
     },
-    
-    TrammeId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: Tramme,
-            key: 'Id'
-        }
-    },
-
 
     Type: {
         type: DataTypes.STRING,

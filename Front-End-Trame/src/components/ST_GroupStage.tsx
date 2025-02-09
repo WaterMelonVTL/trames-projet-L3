@@ -116,6 +116,7 @@ const ST_GroupStage: React.FC<GroupStageProps> = ({ trammeId, index }) => {
           className="w-60 border-b-2 border-gray-300 focus:border-blue-500 outline-none p-2"
           value={groupName}
           onChange={(e) => setGroupName(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && addGroup()}
           placeholder="Nom du groupe..."
         />
         <button onClick={addGroup} className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
