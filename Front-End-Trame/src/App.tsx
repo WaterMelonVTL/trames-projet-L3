@@ -7,7 +7,6 @@ import CalendarPage from './components/CalendarPage';
 import Snowfall from 'react-snowfall'
 import SetupTramme from './components/SetupTramme';
 import { ECU } from './types/types';
-import SetupContexte from './components/SetupContexte';
 function App() {
   const [data, setData] = useState<{ [key: string]: ECU[] }>({})/*will be replaced by a server call later*/
 
@@ -22,7 +21,6 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path='/calendar/:id' element={<CalendarPage />} />
           <Route path="/edit">
-            <Route path="context/:id" element={<SetupContexte />} />
             <Route path="tramme/:id" element={<SetupTramme  />} />
           </Route>
         </Routes>

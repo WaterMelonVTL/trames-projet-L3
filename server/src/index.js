@@ -7,7 +7,6 @@ import profRoutes from './routes/profs.js';
 import layerRoutes from './routes/layers.js';
 import trammeRoutes from './routes/tramme.js';
 import authRoutes from './routes/auth.js';
-import contextRoutes from './routes/context.js';
 import UERoutes from './routes/UE.js';
 import groupRoutes from './routes/groups.js';
 
@@ -48,7 +47,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/profs', profRoutes);
 app.use('/api/layers', layerRoutes);
 app.use('/api/trammes', trammeRoutes);
-app.use('/api/contexts', contextRoutes);
 app.use('/api/UEs', UERoutes);
 app.use('/api/cours', coursRoutes); 
 app.use('/api/groups', groupRoutes); // added new groups route

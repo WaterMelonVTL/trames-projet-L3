@@ -2,6 +2,7 @@ import { Sequelize, DataTypes } from 'sequelize';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import bcrypt from 'bcrypt';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -26,22 +27,9 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING,
         allowNull: false
     },
-    Email: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true
-    },
     Password: {
         type: DataTypes.STRING,
         allowNull: false
-    },
-    Points: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0
-    },
-    Picture: {
-        type: DataTypes.STRING,
-        allowNull: true
     },
     Role: {
         type: DataTypes.STRING,
@@ -50,26 +38,7 @@ const User = sequelize.define('User', {
     },
 });
 
-// Define Context model
-const Context = sequelize.define('Context', { // Depreciated
-    Id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-    },
-    Name: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    Owner: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: User,
-            key: 'Id'
-        }
-    },
-});
+
 
 // Define Tramme model
 const Tramme = sequelize.define('Tramme', {
@@ -149,11 +118,11 @@ const Prof = sequelize.define('Prof', {
         allowNull: false,
         defaultValue: 'Enseignant Titulaire'
     },
-    ContextId: {
+    TrammeId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: Context,
+            model: Tramme,
             key: 'Id'
         }
     }
@@ -194,13 +163,9 @@ const UE = sequelize.define('UE', {
         allowNull: false,
         defaultValue: false
     },
-    ResponsibleId: {
-        type: DataTypes.INTEGER,
+    ResponsibleName: {
+        type: DataTypes.STRING,
         allowNull: false,
-        references: {
-            model: Prof,
-            key: 'Id'
-        }
     },
     Color: {
         type: DataTypes.STRING,
@@ -297,9 +262,11 @@ UE.belongsToMany(Prof, { as: 'Responsibles', through: 'UE_Responsibles', foreign
 Course.belongsToMany(Prof, { as: 'Teachers', through: 'Course_Teachers', foreignKey: 'CourseId' });
 Prof.belongsToMany(Course, { as: 'Courses', through: 'Course_Teachers', foreignKey: 'ProfId' });
 
-// User relationships
-User.hasMany(Context, { foreignKey: 'Owner' });
-Context.belongsTo(User, { foreignKey: 'Owner' });
+// Tramme relationships
+Tramme.hasMany(Layer, { foreignKey: 'TrammeId' });
+Layer.belongsTo(Tramme, { foreignKey: 'TrammeId' });
+Tramme.hasMany(Prof, { foreignKey: 'TrammeId' });
+Prof.belongsTo(Tramme, { foreignKey: 'TrammeId' });
 
 User.hasMany(Tramme, { foreignKey: 'Owner' });
 Tramme.belongsTo(User, { foreignKey: 'Owner' });
@@ -318,13 +285,30 @@ layer.setGroups()
 layer.addGroup()
 */
 
-sequelize.sync();
+sequelize.sync().then(async () => {
+    try {
+      const [user, created] = await User.findOrCreate({
+        where: { FirstName: "Louis", LastName: "Veran" },
+        defaults: {
+          Password: await bcrypt.hash("azerty", 10),
+          Role: "ADMIN"
+        }
+      });
+      if (created) {
+        console.log("Admin user created:", user);
+      } else {
+        console.log("Admin user already exists");
+      }
+    } catch (error) {
+      console.error("Error seeding admin user:", error);
+    }
+  });
+
 
 export {
     Sequelize,
     sequelize,
     User,
-    Context,
     Tramme,
     Layer,
     Prof,
