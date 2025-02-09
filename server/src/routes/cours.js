@@ -172,18 +172,28 @@ router.get('/UE/:id', async (req, res) => {
 // Modified: get all Courses by date (apply group filtering based on LayerId using belongsToMany relation)
 router.get('/date/:TrammeId/:LayerId/:date', async (req, res) => {
     const { TrammeId, LayerId, date } = req.params;
+
+    /* EVENTUELLEMENT OPTIMISER AVEC : 
+        SELECT c.*
+        FROM Courses c
+        JOIN Course_Groups cg ON c.Id = cg.CourseId
+        JOIN Layer_Groups lg ON cg.GroupId = lg.GroupId
+        WHERE lg.LayerId = ? 
+        AND DATE(c.Date) = ?
+    */
+   
     try {
         let groupIds = [];
 
         if (LayerId === 'all') {
-            const layers = await Layer.findAll({ where: { TrammeId }, include: Group });
+            const layers = await Layer.findAll({ where: { TrammeId } });
             if (!layers || layers.length === 0) return res.json([]);
             for (const layer of layers) {
                 const groups = await layer.getGroups();
                 groupIds.push(...groups.map(group => group.Id));
             }
         } else {
-            const layer = await Layer.findOne({ where: { Id: LayerId }, include: Group });
+            const layer = await Layer.findOne({ where: { Id: LayerId } });
             if (!layer) return res.status(404).send('Layer not found');
             const groups = await layer.getGroups();
             groupIds = groups.map(group => group.Id);

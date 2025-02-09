@@ -108,7 +108,7 @@ function CoursItem(props: { cours: Course, onMouseDown: (e: React.MouseEvent<HTM
           )}
         </div>
         {
-          showOption && <CalendarOptionMenu ue={ue} setUe={setUe} close={() => setShowOption(false)} position={menuPosition} />
+          showOption && <CalendarOptionMenu ue={ue} setUe={setUe} cours={props.cours} close={() => setShowOption(false)} position={menuPosition} />
         }
       </div>
     )
