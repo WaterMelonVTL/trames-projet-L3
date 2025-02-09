@@ -69,9 +69,13 @@ function CalendarPage() {
   async function AddCours(course: Course, date: string, time: string, groups?: number[]) {
     console.log("called add cours");
     if (!groups) {
-      await fetch(`http://localhost:3000/api/groups/layer/${currentLayerId}?onlyDefault=true`)
+      groups = await fetch(`http://localhost:3000/api/groups/layer/${currentLayerId}?onlyDefault=true`)
         .then(res => res.json())
         .then(data => data.map((group: { Id: number }) => group.Id));
+    }
+    if (!groups) {
+      console.error("No groups found for layer:", currentLayerId);
+      return;
     }
     await fetch(`http://localhost:3000/api/cours/`,
       {

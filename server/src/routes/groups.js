@@ -79,6 +79,7 @@ router.get('/search/:property/:searchQuery', async (req, res) => {
 router.get('/layer/:id', async (req, res) => {
     const id = req.params.id;
     const onlyDefault = req.query.onlyDefault;
+    console.log(onlyDefault);
     if (!id) {
         res.status(400).send('Layer Id is required');
         return;
@@ -98,8 +99,9 @@ router.get('/layer/:id', async (req, res) => {
         res.status(404).send('Layer not found');
         return;
     }
-    if (onlyDefault) {
-        const defaultGroups = layer.Groups.filter(group => group.isSpecial==false);
+    if (onlyDefault === 'true') {
+        const defaultGroups = layer.Groups.filter(group => group.dataValues.IsSpecial === false);
+        console.log(defaultGroups);
         return res.json(defaultGroups);
     }
     return res.json(layer.Groups);

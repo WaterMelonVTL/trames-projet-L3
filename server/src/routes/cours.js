@@ -2,7 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import { catchError } from '../utils/HandleErrors.js';
 // Updated import to include Layer and Group
-import { Course, Sequelize, sequelize, Layer, Group } from '../models/index.js';
+import { Course, Sequelize, sequelize, Layer, Group, Prof } from '../models/index.js';
 import chalk from 'chalk';
 import { Op } from 'sequelize';
 dotenv.config();
@@ -169,33 +169,42 @@ router.get('/UE/:id', async (req, res) => {
     return res.json(courses);
 });
 
-// Modified: get all Courses by date (apply group filtering if layer is specified)
+// Modified: get all Courses by date (apply group filtering based on LayerId using belongsToMany relation)
 router.get('/date/:TrammeId/:LayerId/:date', async (req, res) => {
     const { TrammeId, LayerId, date } = req.params;
     try {
-        let whereCondition;
+        let groupIds = [];
+
         if (LayerId === 'all') {
-            whereCondition = {
-                [Op.and]: [
-                    sequelize.where(sequelize.fn('DATE', sequelize.col('Date')), date),
-                    { TrammeId }
-                ]
-            };
+            const layers = await Layer.findAll({ where: { TrammeId }, include: Group });
+            if (!layers || layers.length === 0) return res.json([]);
+            for (const layer of layers) {
+                const groups = await layer.getGroups();
+                groupIds.push(...groups.map(group => group.Id));
+            }
         } else {
-            const layer = await Layer.findOne({ where: { Id: LayerId } });
+            const layer = await Layer.findOne({ where: { Id: LayerId }, include: Group });
             if (!layer) return res.status(404).send('Layer not found');
             const groups = await layer.getGroups();
-            const groupIds = groups.map(group => group.Id);
-            if (groupIds.length === 0) return res.json([]);
-            whereCondition = {
-                [Op.and]: [
-                    sequelize.where(sequelize.fn('DATE', sequelize.col('Date')), date),
-                    { TrammeId },
-                    { GroupId: { [Sequelize.Op.in]: groupIds } }
-                ]
-            };
+            groupIds = groups.map(group => group.Id);
         }
-        const [courseError, courses] = await catchError(Course.findAll({ where: whereCondition }));
+
+        if (groupIds.length === 0) return res.json([]);
+
+        // Build the date condition
+        const whereDateCondition = sequelize.where(sequelize.fn('DATE', sequelize.col('Date')), date);
+
+        const [courseError, courses] = await catchError(
+            Course.findAll({
+                where: whereDateCondition,
+                include: [{
+                    model: Group,
+                    where: { Id: { [Op.in]: groupIds } },
+                    through: { attributes: [] }
+                }]
+            })
+        );
+
         if (courseError) {
             console.error('Error fetching courses:', courseError);
             return res.status(500).send('Internal Server Error');

@@ -50,7 +50,8 @@ export type Course = {
     StartHour: string;
     length: number;
     ProfId?: number;
-    GroupId: number;
+    Groups: Group[];
+
 };
 
 // New types based on DB models

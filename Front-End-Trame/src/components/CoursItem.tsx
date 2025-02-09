@@ -35,7 +35,7 @@ function CoursItem(props: { cours: Course, onMouseDown: (e: React.MouseEvent<HTM
 
   const [timeRatio, setTimeRatio] = useState<number>(1.5);
 
- 
+
   const [showOption, setShowOption] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{ top: number, left: number } | null>(null);
   const itemRef = useRef<HTMLDivElement>(null);
@@ -55,19 +55,9 @@ function CoursItem(props: { cours: Course, onMouseDown: (e: React.MouseEvent<HTM
       const data = await response.json();
       setUe(data);
     }
-    const fetchProf = async () => {
-      const response = await fetch(`http://localhost:3000/api/profs/${props.cours.ProfId}`);
-      const data = await response.json();
-      setProf(data);
-    }
-    const fetchRoom = async () => {
-      const response = await fetch(`http://localhost:3000/api/rooms/${props.cours.RoomId}`);
-      const data = await response.json();
-      setRoom(data);
-    }
+
+
     fetchUE();
-    fetchProf();
-    fetchRoom();
 
   }, []);
 
@@ -80,7 +70,7 @@ function CoursItem(props: { cours: Course, onMouseDown: (e: React.MouseEvent<HTM
   }, [ue]);
 
   function offsetToPercentage(offset: number): number {
-    return offset/timeRatio * 100;
+    return offset / timeRatio * 100;
   }
 
 
@@ -101,22 +91,27 @@ function CoursItem(props: { cours: Course, onMouseDown: (e: React.MouseEvent<HTM
   } else
 
 
-  return (
-    <div
-      ref={itemRef}
-      className={`text-${textColor} h-28 border border-black hover:bg-blue-300 absolute cursor-pointer flex flex-col w-full text-center z-50`}
-      style={{ backgroundColor: ue.Color, height: `${props.cours.length/timeRatio * 100}%`, transform: `translateY(${offsetToPercentage(offsetInHours)}%)` }}
-      onClick={() => { console.log(`vous avez clické sur ${ue.Name} ${props.cours.Date} ${ue.Color}`) }}
-      onMouseDown={(e) => { if (!showOption) { props.onMouseDown(e) } }}
-      onContextMenu={handleContextMenu} >
-      <h1 className="text-xl font-bold">{ue.Name}</h1>
-      <h1 className="text-xl ">{prof?.FullName}</h1>
-      <h1 className="text-xl ">{room?.Name}</h1>
-      {
-        showOption && <CalendarOptionMenu ue={ue} setUe={setUe} close={() => setShowOption(false)} position={menuPosition}/>
-      }
-    </div>
-  )
+    return (
+      <div
+        ref={itemRef}
+        className={`text-${textColor} h-28 border border-black hover:bg-blue-300 absolute cursor-pointer flex flex-col items-center w-full text-center z-50`}
+        style={{ backgroundColor: ue.Color, height: `${props.cours.length / timeRatio * 100}%`, transform: `translateY(${offsetToPercentage(offsetInHours)}%)` }}
+        onClick={() => { console.log(`vous avez clické sur ${ue.Name} ${props.cours.Date} ${ue.Color}`) }}
+        onMouseDown={(e) => { if (!showOption) { props.onMouseDown(e) } }}
+        onContextMenu={handleContextMenu} >
+        <h1 className="text-xl font-bold">{ue.Name}</h1>
+        <h1 className="text-base ">{props.cours.Type}</h1>
+        <h1 className="text-xl ">{props.cours.Prof?.FullName}</h1>
+        <div className="flex space-x-2">
+          {props.cours.Groups?.map(
+            (group, index) => <h1 key={index} className="text-base">{group.Name}</h1>
+          )}
+        </div>
+        {
+          showOption && <CalendarOptionMenu ue={ue} setUe={setUe} close={() => setShowOption(false)} position={menuPosition} />
+        }
+      </div>
+    )
 }
 
 
