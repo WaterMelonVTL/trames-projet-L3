@@ -5,7 +5,8 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "test"
+    "test": "test",
+    "dev": "nodemon src/index.js"
   },
   "repository": {
     "type": "git",
@@ -30,5 +31,8 @@
     "sequelize": "^6.37.4",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
   }
 }

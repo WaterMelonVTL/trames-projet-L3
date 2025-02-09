@@ -1,19 +1,14 @@
 import './App.css'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Home from './components/Home';
 import Login from './components/Login';
 import CalendarPage from './components/CalendarPage';
 import Snowfall from 'react-snowfall'
 import SetupTramme from './components/SetupTramme';
-import { ECU } from './types/types';
-import SetupContexte from './components/SetupContexte';
 function App() {
-  const [data, setData] = useState<{ [key: string]: ECU[] }>({})/*will be replaced by a server call later*/
 
-  useEffect(() => {
-    console.log(data)
-  }, [data])
+
   return (
     <div className='w-screen h-screen absolute top-0 left-0'>
       <Router>
@@ -22,7 +17,6 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path='/calendar/:id' element={<CalendarPage />} />
           <Route path="/edit">
-            <Route path="context/:id" element={<SetupContexte />} />
             <Route path="tramme/:id" element={<SetupTramme  />} />
           </Route>
         </Routes>

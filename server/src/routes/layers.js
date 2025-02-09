@@ -63,7 +63,8 @@ router.get('/search/:Tramme/:searchQuery', async (req, res) => {
 // Get all layers of a specific Tramme
 router.get('/tramme/:id', async (req, res) => {
     const id = req.params.id;
-    const [layerError, layers] = await catchError(Layer.findAll({ where: { TrammeId: id } }));
+    const withGroups = req.query.withGroups;
+    const [layerError, layers] = await catchError(Layer.findAll({ where: { TrammeId: id }, include: withGroups ? 'Groups' : null }));
     if (layerError) {
         console.error(layerError);
         res.status(500).send('Internal Server Error');
@@ -100,13 +101,14 @@ router.put('/:id', async (req, res) => {
         return;
     }
     const layer = req.body;
-    const [layerError, layerData] = await catchError(Layer.update(layer, { where: { Id: id } }));
+    const [layerError, success] = await catchError(Layer.update(layer, { where: { Id: id } }));
     if (layerError) {
         console.error(layerError);
         res.status(500).send('Internal Server Error');
         return;
     }
-    res.json(layerData);
+    
+    res.json(success);
 });
 
 // Delete a specific layer by ID

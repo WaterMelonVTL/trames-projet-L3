@@ -7,18 +7,31 @@ import chalk from 'chalk';
 dotenv.config();
 const router = express.Router();
 
+
+// Create multiple UEs
+router.post('/bulk', async (req, res) => {
+    const { ues } = req.body;
+    console.log(ues);
+    if (!Array.isArray(ues)) {
+        console.log(" ues must be an array");
+        return res.status(400).send('ues must be an array');
+    }
+
+
+    const [ueError, ueData] = await catchError(UE.bulkCreate(ues));
+    if (ueError) {
+        console.error(ueError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+
+    console.log(chalk.red(`Created ${ues.length} UEs`));
+    return res.json(ueData);
+});
+
 // Create a new UE
 router.post('/', async (req, res) => {
     const { ue, user } = req.body;
-    const createTeacherRelations = async (ueId, profs, model) => {
-        const relations = profs.map(profId => ({ UEId: ueId, ProfId: profId }));
-        const [error, data] = await catchError(model.bulkCreate(relations));
-        if (error) {
-            console.error(error);
-            throw new Error('Error creating teacher relations');
-        }
-        return data;
-    };
 
     const [ueError, ueData] = await catchError(UE.create(ue));
     if (ueError) {
@@ -27,13 +40,11 @@ router.post('/', async (req, res) => {
         return;
     }
 
-    if (!ue.ResponsibleId) {
-        return res.status(400).send('No profs_CM provided');
-    }
 
     console.log(chalk.red(JSON.stringify(ue)));
     return res.json(ueData);
 });
+
 
 // Get all UEs
 router.get('/', async (req, res) => {
@@ -102,6 +113,19 @@ router.get('/layer/:id', async (req, res) => {
     }
 
     return res.json(ues);
+});
+
+//update a UE    
+router.put('/:id', async (req, res) => {
+    const id = req.params.id;
+    const { ue } = req.body;
+    const [ueError, ueData] = await catchError(UE.update(ue, { where: { id } }));
+    if (ueError) {
+        console.error(ueError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+    return res.json(ueData);
 });
 
 // Get UE by ID

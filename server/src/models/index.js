@@ -2,6 +2,7 @@ import { Sequelize, DataTypes } from 'sequelize';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import bcrypt from 'bcrypt';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -26,22 +27,9 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING,
         allowNull: false
     },
-    Email: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true
-    },
     Password: {
         type: DataTypes.STRING,
         allowNull: false
-    },
-    Points: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0
-    },
-    Picture: {
-        type: DataTypes.STRING,
-        allowNull: true
     },
     Role: {
         type: DataTypes.STRING,
@@ -50,26 +38,7 @@ const User = sequelize.define('User', {
     },
 });
 
-// Define Context model
-const Context = sequelize.define('Context', {
-    Id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-    },
-    Name: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    Owner: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: User,
-            key: 'Id'
-        }
-    },
-});
+
 
 // Define Tramme model
 const Tramme = sequelize.define('Tramme', {
@@ -81,14 +50,6 @@ const Tramme = sequelize.define('Tramme', {
     Name: {
         type: DataTypes.STRING,
         allowNull: false
-    },
-    ContextId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: Context,
-            key: 'Id'
-        }
     },
     Owner: {
         type: DataTypes.INTEGER,
@@ -129,6 +90,23 @@ const Layer = sequelize.define('Layer', {
     }
 });
 
+const Group = sequelize.define('Group', {
+    Id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+    },
+    Name: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    IsSpecial: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
+});
+
 // Define Prof model
 const Prof = sequelize.define('Prof', {
     Id: {
@@ -145,50 +123,17 @@ const Prof = sequelize.define('Prof', {
         allowNull: false,
         defaultValue: 'Enseignant Titulaire'
     },
-    ContextId: {
+    TrammeId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: Context,
+            model: Tramme,
             key: 'Id'
         }
     }
 });
 
-// Define Room model
-const Room = sequelize.define('Room', {
-    Id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-    },
-    Name: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    Amphiteatre: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: false
-    },
-    Informatised: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: false
-    },
-    ContextId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: Context,
-            key: 'Id'
-        }
-    },
-    Capacity: {
-        type: DataTypes.INTEGER,
-        allowNull: true
-    }
-});
+
 
 // Define UE model
 const UE = sequelize.define('UE', {
@@ -223,13 +168,9 @@ const UE = sequelize.define('UE', {
         allowNull: false,
         defaultValue: false
     },
-    ResponsibleId: {
-        type: DataTypes.INTEGER,
+    ResponsibleName: {
+        type: DataTypes.STRING,
         allowNull: false,
-        references: {
-            model: Prof,
-            key: 'Id'
-        }
     },
     Color: {
         type: DataTypes.STRING,
@@ -274,37 +215,13 @@ const Course = sequelize.define('Course', {
     },
     ProfId: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
         references: {
             model: Prof,
             key: 'Id'
         }
     },
-    
-    TrammeId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: Tramme,
-            key: 'Id'
-        }
-    },
-    RoomId: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        references: {
-            model: Room,
-            key: 'Id'
-        }
-    },
-    LayerId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: Layer,
-            key: 'Id'
-        }
-    },
+
     Type: {
         type: DataTypes.STRING,
         allowNull: false
@@ -340,25 +257,58 @@ UE.belongsToMany(Prof, { as: 'Responsibles', through: 'UE_Responsibles', foreign
 Course.belongsToMany(Prof, { as: 'Teachers', through: 'Course_Teachers', foreignKey: 'CourseId' });
 Prof.belongsToMany(Course, { as: 'Courses', through: 'Course_Teachers', foreignKey: 'ProfId' });
 
-// User relationships
-User.hasMany(Context, { foreignKey: 'Owner' });
-Context.belongsTo(User, { foreignKey: 'Owner' });
+// Tramme relationships
+Tramme.hasMany(Layer, { foreignKey: 'TrammeId' });
+Layer.belongsTo(Tramme, { foreignKey: 'TrammeId' });
+Tramme.hasMany(Prof, { foreignKey: 'TrammeId' });
+Prof.belongsTo(Tramme, { foreignKey: 'TrammeId' });
 
 User.hasMany(Tramme, { foreignKey: 'Owner' });
 Tramme.belongsTo(User, { foreignKey: 'Owner' });
 
-sequelize.sync();
+// group relationships
+Group.belongsToMany(Layer, { through: 'Layer_Groups', foreignKey: 'GroupId' });
+Layer.belongsToMany(Group, { through: 'Layer_Groups', foreignKey: 'LayerId' });
+Course.belongsToMany(Group, { through: 'Course_Groups', foreignKey: 'CourseId' });
+
+/* Note :  (Group, Layer) = N-N can use those : 
+group.getLayers()
+group.setLayers()
+group.addLayer()
+layer.getGroups()
+layer.setGroups()
+layer.addGroup()
+*/
+
+sequelize.sync().then(async () => {
+    try {
+      const [user, created] = await User.findOrCreate({
+        where: { FirstName: "Louis", LastName: "Veran" },
+        defaults: {
+          Password: await bcrypt.hash("azerty", 10),
+          Role: "ADMIN"
+        }
+      });
+      if (created) {
+        console.log("Admin user created:", user);
+      } else {
+        console.log("Admin user already exists");
+      }
+    } catch (error) {
+      console.error("Error seeding admin user:", error);
+    }
+  });
+
 
 export {
     Sequelize,
     sequelize,
     User,
-    Context,
     Tramme,
     Layer,
     Prof,
-    Room,
     UE,
     Course,
-    Tokens
+    Tokens,
+    Group
 };

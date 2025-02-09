@@ -33,11 +33,11 @@ function CalendarCoursSelection(props: { setCurrentEcu: (ecu: Course | null) => 
                         onChange={(e) => search(e.target.value)}
                     />
                 </div>
-                <div className='mt-16 z-50 max-h-[45rem] overflow-y-auto w-full'>
+                <div className='mt-16 z-50 max-h-[45rem] overflow-y-auto overflow-x-visible w-full'>
                     {filteredList?.length > 0 ? (
                         filteredList.map((ecu, index) => (
                             <div key={ecu.Id} className='flex flex-col flex-gap-2 mb-4 w-full items-center'>
-                                <EcuItem
+                                {ecu.TotalHourVolume_CM > 0 && <EcuItem
                                     darken={hoveredItem !== -1 && hoveredItem !== index}
                                     type="CM"
                                     ueID={ecu.Id}
@@ -45,8 +45,8 @@ function CalendarCoursSelection(props: { setCurrentEcu: (ecu: Course | null) => 
                                     onLeave={() => setHoveredItem(-1)}
                                     setHoveredItem={setHoveredItem}
                                     setCurrentEcu={props.setCurrentEcu}
-                                />
-                                <EcuItem
+                                />}
+                                {ecu.TotalHourVolume_TD > 0 && <EcuItem
                                     darken={hoveredItem !== -1 && hoveredItem !== index + props.ecus.length}
                                     type="TD"
                                     ueID={ecu.Id}
@@ -54,7 +54,16 @@ function CalendarCoursSelection(props: { setCurrentEcu: (ecu: Course | null) => 
                                     onLeave={() => setHoveredItem(-1)}
                                     setHoveredItem={setHoveredItem}
                                     setCurrentEcu={props.setCurrentEcu}
-                                />
+                                />}
+                                {ecu.TotalHourVolume_TP > 0 && <EcuItem
+                                    darken={hoveredItem !== -1 && hoveredItem !== index + props.ecus.length}
+                                    type="TP"
+                                    ueID={ecu.Id}
+                                    onHover={() => setHoveredItem(index + props.ecus.length)}
+                                    onLeave={() => setHoveredItem(-1)}
+                                    setHoveredItem={setHoveredItem}
+                                    setCurrentEcu={props.setCurrentEcu}
+                                />}
                             </div>
                         ))
                     ) : (

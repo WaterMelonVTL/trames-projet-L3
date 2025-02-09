@@ -2,25 +2,17 @@ export type User = {
     Id: number;
     FirstName: string;
     LastName: string;
-    Email: string;
     Password: string;
-    Points: number;
-    Picture?: string;
     Role: string;
 };
 
-export type Context = {
-    Id: number;
-    Name: string;
-    Owner: number;
-};
+// Removed obsolete Context type & Room type
 
 export type Tramme = {
     Id: number;
     Name: string;
     Owner: number;
     Year: number;
-    ContextId: number;
 };
 
 export type Layer = {
@@ -32,19 +24,9 @@ export type Layer = {
 
 export type Prof = {
     Id: number;
-    FirstName: string;
-    LastName: string;
+    FullName: string;
     Status: string;
-    Sexe?: string;
-    ContextId: number;
-};
-
-export type Room = {
-    Id: number;
-    Name: string;
-    Informatised: boolean;
-    ContextId: number;
-    Capacity?: number;
+    TrammeId: number;
 };
 
 export type UE = {
@@ -53,14 +35,9 @@ export type UE = {
     TotalHourVolume_CM: number;
     TotalHourVolume_TD: number;
     TotalHourVolume_TP: number;
-    DefaultHourVolumeHebdo_CM: number;
-    DefaultHourVolumeHebdo_TD: number;
-    DefaultHourVolumeHebdo_TP: number;
-    ResponsibleId: number;
+    ResponsibleName: string;
     Color: string;
-    DefaultRoomId: number;
     LayerId: number;
-    AmphiByDefaultId: number;
     TP_NeedInformaticRoom: boolean;
     TD_NeedInformaticRoom: boolean;
 };
@@ -72,9 +49,20 @@ export type Course = {
     Date: Date;
     StartHour: string;
     length: number;
-    ProfId: number;
-    TrammeId: number;
-    RoomId: number;
-    LayerId: number;
+    ProfId?: number;
+    Groups: Group[];
+
+};
+
+// New types based on DB models
+export type Group = {
+    Id: number;
+    Name: string;
+};
+
+export type Tokens = {
+    Token: string;
+    UserId: number;
+    Expire: Date;
 };
 
