@@ -51,7 +51,7 @@ const User = sequelize.define('User', {
 });
 
 // Define Context model
-const Context = sequelize.define('Context', {
+const Context = sequelize.define('Context', { // Depreciated
     Id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -81,14 +81,6 @@ const Tramme = sequelize.define('Tramme', {
     Name: {
         type: DataTypes.STRING,
         allowNull: false
-    },
-    ContextId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: Context,
-            key: 'Id'
-        }
     },
     Owner: {
         type: DataTypes.INTEGER,
@@ -269,14 +261,7 @@ const Course = sequelize.define('Course', {
         }
     },
 
-    GroupId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: Group,
-            key: 'Id'
-        }
-    },
+
     Type: {
         type: DataTypes.STRING,
         allowNull: false
@@ -322,6 +307,7 @@ Tramme.belongsTo(User, { foreignKey: 'Owner' });
 // group relationships
 Group.belongsToMany(Layer, { through: 'Layer_Groups', foreignKey: 'GroupId' });
 Layer.belongsToMany(Group, { through: 'Layer_Groups', foreignKey: 'LayerId' });
+Course.belongsToMany(Group, { through: 'Course_Groups', foreignKey: 'CourseId' });
 
 /* Note :  (Group, Layer) = N-N can use those : 
 group.getLayers()

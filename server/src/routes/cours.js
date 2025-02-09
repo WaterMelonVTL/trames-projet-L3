@@ -1,7 +1,8 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { catchError } from '../utils/HandleErrors.js';
-import { Course, Sequelize, sequelize } from '../models/index.js';
+// Updated import to include Layer and Group
+import { Course, Sequelize, sequelize, Layer, Group } from '../models/index.js';
 import chalk from 'chalk';
 import { Op } from 'sequelize';
 dotenv.config();
@@ -20,37 +21,36 @@ router.post('/', async (req, res) => {
     return res.json(courseData);
 });
 
-
-
 // Search for Courses by layer ID and search query
 router.get('/search/layer/:Layer/:searchQuery', async (req, res) => {
     const searchQuery = req.params.searchQuery;
-    const Layer = req.params.Layer;
-    let courses, courseError;
-    if (searchQuery === 'all') {
-        [courseError, courses] = await catchError(Course.findAll({
-            where: {
-                LayerId: Layer
-            }
-        }));
-    } else {
-        [courseError, courses] = await catchError(Course.findAll({
-            where: {
-                LayerId: Layer,
-                [Sequelize.Op.or]: [
-                    { Name: { [Sequelize.Op.like]: `%${searchQuery}%` } }
-                ]
-            }
-        }));
+    const layerId = req.params.Layer;
+    try {
+        // Find the layer by its id
+        const layer = await Layer.findOne({ where: { Id: layerId } });
+        if (!layer) return res.status(404).send('Layer not found');
+        // Get associated groups from the layer
+        const groups = await layer.getGroups();
+        const groupIds = groups.map(group => group.Id);
+        if (groupIds.length === 0) return res.json([]);
+        // Build the condition for courses based on groupIds and search query
+        let whereCondition = { GroupId: { [Sequelize.Op.in]: groupIds } };
+        if (searchQuery !== 'all') {
+            whereCondition = {
+                ...whereCondition,
+                Name: { [Sequelize.Op.like]: `%${searchQuery}%` }
+            };
+        }
+        const [courseError, courses] = await catchError(Course.findAll({ where: whereCondition }));
+        if (courseError) {
+            console.error(courseError);
+            return res.status(500).send('Internal Server Error');
+        }
+        return res.json(courses);
+    } catch (err) {
+        console.error(err);
+        return res.status(500).send('Internal Server Error');
     }
-
-    if (courseError) {
-        console.error(courseError);
-        res.status(500).send('Internal Server Error');
-        return;
-    }
-
-    return res.json(courses);
 });
 
 // Search for courses by Tramme ID and search query
@@ -86,14 +86,27 @@ router.get('/search/tramme/:id/:searchQuery', async (req, res) => {
 
 // Get all Courses of a specific Layer
 router.get('/layer/:id', async (req, res) => {
-    const id = req.params.id;
-    const [courseError, courses] = await catchError(Course.findAll({ where: { LayerId: id } }));
-    if (courseError) {
-        console.error(courseError);
-        res.status(500).send('Internal Server Error');
-        return;
+    const layerId = req.params.id;
+    try {
+        // Find the layer by its id
+        const layer = await Layer.findOne({ where: { Id: layerId } });
+        if (!layer) return res.status(404).send('Layer not found');
+        // Get associated groups from the layer
+        const groups = await layer.getGroups();
+        const groupIds = groups.map(group => group.Id);
+        if (groupIds.length === 0) return res.json([]);
+        const [courseError, courses] = await catchError(Course.findAll({
+            where: { GroupId: { [Sequelize.Op.in]: groupIds } }
+        }));
+        if (courseError) {
+            console.error(courseError);
+            return res.status(500).send('Internal Server Error');
+        }
+        return res.json(courses);
+    } catch (err) {
+        console.error(err);
+        return res.status(500).send('Internal Server Error');
     }
-    return res.json(courses);
 });
 
 // Get all Courses of a specific Tramme
@@ -139,43 +152,60 @@ router.get('/UE/:id', async (req, res) => {
     return res.json(courses);
 });
 
-//get amm Courses by its date
+// Modified: get all Courses by date (apply group filtering if layer is specified)
 router.get('/date/:TrammeId/:LayerId/:date', async (req, res) => {
-    const trammeId = req.params.TrammeId;
-    const layerId = req.params.LayerId;
-    const date = req.params.date;
-    console.log(chalk.green(date));
-    console.log(chalk.green(trammeId));
-    console.log(chalk.green(layerId));
-    let courses;
-    let courseError;
-    if (layerId === 'all') {
-        [courseError, courses] = await catchError(Course.findAll({
-            where: {
+    const { TrammeId, LayerId, date } = req.params;
+    try {
+        let whereCondition;
+        if (LayerId === 'all') {
+            whereCondition = {
                 [Op.and]: [
                     sequelize.where(sequelize.fn('DATE', sequelize.col('Date')), date),
-                    { TrammeId: trammeId }
+                    { TrammeId }
                 ]
-            }
-        }));
-    } else {
-        [courseError, courses] = await catchError(Course.findAll({
-            where: {
+            };
+        } else {
+            const layer = await Layer.findOne({ where: { Id: LayerId } });
+            if (!layer) return res.status(404).send('Layer not found');
+            const groups = await layer.getGroups();
+            const groupIds = groups.map(group => group.Id);
+            if (groupIds.length === 0) return res.json([]);
+            whereCondition = {
                 [Op.and]: [
                     sequelize.where(sequelize.fn('DATE', sequelize.col('Date')), date),
-                    { TrammeId: trammeId },
-                    { LayerId: layerId }
+                    { TrammeId },
+                    { GroupId: { [Sequelize.Op.in]: groupIds } }
                 ]
-            }
-        }));
+            };
+        }
+        const [courseError, courses] = await catchError(Course.findAll({ where: whereCondition }));
+        if (courseError) {
+            console.error('Error fetching courses:', courseError);
+            return res.status(500).send('Internal Server Error');
+        }
+        return res.json(courses);
+    } catch (err) {
+        console.error(err);
+        return res.status(500).send('Internal Server Error');
     }
+});
 
-    if (courseError) {
-        console.error('Error fetching courses:', courseError);
-    } else {
-        console.log(courses);
+// NEW: Get all Courses for a specific Group
+router.get('/group/:id', async (req, res) => {
+    const groupId = req.params.id;
+    try {
+        const group = await Group.findOne({ where: { Id: groupId } });
+        if (!group) return res.status(404).send('Group not found');
+        const [courseError, courses] = await catchError(Course.findAll({ where: { GroupId: groupId } }));
+        if (courseError) {
+            console.error(courseError);
+            return res.status(500).send('Internal Server Error');
+        }
+        return res.json(courses);
+    } catch (err) {
+        console.error(err);
+        return res.status(500).send('Internal Server Error');
     }
-    return res.json(courses);
 });
 
 // Get a specific Course by ID
