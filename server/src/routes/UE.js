@@ -17,11 +17,6 @@ router.post('/bulk', async (req, res) => {
         return res.status(400).send('ues must be an array');
     }
 
-    // Validate all UEs have ResponsibleId
-    if (ues.some(ue => !ue.ResponsibleId)) {
-        console.log("All UEs must have ResponsibleId");
-        return res.status(400).send('All UEs must have ResponsibleId');
-    }
 
     const [ueError, ueData] = await catchError(UE.bulkCreate(ues));
     if (ueError) {
@@ -37,7 +32,6 @@ router.post('/bulk', async (req, res) => {
 // Create a new UE
 router.post('/', async (req, res) => {
     const { ue, user } = req.body;
-    
 
     const [ueError, ueData] = await catchError(UE.create(ue));
     if (ueError) {
@@ -46,9 +40,6 @@ router.post('/', async (req, res) => {
         return;
     }
 
-    if (!ue.ResponsibleId) {
-        return res.status(400).send('No profs_CM provided');
-    }
 
     console.log(chalk.red(JSON.stringify(ue)));
     return res.json(ueData);
@@ -122,6 +113,19 @@ router.get('/layer/:id', async (req, res) => {
     }
 
     return res.json(ues);
+});
+
+//update a UE    
+router.put('/:id', async (req, res) => {
+    const id = req.params.id;
+    const { ue } = req.body;
+    const [ueError, ueData] = await catchError(UE.update(ue, { where: { id } }));
+    if (ueError) {
+        console.error(ueError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+    return res.json(ueData);
 });
 
 // Get UE by ID

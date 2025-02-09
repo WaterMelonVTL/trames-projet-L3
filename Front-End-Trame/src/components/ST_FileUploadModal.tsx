@@ -39,7 +39,7 @@ const ST_FileUploadModal: React.FC<FileUploadModalProps> = ({
                 type="checkbox"
                 checked={selectedUEs.includes(ue['Code UE'])}
                 // Pass the ue object directly instead of index
-                onChange={(e) => onCheckboxChange(e, ue)}
+                onChange={(e) => onCheckboxChange(e, index)}
               />
               <p className="flex-grow text-left ml-2">{ue['Code UE']}</p>
             </div>
