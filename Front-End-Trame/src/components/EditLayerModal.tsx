@@ -25,7 +25,7 @@ const EditLayerModal: React.FC<EditLayerModalProps> = ({ layer, onClose, onUpdat
     }
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
             <div className="bg-white shadow-lg rounded-lg p-6 w-96">
                 <h2 className="text-2xl font-semibold mb-6 text-center">Edit Layer</h2>
                 <form onSubmit={handleSubmit}>

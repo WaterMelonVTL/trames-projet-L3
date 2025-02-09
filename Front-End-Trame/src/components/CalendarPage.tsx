@@ -148,7 +148,7 @@ function CalendarPage() {
       <div className='flex justify-around items-start relative mt-16'>
         <CalendarCoursSelection setCurrentEcu={setCurrentEcu} ecus={currentLayerId ? ues[currentLayerId] : [{Name:"No currentLayerId"}]} />
         <div className='flex flex-col'>
-          <CalendarLayerSelection layers={layers} onClick={(id: number) => setCurrentLayerId(id)} currentLayerId={currentLayerId || -1} />
+          <CalendarLayerSelection layers={layers} setLayers={setLayers} onClick={(id: number) => setCurrentLayerId(id)} currentLayerId={currentLayerId || -1} />
           <CalendarFrame setCurrentEcu={setCurrentEcu} currentCours={currentCours} AddCours={AddCours} fetchedCourse={cours} setCours={setCours} trammeId={trammeId} date={defaultDate} color={currentLayerId ? layers.find(layer => layer.Id === currentLayerId)?.Color || "#ffffff" : "#ffffff"}/>
           
         </div>
