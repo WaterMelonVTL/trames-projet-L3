@@ -1,26 +1,23 @@
-import React, { useState, useRef, useCallback,useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Prof, Room } from '../types/types';
+import { Prof } from '../types/types';
+
 function SetupContexte() {
     const navigate = useNavigate();
     const location = useLocation();
     const contextID = location.pathname.split('/').pop();
-    const [contextName, setContextName] = React.useState<string>('');
-    const [setupStage, setSetupStage] = React.useState<number>(1);
-    const [profs, setProfs] = React.useState<Prof[]>([]);
-    const [profFullNameInput, setProfFullNameInput] = React.useState<string>('');
-    const [profStatusInput, setProfStatusInput] = React.useState<string>('');
-    const [salles, setSalles] = React.useState<Room[]>([]);
-    const [salleNameInput, setSalleNameInput] = React.useState<string>('');
-    const [salleInformatiséeInput, setSalleInformatiséeInput] = React.useState<boolean>(false);
-    const [isAmphi, setIsAmphi] = React.useState<boolean>(false);
-    const [salleCapacityInput, setSalleCapacityInput] = React.useState<number | undefined>(undefined);
-    const [isFileValid, setIsFileValid] = React.useState<boolean>(false);
-    const [fileData, setFileData] = React.useState<any[]>([]);
-    const [isModalOpen, setIsModalOpen] = React.useState<boolean>(false);
-    const [searchQuery, setSearchQuery] = React.useState<string>('');
-    const [filteredProfs, setFilteredProfs] = React.useState<string[]>([]);
+    const [contextName, setContextName] = useState<string>('');
+    const [setupStage, setSetupStage] = useState<number>(1);
+    const [profs, setProfs] = useState<Prof[]>([]);
+    const [profFullNameInput, setProfFullNameInput] = useState<string>('');
+    const [profStatusInput, setProfStatusInput] = useState<string>('');
+    // Removed room-related states
+    const [isFileValid, setIsFileValid] = useState<boolean>(false);
+    const [fileData, setFileData] = useState<any[]>([]);
+    const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [filteredProfs, setFilteredProfs] = useState<string[]>([]);
     const [selectedProfs, setSelectedProfs] = useState<string[]>([]);
     const lastChecked = useRef<number | null>(null);
 
@@ -29,9 +26,9 @@ function SetupContexte() {
         if (file) {
           console.log(file);
         }
-      };
+    };
       
-      const handleFileUpload = async () => {
+    const handleFileUpload = async () => {
         const fileInput = document.getElementById('fileInput') as HTMLInputElement;
         const file = fileInput.files?.[0];
         if (file) {
@@ -63,7 +60,6 @@ function SetupContexte() {
               console.log('File is valid');
               setIsFileValid(true);
       
-              const processedData = new Set<string>();
               const profsToAdd = new Set<string>();
       
               await Promise.all(jsonData.slice(1).map(async (row: any) => {
@@ -71,9 +67,7 @@ function SetupContexte() {
                 if (responsible) {
                   const responsibleNames = responsible.split('/').map((name: string) => name.trim());
                   responsibleNames.forEach((name: string) => {
-                    if (!profsToAdd.has(name)) {
-                      profsToAdd.add(name);
-                    }
+                    profsToAdd.add(name);
                   });
                 }
               }));
@@ -88,7 +82,7 @@ function SetupContexte() {
           };
           reader.readAsArrayBuffer(file);
         }
-      };
+    };
 
     const resetFileState = () => {
       setIsFileValid(false);
@@ -213,55 +207,20 @@ function SetupContexte() {
                     return;
                 }
     
-                const roomsResponse = await fetch(`http://localhost:3000/api/rooms/context/${contextID}`);
-                const roomsData = await roomsResponse.json();
-                setSalles(roomsData);
-    
+                // Removed room fetch
                 const profsResponse = await fetch(`http://localhost:3000/api/profs/context/${contextID}`);
                 const profsData = await profsResponse.json();
                 setProfs(profsData);
-
-                
             } catch (error) {
                 console.error('An error has occured:', error);
-                alert('An error has occured : '+ error);
-                
+                alert('An error has occured : ' + error);
             }
         };
     
         fetchData();
     }, [contextID]);
 
-    const addSalle = async () => {
-        if (salleNameInput === '') return;
-        const newSalle = {
-            Name: salleNameInput,
-            Informatised: salleInformatiséeInput,
-            Capacity: salleCapacityInput,
-            Amphiteatre: isAmphi,
-            ContextId: contextID
-        };
-        
-        const response = await fetch('http://localhost:3000/api/rooms', { 
-            method: 'POST', 
-            body: JSON.stringify({ room: newSalle, user: { userId: 1 } }), 
-            headers: { 'Content-Type': 'application/json' } 
-        });
-
-        if (response.ok) {
-            const addedSalle = await response.json();
-            setSalles([...salles, addedSalle]);
-        } else {
-            console.error('Failed to add salle');
-        }
-        setSalleNameInput('');
-        setSalleCapacityInput(undefined);
-    };
-
-    const removeSalle = async (index: number) => {
-        await fetch(`/api/rooms/${salles[index].Id}`, { method: 'DELETE' });
-        setSalles(salles.filter((_, i) => i !== index));
-    };
+    // Removed addSalle and removeSalle functions
 
     const setContextNameHandler = async (name: string) => {
         const response = await fetch(`http://localhost:3000/api/contexts/${contextID}`, { 
@@ -279,7 +238,7 @@ function SetupContexte() {
     };
 
     useEffect(() => {
-        if (setupStage === 5) {
+        if (setupStage === 3) {
             navigate('/');
         }
     }, [setupStage]);
@@ -287,13 +246,12 @@ function SetupContexte() {
     const disableNextButton = () => {
         if (setupStage === 1 && contextName === '') return true;
         if (setupStage === 2 && profs.length === 0) return true;
-        if (setupStage === 3 && salles.length === 0) return true;
         return false;
     };
 
     return (
         <div className='flex flex-col items-center justify-center h-screen'>
-            <h1 className='font-bold mb-8 text-2xl '>Veuillez définir les données à utiliser dans le contexte</h1>
+            {/* Updated progress indicator */}
             <div className='flex items-center justify-around mb-8'>
                 <div className={`rounded-full w-16 h-16 flex items-center justify-center text-3xl font-bold ${setupStage === 1 ? 'bg-blue-500 text-white' : setupStage > 1 ? 'bg-white border-4 border-blue-400 text-blue-400' : 'bg-gray-500 text-white'}`}>
                     1
@@ -306,7 +264,7 @@ function SetupContexte() {
                 <div className={`rounded-full w-16 h-16 flex items-center justify-center text-3xl font-bold ${setupStage >= 3 ? 'bg-blue-500 text-white' : 'bg-gray-500 text-white'}`}>
                     3
                 </div>
-                <h1 className={`font-bold text-2xl ml-2 mr-8 ${setupStage >= 3 ? 'text-black' : 'text-gray-400'}`}> Salles </h1>
+                <h1 className={`font-bold text-2xl ml-2 ${setupStage >= 3 ? 'text-black' : 'text-gray-400'}`}> Prêt </h1>
             </div>
             {setupStage === 1 && (
                 <>
@@ -434,55 +392,7 @@ function SetupContexte() {
                     )}
                 </>
             )}
-            {setupStage === 3 && (
-                <>
-                    <h1 className='text-xl font-semibold mb-4'>Ajoutez de nouvelles salles</h1>
-                    <div className='flex flex-col mb-4'>
-                        <input
-                            type="text"
-                            placeholder="Salle Name"
-                            className='border-b-2 border-black select-none outline-none p-2 mb-2'
-                            value={salleNameInput}
-                            onChange={(e) => setSalleNameInput(e.target.value)}
-                        />
-                        <div className='flex items-center mb-2'>
-                            <label className='mr-2'>Informatisée:</label>
-                            <input
-                                type="checkbox"
-                                checked={salleInformatiséeInput}
-                                onChange={() => setSalleInformatiséeInput(!salleInformatiséeInput)}
-                            />
-                        </div>
-                        <div className='flex items-center mb-2'>
-                            <label className='mr-2'>Amphiteatre:</label>
-                            <input
-                                type="checkbox"
-                                checked={isAmphi}
-                                onChange={() => setIsAmphi(!isAmphi)}
-                            />
-                        </div>
-                        <input
-                            type="number"
-                            placeholder="Capacity (optional)"
-                            className='border-b-2 border-black select-none outline-none p-2 mb-2'
-                            value={salleCapacityInput || ''}
-                            onChange={(e) => setSalleCapacityInput(e.target.value ? parseInt(e.target.value) : undefined)}
-                        />
-                        <button className='h-8 w-16 bg-blue-500 text-white font-bold rounded-md hover:bg-blue-700 transition-all duration-300 hover:scale-105' onClick={addSalle}>+</button>
-                    </div>
-                    {salles.length > 0 && (
-                        <div>
-                            {salles.map((salle, index) => (
-                                <div className='flex items-center justify-between border-2 border-black p-2 mb-2 rounded-xl' key={index}>
-                                    <p className='ml-4'>{`${salle.Name} - ${salle.Informatised ? 'I' : 'N/A'} - ${salle.Capacity || 'No Capacity'}`}</p>
-                                    <button className='mr-4' onClick={() => removeSalle(index)}>X</button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </>
-            )}
-            {setupStage === 4 && <h1 className='text-xl font-semibold mb-4'>Tout est prêt!</h1>}
+            {setupStage === 3 && <h1 className='text-xl font-semibold mb-4'>Tout est prêt!</h1>}
             <div className='flex items-center justify-between w-80 mt-8'>
                 <button className='h-12 w-32 bg-gray-300 text-gray-600 disabled:cursor-not-allowed disabled:text-white disabled:hover:scale-100 disabled:hover:bg-gray-300 font-bold rounded-md hover:bg-gray-500 transition-all duration-300 hover:scale-105' disabled={setupStage === 1} onClick={() => setSetupStage(setupStage - 1)}>
                     Précédent
