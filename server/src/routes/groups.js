@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { catchError } from '../utils/HandleErrors.js';
-import { Group, Layer, Sequelize, sequelize } from '../models/index.js';
+import { Group, Course, Layer, Sequelize, sequelize } from '../models/index.js';
 
 dotenv.config();
 
@@ -76,6 +76,7 @@ router.get('/search/:property/:searchQuery', async (req, res) => {
     return res.json(groups);
 });
 
+// Get all groups for a specific layer
 router.get('/layer/:id', async (req, res) => {
     const id = req.params.id;
     const onlyDefault = req.query.onlyDefault;
@@ -105,6 +106,30 @@ router.get('/layer/:id', async (req, res) => {
         return res.json(defaultGroups);
     }
     return res.json(layer.Groups);
+});
+
+// Get all groups for a specific course
+router.get('/course/:id', async (req, res) => {
+    const id = req.params.id;
+    if (!id) {
+        res.status(400).send('Course Id is required');
+        return;
+    }
+    const [courseError, course] = await catchError(Course.findByPk(id, {
+        include: [{
+           model: Group
+        }]
+    }));
+    if (courseError) {
+        console.error(courseError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+    if (!course) {
+        res.status(404).send('Course not found');
+        return;
+    }
+    return res.json(course.Groups);
 });
 
 // Get a specific group by ID

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import EcuItem from './EcuItem';
 import { UE, Course } from '../types/types';
 
-function CalendarCoursSelection(props: { setCurrentEcu: (ecu: Course | null) => void, ecus: UE[] }) {
+function CalendarCoursSelection(props: { setCurrentCours: (ecu: Course | null) => void, ecus: UE[] }) {
 
     const [hoveredItem, setHoveredItem] = useState<number>(-1);
     const [isSearching, setIsSearching] = useState<string>("");
@@ -44,7 +44,7 @@ function CalendarCoursSelection(props: { setCurrentEcu: (ecu: Course | null) => 
                                     onHover={() => setHoveredItem(index)}
                                     onLeave={() => setHoveredItem(-1)}
                                     setHoveredItem={setHoveredItem}
-                                    setCurrentEcu={props.setCurrentEcu}
+                                    setCurrentCours={props.setCurrentCours}
                                 />}
                                 {ecu.TotalHourVolume_TD > 0 && <EcuItem
                                     darken={hoveredItem !== -1 && hoveredItem !== index + props.ecus.length}
@@ -53,7 +53,7 @@ function CalendarCoursSelection(props: { setCurrentEcu: (ecu: Course | null) => 
                                     onHover={() => setHoveredItem(index + props.ecus.length)}
                                     onLeave={() => setHoveredItem(-1)}
                                     setHoveredItem={setHoveredItem}
-                                    setCurrentEcu={props.setCurrentEcu}
+                                    setCurrentCours={props.setCurrentCours}
                                 />}
                                 {ecu.TotalHourVolume_TP > 0 && <EcuItem
                                     darken={hoveredItem !== -1 && hoveredItem !== index + props.ecus.length}
@@ -62,7 +62,7 @@ function CalendarCoursSelection(props: { setCurrentEcu: (ecu: Course | null) => 
                                     onHover={() => setHoveredItem(index + props.ecus.length)}
                                     onLeave={() => setHoveredItem(-1)}
                                     setHoveredItem={setHoveredItem}
-                                    setCurrentEcu={props.setCurrentEcu}
+                                    setCurrentCours={props.setCurrentCours}
                                 />}
                             </div>
                         ))

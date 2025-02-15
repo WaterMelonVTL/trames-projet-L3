@@ -10,32 +10,68 @@ const router = express.Router();
 
 // Create a new Course
 router.post('/', async (req, res) => {
-    const { course, groups } = req.body;
-    console.log(course);
-    const [courseError, courseData] = await catchError(Course.create(course));
-    if (courseError) {
-        console.error(courseError);
-        res.status(500).send('Internal Server Error');
-        return;
-    }
-    if (groups && Array.isArray(groups) && groups.length > 0) {
-        const [groupError] = await catchError(courseData.setGroups(groups));
-        if (groupError) {
-            console.error(groupError);
+    const { course, groups, separate } = req.body;
+    if (!separate) {
+        console.log("SEPARATE IS FALSE")
+        console.log(course);
+        console.log(groups);
+        const groupIds = groups.map((group) => (group.Id ));
+        const [courseError, courseData] = await catchError(Course.create(course));
+        if (courseError) {
+            console.error(courseError);
             res.status(500).send('Internal Server Error');
             return;
         }
+        if (groups && Array.isArray(groups) && groups.length > 0) {
+            const [groupError, _] = await catchError(courseData.setGroups(groupIds));
+            if (groupError) {
+                console.error(groupError);
+                res.status(500).send('Internal Server Error');
+                return;
+            }
+        } else {
+            console.log(chalk.red('No groups provided'));
+            const [deleteError, _] = await catchError(courseData.destroy());
+            if (deleteError) {
+                console.error(deleteError);
+                res.status(500).send('Internal Server Error');
+                return;
+            }
+            return res.status(400).send('No groups provided');
+        }
+        console.log(courseData);
+        courseData.dataValues.Groups = groups;
+        console.log(courseData);
+        return res.json(courseData);
     } else {
-        console.log(chalk.red('No groups provided'));
-        const [deleteError, _] = await catchError(courseData.destroy());
-        if (deleteError) {
-            console.error(deleteError);
-            res.status(500).send('Internal Server Error');
-            return;
+        if (!groups || !Array.isArray(groups) || groups.length === 0) {
+            console.log(chalk.red('No groups provided'));
+            return res.status(400).send('No groups provided');
         }
-        return res.status(400).send('No groups provided');
+        console.log("SEPARATE IS TRUE")
+        const createdCourses = [];
+        for (const g  of groups){
+            console.log("GROUP : ", g);
+            const [courseError, courseData] = await catchError(Course.create(course));
+            if (courseError) {
+                console.error(courseError);
+                res.status(500).send('Internal Server Error');
+                return;
+            }
+            const [groupError, _] = await catchError(courseData.setGroups(g.Id));
+            if (groupError) {
+                console.error("ERROR CREATING GROUP_COURSE relation : ", groupError);
+                res.status(500).send('Internal Server Error');
+                return;
+            }
+            
+            console.log(courseData);
+            courseData.dataValues.Groups=[g];
+            console.log("CREATED COURSE FOR GROUP : ", g);
+            createdCourses.push(courseData);
+        }
+        return res.json(createdCourses);
     }
-    return res.json(courseData);
 });
 
 // Search for Courses by layer ID and search query
@@ -181,7 +217,7 @@ router.get('/date/:TrammeId/:LayerId/:date', async (req, res) => {
         WHERE lg.LayerId = ? 
         AND DATE(c.Date) = ?
     */
-   
+
     try {
         let groupIds = [];
 

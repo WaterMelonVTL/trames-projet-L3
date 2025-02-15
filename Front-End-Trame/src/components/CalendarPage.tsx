@@ -8,7 +8,7 @@ import CalendarLayerSelection from './CalendarLayerSelection';
 
 function CalendarPage() {
   //TODO: Keep the cours data when dragging, make it use an other type that can keep it.
-  const [currentCours, setCurrentEcu] = useState<Course | null>(null);
+  const [currentCours, setCurrentCours] = useState<Course | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   const location = useLocation();
@@ -66,43 +66,48 @@ function CalendarPage() {
     fetchData();
   }, [trammeId]);
 
-  async function AddCours(course: Course, date: string, time: string, groups?: number[]) {
-    console.log("called add cours");
+  async function AddCours(course: Course, date: string, time: string, ) {
+    console.log("called add cours :", course, date, time);
+    let groups = course.Groups;
     if (!groups) {
       groups = await fetch(`http://localhost:3000/api/groups/layer/${currentLayerId}?onlyDefault=true`)
         .then(res => res.json())
-        .then(data => data.map((group: { Id: number }) => group.Id));
+        
     }
     if (!groups) {
       console.error("No groups found for layer:", currentLayerId);
       return;
     }
-    await fetch(`http://localhost:3000/api/cours/`,
-      {
+    
+    await fetch(`http://localhost:3000/api/cours/`, {
         method: 'POST',
-        body: JSON.stringify(
-          {
-            course: {
-              'UEId': course.UEId,
-              'Type': course.Type,
-              'Date': date,
-              'StartHour': time,
-              'length': course.length,
-
-            }, groups: groups
-          }),
+        body: JSON.stringify({
+          course: {
+            'UEId': course.UEId,
+            'Type': course.Type,
+            'Date': date,
+            'StartHour': time,
+            'length': course.length,
+          },
+          groups: groups,
+          separate: (course.Type === 'TD' || course.Type === 'TP') && course.Id === -1
+        }),
         headers: { 'Content-Type': 'application/json' }
       })
       .then(response => {
         if (response.ok) {
-          fetch(`http://localhost:3000/api/cours/date/${trammeId}/${currentLayerId}/${date}`)
-            .then(res => res.json())
-
-            .then(data => setCours([...cours, data[data.length - 1]]));
+          response.json().then(data => {
+            // If data is an array, add all courses; otherwise add the single course.
+            if (Array.isArray(data)) {
+              setCours([...cours, ...data]);
+            } else {
+              setCours([...cours, data]);
+            }
+          });
         } else {
           console.error('Failed to add the course');
         }
-      })
+      });
   }
 
   function getMonday(date: Date): Date { // will be usefull later
@@ -148,14 +153,13 @@ function CalendarPage() {
 
   return (
     <div className="w-screen h-screen bg-gray-200  pt-8"
-      onMouseUp={() => { setCurrentEcu(null) }}>
+      onMouseUp={() => { setCurrentCours(null) }}>
 
       <div className='flex justify-around items-start relative mt-16'>
-        <CalendarCoursSelection setCurrentEcu={setCurrentEcu} ecus={currentLayerId ? ues[currentLayerId] : [{Name:"No currentLayerId"}]} />
+        <CalendarCoursSelection setCurrentCours={setCurrentCours} ecus={currentLayerId ? ues[currentLayerId] : [{Name:"No currentLayerId"}]} />
         <div className='flex flex-col'>
           <CalendarLayerSelection layers={layers} setLayers={setLayers} onClick={(id: number) => setCurrentLayerId(id)} currentLayerId={currentLayerId || -1} />
-          <CalendarFrame setCurrentEcu={setCurrentEcu} currentCours={currentCours} AddCours={AddCours} fetchedCourse={cours} setCours={setCours} trammeId={trammeId} date={defaultDate} color={currentLayerId ? layers.find(layer => layer.Id === currentLayerId)?.Color || "#ffffff" : "#ffffff"}/>
-          
+          <CalendarFrame setCurrentCours={setCurrentCours} currentCours={currentCours} AddCours={AddCours} fetchedCourse={cours} setCours={setCours} trammeId={trammeId} date={defaultDate} color={currentLayerId ? layers.find(layer => layer.Id === currentLayerId)?.Color || "#ffffff" : "#ffffff"}/>
         </div>
       </div>
       {
