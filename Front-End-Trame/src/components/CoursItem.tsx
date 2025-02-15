@@ -94,7 +94,7 @@ function CoursItem(props: { cours: Course, onMouseDown: (e: React.MouseEvent<HTM
     return (
       <div
         ref={itemRef}
-        className={`text-${textColor} h-28 border border-black hover:bg-blue-300 absolute cursor-pointer flex flex-col items-center w-full text-center z-50`}
+        className={`text-${textColor} h-28 border border-black hover:bg-blue-300  cursor-pointer flex flex-col items-center flex-grow text-center z-50`}
         style={{ backgroundColor: ue.Color, height: `${props.cours.length / timeRatio * 100}%`, transform: `translateY(${offsetToPercentage(offsetInHours)}%)` }}
         onClick={() => { console.log(`vous avez clické sur ${ue.Name} ${props.cours.Date} ${ue.Color}`) }}
         onMouseDown={(e) => { if (!showOption) { props.onMouseDown(e) } }}

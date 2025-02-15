@@ -47,7 +47,7 @@ function Home() {
     <div className='flex flex-col items-center justify-center h-screen'>
       <h1 className='font-bold text-3xl '>Bienvenue {username}</h1>
 
-      <h2>Selectionnez une Tramme :</h2>
+      <h2 className='mb-16'>Selectionnez une Tramme :</h2>
       <div className="grid grid-cols-4 gap-2 w-[70vw]">
         <div className='w-full h-40 border-2 border-black rounded-lg flex items-center p-8 justify-between hover:cursor-pointer hover:bg-blue-500 hover:text-white transition-all duration-300' onClick={CreateTramme}>
           <h1 className='w-1/2 text-2xl font-bold'>Créer une nouvelle tramme</h1>
@@ -58,7 +58,7 @@ function Home() {
             <div className='w-full h-40 border-2 flex flex-row justify-between items-center p-8 border-black rounded-lg hover:cursor-pointer hover:bg-blue-500 hover:text-white transition-all duration-300' key={index} onClick={() => navigate(`/calendar/${tramme.Id}`)}>
               <div className='flex flex-col justify-around'>
                 <h1>{tramme.Name}</h1>
-                <button className='bg-blue-500 text-white rounded-lg px-2' onClick={() => navigate(`/edit/tramme/${tramme.Id}`)}>Editer</button>
+                <button className='bg-blue-500 text-white rounded-lg px-2' onClick={(e) => {e.stopPropagation(); navigate(`/edit/tramme/${tramme.Id}`)}}>Editer</button>
               </div>
               <div className='w-1/4 h-1/2 flex justify-center items-center'>{ARROW}</div>
             </div>
