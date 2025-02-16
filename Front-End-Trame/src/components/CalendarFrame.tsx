@@ -121,6 +121,8 @@ function CalendarFrame(props: { date: Date, fetchedCourse: Course[], currentCour
                                                     <><CoursItem
                                                         key={cours.Id.toString()}
                                                         cours={cours}
+                                                        setCours={props.setCours}
+
                                                         créneau={crenaux[colIndex]}
                                                         onMouseDown={(e) => {
                                                             if (e.button === 0) {

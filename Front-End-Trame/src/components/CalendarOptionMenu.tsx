@@ -4,7 +4,7 @@ import Portal from './Portal';
 import {api} from '../public/api/api.js';
 interface CalendarOptionMenuProps {
     cours: Course;
-    setCours: (cours: Course) => void;
+    setCours: React.Dispatch<React.SetStateAction<Course[]>>;
     close: () => void;
     position: { top: number, left: number };
 }
@@ -77,12 +77,37 @@ function CalendarOptionMenu(props: CalendarOptionMenuProps) {
         setTeacherStatus('Permanent');
     };
 
-    const Separate = async (id:number) => {
+    const Separate = async (id: number) => {
         try {
-            const courses = await api.post('/courses/separate/' + id);
-            console.log(courses);
+            const newCourses = await api.post('/cours/separate/' + id);
+            props.setCours((prev: Course[]) => [
+                ...prev.filter(c => c.Id !== id),
+                ...newCourses,
+            ]);
+            console.log('Separated courses:', newCourses);
         } catch (error) {
             console.error('Failed to separate courses:', error);
+        }
+    };
+
+    const Merge = async (id: number) => {
+        try {
+            const mergedCourse = await api.post('/cours/merge/' + id);
+            console.log("Merge: props.setCours =", props.setCours);
+            if (typeof props.setCours !== 'function') {
+                throw new Error('setCours is not a function');
+            }
+            props.setCours((prev: Course[]) => [
+                ...prev.filter(c =>
+                    !(c.UEId === mergedCourse.UEId &&
+                      c.Date === mergedCourse.Date &&
+                      c.StartHour === mergedCourse.StartHour)
+                ),
+                mergedCourse,
+            ]);
+            console.log('Merged course:', mergedCourse);
+        } catch (error) {
+            console.error('Failed to merge courses:', error);
         }
     };
 
@@ -177,9 +202,15 @@ function CalendarOptionMenu(props: CalendarOptionMenuProps) {
                         <div className="flex flex-col gap-3">
                             <button
                                 className="w-full py-2 rounded-md bg-purple-500 text-white hover:bg-purple-600 transition"
-                                onClick={() => console.log('Séparer par groupes not implemented yet')}
+                                onClick={() => Separate(props.cours.Id)}
                             >
                                 Séparer par groupes
+                            </button>
+                            <button
+                                className="w-full py-2 rounded-md bg-purple-500 text-white hover:bg-purple-600 transition"
+                                onClick={() => Merge(props.cours.Id)}
+                            >
+                                Regrouper
                             </button>
                             <div className="flex flex-col items-center">
                                 <span className="text-xs text-gray-600 italic">Pour les masters :</span>
@@ -194,7 +225,7 @@ function CalendarOptionMenu(props: CalendarOptionMenuProps) {
                                     className="w-full py-2 rounded-md bg-purple-500 text-white hover:bg-purple-600 transition"
                                     onClick={() => console.log('Lier à un autre layer not implemented yet')}
                                 >
-                                    Créer un groupe attitré
+                                    Groupe attitré
                                 </button>
                             </div>
                         </div>

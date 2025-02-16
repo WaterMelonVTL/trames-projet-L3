@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import CalendarOptionMenu from "./CalendarOptionMenu";
 import { Course, Prof, Room, UE } from "../types/types";
+import {api} from "../public/api/api.js";
 
 function calculateLuminance(hexColor: string): number {
   if (!hexColor) {
     return 0;
   }
   hexColor = hexColor.replace(/^#/, '');
-
 
   let r = parseInt(hexColor.substring(0, 2), 16) / 255;
   let g = parseInt(hexColor.substring(2, 4), 16) / 255;
@@ -17,16 +17,15 @@ function calculateLuminance(hexColor: string): number {
   g = g <= 0.03928 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
   b = b <= 0.03928 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
 
-
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-
-
-
-
-
-function CoursItem(props: { cours: Course, onMouseDown: (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void, créneau: { start: string, end: string } }): JSX.Element {
+function CoursItem(props: {
+  setCours: React.Dispatch<React.SetStateAction<Course[]>>;
+  cours: Course;
+  onMouseDown: (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
+  créneau: { start: string, end: string }
+}): JSX.Element {
   const [ue, setUe] = useState<UE | null>(null);
   const [prof, setProf] = useState<Prof | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
@@ -34,7 +33,6 @@ function CoursItem(props: { cours: Course, onMouseDown: (e: React.MouseEvent<HTM
   const [textColor, setTextColor] = useState<string>('black');
 
   const [timeRatio, setTimeRatio] = useState<number>(1.5);
-
 
   const [showOption, setShowOption] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{ top: number, left: number } | null>(null);
@@ -56,9 +54,7 @@ function CoursItem(props: { cours: Course, onMouseDown: (e: React.MouseEvent<HTM
       setUe(data);
     }
 
-
     fetchUE();
-
   }, []);
 
   useEffect(() => {
@@ -69,17 +65,9 @@ function CoursItem(props: { cours: Course, onMouseDown: (e: React.MouseEvent<HTM
     }
   }, [ue]);
 
-
-
-
-
-
-
   function offsetToPercentage(offset: number): number {
     return offset / timeRatio * 100;
   }
-
-
 
   const [offset, setOffset] = useState<number>(0);
   const [offsetInHours, setOffsetInHours] = useState<number>(0);
@@ -92,11 +80,25 @@ function CoursItem(props: { cours: Course, onMouseDown: (e: React.MouseEvent<HTM
     setOffsetInHours(offset / 60);
   }, [props.créneau.start, props.cours.StartHour]);
 
+  useEffect(() => {
+    if (!props.cours.Groups) {
+      const fetchGroups = async () => {
+        try {
+          const groups = await api.get(`/groups/cours/${props.cours.Id}`);
+          props.setCours(prevCourses => prevCourses.map(course =>
+            course.Id === props.cours.Id ? { ...course, Groups: groups } : course
+          ));
+        } catch (error) {
+          console.error("Error fetching groups:", error);
+        }
+      };
+      fetchGroups();
+    }
+  }, [props.cours, props.setCours]);
+
   if (!ue) {
     return <div>Loading...</div>
   } else
-
-
     return (
       <div
         ref={itemRef}
@@ -114,12 +116,19 @@ function CoursItem(props: { cours: Course, onMouseDown: (e: React.MouseEvent<HTM
           )}
         </div>
         {
-          showOption && <CalendarOptionMenu ue={ue} setUe={setUe} cours={props.cours} close={() => setShowOption(false)} position={menuPosition} />
+          showOption && (
+            <CalendarOptionMenu
+              setCours={props.setCours}
+              ue={ue}
+              setUe={setUe}
+              cours={props.cours}
+              close={() => setShowOption(false)}
+              position={menuPosition}
+            />
+          )
         }
       </div>
     )
 }
 
-
-
-export default CoursItem
+export default CoursItem;

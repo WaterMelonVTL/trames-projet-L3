@@ -15,7 +15,7 @@ router.post('/', async (req, res) => {
         console.log("SEPARATE IS FALSE")
         console.log(course);
         console.log(groups);
-        const groupIds = groups.map((group) => (group.Id ));
+        const groupIds = groups.map((group) => (group.Id));
         const [courseError, courseData] = await catchError(Course.create(course));
         if (courseError) {
             console.error(courseError);
@@ -50,7 +50,7 @@ router.post('/', async (req, res) => {
         }
         console.log("SEPARATE IS TRUE")
         const createdCourses = [];
-        for (const g  of groups){
+        for (const g of groups) {
             console.log("GROUP : ", g);
             const [courseError, courseData] = await catchError(Course.create(course));
             if (courseError) {
@@ -64,9 +64,9 @@ router.post('/', async (req, res) => {
                 res.status(500).send('Internal Server Error');
                 return;
             }
-            
+
             console.log(courseData);
-            courseData.dataValues.Groups=[g];
+            courseData.dataValues.Groups = [g];
             console.log("CREATED COURSE FOR GROUP : ", g);
             createdCourses.push(courseData);
         }
@@ -91,31 +91,41 @@ router.post('/separate/:id', async (req, res) => {
         console.log(chalk.red('No groups found'));
         return res.status(404).send('No groups found');
     }
+    console.log(groups);
     const createdCourses = [];
+    console.log(chalk.redBright('Creating courses for each group'));
+    const { Id, ...newCourse } = course.dataValues;
     for (const g of groups) {
-        const [courseError, courseData] = await catchError(Course.create(course.dataValues));
+        const [courseError, courseData] = await catchError(Course.create(newCourse));
         if (courseError) {
             console.error(courseError);
             res.status(500).send('Internal Server Error');
             return;
         }
-        const [groupError, _] = await catchError(courseData.setGroups(g.Id));
+        console.log(chalk.redBright('Created course'));
+
+        const [groupError, _] = await catchError(courseData.setGroups(g.dataValues.Id));
         if (groupError) {
             console.error(groupError);
             res.status(500).send('Internal Server Error');
             return;
         }
+        console.log(chalk.redBright('Added course_group relation'));
+
         courseData.dataValues.Groups = [g];
+        console.log(chalk.redBright('Added group to course'));
+        console.log("\n");
         createdCourses.push(courseData);
     }
     course.destroy();
+    console.log(chalk.redBright('Deleted original course'));
     return res.json(createdCourses);
 });
 
 router.post('/merge/:id', async (req, res) => {
     const id = req.params.id;
     const [findCourseError, course] = await catchError(Course.findOne({ where: { Id: id }, include: ['Groups'] }));
-    if (courseError) {
+    if (findCourseError) {
         console.error(courseError);
         res.status(500).send('Internal Server Error');
         return;
@@ -124,32 +134,39 @@ router.post('/merge/:id', async (req, res) => {
         console.log(chalk.red('Course not found'));
         return res.status(404).send('Course not found');
     }
-    const courses = await Course.findAll({ where: { UEId: course.UEId, Date: course.Date, StartTime : course.StartHour } });
+    const courses = await Course.findAll({ where: { UEId: course.UEId, Date: course.Date, StartHour: course.StartHour }, include: ['Groups'] });
     if (!courses || courses.length === 0) {
         console.log(chalk.red('No courses found'));
         return res.status(404).send('No courses found');
     }
-    const groups = courses.map(c => c.Groups);
+    // Updated: flatten groups array to get all Group objects
+    const groups = courses.flatMap(c => c.Groups);
     if (!groups || groups.length === 0) {
         console.log(chalk.red('No groups found'));
         return res.status(404).send('No groups found');
     }
-    const [courseError, courseData] = await catchError(Course.create(course.dataValues));
+    const groupIds = groups.map(g => g.dataValues.Id);
+
+    console.log("GROUPS : ", groups);
+    const { Id, ...newCourse } = course.dataValues;
+
+    const [courseError, courseData] = await catchError(Course.create(newCourse));
     if (courseError) {
         console.error(courseError);
         res.status(500).send('Internal Server Error');
         return;
     }
-    const groupIds = groups.map(g => g.Id);
+    console.log("GROUP IDS : ", groupIds);
     const [groupError, _] = await catchError(courseData.setGroups(groupIds));
     if (groupError) {
-        console.error(groupError);
+        console.error(courseError);
         res.status(500).send('Internal Server Error');
         return;
     }
     for (const c of courses) {
         c.destroy();
     }
+    courseData.dataValues.Groups = groups;
     return res.json(courseData);
 });
 
