@@ -5,7 +5,7 @@ import { Course } from '../types/types';
 
 
 function CalendarFrame(props: { date: Date, fetchedCourse: Course[], currentCours: Course | null, setCours: (ecu: Course[] | null) => void, setCurrentCours: (ecu: Course | null) => void, trammeId: string | undefined, AddCours: (cours: Course, date: string, time: string) => void, color: string }) {
-    const daysOfWeek = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+    const daysOfWeek = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi']; // Add samedi if you want to display it
     const rows = Array.from({ length: 7 }, (_, i) => i + 1);
     const crenaux = [{ 'start': '8h', 'end': '9h30' }, { 'start': '9h45', 'end': '11h15' }, { 'start': '11h30', 'end': '13h' }, { 'start': '13h15', 'end': '14h45' }, { 'start': '15h00', 'end': '16h30' }, { 'start': '16h45', 'end': '18h15' }, { 'start': '18h30', 'end': '20h00' }];
     const creneauHeight = 6;

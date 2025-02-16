@@ -74,6 +74,87 @@ router.post('/', async (req, res) => {
     }
 });
 
+router.post('/separate/:id', async (req, res) => {
+    const id = req.params.id;
+    const [courseError, course] = await catchError(Course.findOne({ where: { Id: id }, include: ['Groups'] }));
+    if (courseError) {
+        console.error(courseError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+    if (!course) {
+        console.log(chalk.red('Course not found'));
+        return res.status(404).send('Course not found');
+    }
+    const groups = course.Groups;
+    if (!groups || groups.length === 0) {
+        console.log(chalk.red('No groups found'));
+        return res.status(404).send('No groups found');
+    }
+    const createdCourses = [];
+    for (const g of groups) {
+        const [courseError, courseData] = await catchError(Course.create(course.dataValues));
+        if (courseError) {
+            console.error(courseError);
+            res.status(500).send('Internal Server Error');
+            return;
+        }
+        const [groupError, _] = await catchError(courseData.setGroups(g.Id));
+        if (groupError) {
+            console.error(groupError);
+            res.status(500).send('Internal Server Error');
+            return;
+        }
+        courseData.dataValues.Groups = [g];
+        createdCourses.push(courseData);
+    }
+    course.destroy();
+    return res.json(createdCourses);
+});
+
+router.post('/merge/:id', async (req, res) => {
+    const id = req.params.id;
+    const [findCourseError, course] = await catchError(Course.findOne({ where: { Id: id }, include: ['Groups'] }));
+    if (courseError) {
+        console.error(courseError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+    if (!course) {
+        console.log(chalk.red('Course not found'));
+        return res.status(404).send('Course not found');
+    }
+    const courses = await Course.findAll({ where: { UEId: course.UEId, Date: course.Date, StartTime : course.StartHour } });
+    if (!courses || courses.length === 0) {
+        console.log(chalk.red('No courses found'));
+        return res.status(404).send('No courses found');
+    }
+    const groups = courses.map(c => c.Groups);
+    if (!groups || groups.length === 0) {
+        console.log(chalk.red('No groups found'));
+        return res.status(404).send('No groups found');
+    }
+    const [courseError, courseData] = await catchError(Course.create(course.dataValues));
+    if (courseError) {
+        console.error(courseError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+    const groupIds = groups.map(g => g.Id);
+    const [groupError, _] = await catchError(courseData.setGroups(groupIds));
+    if (groupError) {
+        console.error(groupError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+    for (const c of courses) {
+        c.destroy();
+    }
+    return res.json(courseData);
+});
+
+
+
 // Search for Courses by layer ID and search query
 router.get('/search/layer/:Layer/:searchQuery', async (req, res) => {
     const searchQuery = req.params.searchQuery;
