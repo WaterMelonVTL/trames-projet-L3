@@ -270,6 +270,7 @@ Tramme.belongsTo(User, { foreignKey: 'Owner' });
 Group.belongsToMany(Layer, { through: 'Layer_Groups', foreignKey: 'GroupId' });
 Layer.belongsToMany(Group, { through: 'Layer_Groups', foreignKey: 'LayerId' });
 Course.belongsToMany(Group, { through: 'Course_Groups', foreignKey: 'CourseId' });
+Group.belongsToMany(Course, { through: 'Course_Groups', foreignKey: 'GroupId' });
 
 /* Note :  (Group, Layer) = N-N can use those : 
 group.getLayers()
