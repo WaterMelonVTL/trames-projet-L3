@@ -139,7 +139,6 @@ router.post('/merge/:id', async (req, res) => {
         console.log(chalk.red('No courses found'));
         return res.status(404).send('No courses found');
     }
-    // Updated: flatten groups array to get all Group objects
     const groups = courses.flatMap(c => c.Groups);
     if (!groups || groups.length === 0) {
         console.log(chalk.red('No groups found'));
@@ -170,7 +169,188 @@ router.post('/merge/:id', async (req, res) => {
     return res.json(courseData);
 });
 
+router.post('/customGroup/:id', async (req, res) => {
+    const id = req.params.id;
+    const [courseError, course] = await catchError(Course.findOne({
+        where: { Id: id },
+        include: [{
+            model: Group,
+            include: [Layer]
+        }]
+    }));
+    if (courseError) {
+        console.error(courseError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+    if (!course) {
+        console.log(chalk.red('Course not found'));
+        return res.status(404).send('Course not found');
+    }
+    const layerId = course.Groups[0].Layers[0].Id;
 
+    const [groupError, newGroup] = await catchError(Group.create({ Name: course.dataValues.Name, IsSpecial: true }));
+    if (groupError) {
+        console.error(groupError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+
+    const [layerGroupError, __] = await catchError(newGroup.setLayers([layerId]));
+    if (layerGroupError) {
+        console.error(layerGroupError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+
+    const [courseGroupError, _] = await catchError(course.setGroups([newGroup.Id]));
+    if (courseGroupError) {
+        console.error(courseGroupError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+
+    const newCourse = { ...course.dataValues, Groups: [newGroup] };
+    return res.json(newCourse);
+});
+
+router.post('/linkToLayer/:layerId/:courseId', async (req, res) => {
+    const { layerId, courseId } = req.params;
+
+    // Fetch destination layer
+    const [layerError, destinationLayer] = await catchError(Layer.findOne({ where: { Id: layerId } }));
+    if (layerError || !destinationLayer) {
+        console.error(layerError || 'Layer not found');
+        return res.status(404).send('Layer not found');
+    }
+
+    // Fetch course with associated groups and their layers
+    const [courseError, course] = await catchError(
+        Course.findOne({
+            where: { Id: courseId },
+            include: [{ model: Group, include: [Layer] }]
+        })
+    );
+    if (courseError || !course) {
+        console.error(courseError || 'Course not found');
+        return res.status(404).send('Course not found');
+    }
+
+    // Assume the course has at least one group; pick the first one.
+    let currentGroup = course.Groups && course.Groups.length ? course.Groups[0] : null;
+    if (!currentGroup) {
+        return res.status(404).send('No group assigned to course');
+    }
+
+    // If current group is not special, create a custom group and use it.
+    if (!currentGroup.IsSpecial) {
+        const currentLayerId = currentGroup.Layers && currentGroup.Layers.length ? currentGroup.Layers[0].Id : null;
+        if (!currentLayerId) {
+            return res.status(404).send('Current layer not found');
+        }
+        const [groupError, newGroup] = await catchError(Group.create({ Name: course.dataValues.Name, IsSpecial: true }));
+        if (groupError) {
+            console.error(groupError);
+            return res.status(500).send('Internal Server Error');
+        }
+        // Assign both the current layer and the provided layerId to the new custom group.
+        const [setLayerError, __] = await catchError(newGroup.setLayers([currentLayerId, layerId]));
+        if (setLayerError) {
+            console.error(setLayerError);
+            return res.status(500).send('Internal Server Error');
+        }
+        const [courseGroupError, _] = await catchError(course.setGroups([newGroup.Id]));
+        if (courseGroupError) {
+            console.error(courseGroupError);
+            return res.status(500).send('Internal Server Error');
+        }
+        currentGroup = newGroup;
+    } else {
+        // If already special, ensure the provided layer is in its associated layers.
+        const existingLayerIds = currentGroup.Layers.map(l => l.Id);
+        if (!existingLayerIds.includes(layerId)) {
+            const newLayerIds = Array.from(new Set([...existingLayerIds, layerId]));
+            const [updateLayerError, __] = await catchError(currentGroup.setLayers(newLayerIds));
+            if (updateLayerError) {
+                console.error(updateLayerError);
+                return res.status(500).send('Internal Server Error');
+            }
+        }
+    }
+    return res.json(course);
+});
+
+// Route 1: Restore default groups for a course with a special group
+router.post('/restoreDefaultGroups/:courseId', async (req, res) => {
+    const { courseId } = req.params;
+    // Fetch course with its groups and layers for each group
+    const [courseError, course] = await catchError(
+        Course.findOne({ where: { Id: courseId }, include: [{ model: Group, include: [Layer] }] })
+    );
+    if (courseError || !course) {
+        console.error(courseError || 'Course not found');
+        return res.status(404).send('Course not found');
+    }
+
+    // Find a special group within course's groups
+    const specialGroup = course.Groups.find(g => g.IsSpecial);
+    if (!specialGroup) {
+        return res.status(400).send('No special group found on this course');
+    }
+
+    // Assume the special group is associated with at least one layer; pick the first one.
+    const associatedLayer = specialGroup.Layers && specialGroup.Layers.length ? specialGroup.Layers[0] : null;
+    if (!associatedLayer) {
+        return res.status(404).send('No layer associated with the special group');
+    }
+
+    // Get default groups: groups associated with the layer that are not special
+    const [layerGroupsError, layerGroups] = await catchError(
+        associatedLayer.getGroups()
+    );
+    if (layerGroupsError || !layerGroups) {
+        console.error(layerGroupsError || 'No groups found for the layer');
+        return res.status(404).send('No groups found for the layer');
+    }
+    const defaultGroups = layerGroups.filter(g => !g.IsSpecial);
+    if (!defaultGroups.length) {
+        return res.status(400).send('No default groups available');
+    }
+    const defaultGroupIds = defaultGroups.map(g => g.Id);
+    
+    // Assign default groups to the course
+    const [setGroupsError, _] = await catchError(course.setGroups(defaultGroupIds));
+    if (setGroupsError) {
+        console.error(setGroupsError);
+        return res.status(500).send('Internal Server Error');
+    }
+
+    // Destroy the special group
+    const [destroyError, __] = await catchError(specialGroup.destroy());
+    if (destroyError) {
+        console.error(destroyError);
+        return res.status(500).send('Internal Server Error');
+    }
+    return res.json({ message: 'Default groups assigned and special group removed', defaultGroups });
+});
+
+// Route 2: Unlink a group from a layer
+router.post('/unlinkGroup/:groupId/:layerId', async (req, res) => {
+    const { groupId, layerId } = req.params;
+    // Fetch the group
+    const [groupError, group] = await catchError(Group.findOne({ where: { Id: groupId } }));
+    if (groupError || !group) {
+        console.error(groupError || 'Group not found');
+        return res.status(404).send('Group not found');
+    }
+    // Unlink the association with the layer
+    const [unlinkError, __] = await catchError(group.removeLayer(layerId));
+    if (unlinkError) {
+        console.error(unlinkError);
+        return res.status(500).send('Internal Server Error');
+    }
+    return res.json({ message: 'Group unlinked from layer' });
+});
 
 // Search for Courses by layer ID and search query
 router.get('/search/layer/:Layer/:searchQuery', async (req, res) => {
