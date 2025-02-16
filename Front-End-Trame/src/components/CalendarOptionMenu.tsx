@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Course } from '../types/types';
 import Portal from './Portal';
-
+import {api} from '../public/api/api.js';
 interface CalendarOptionMenuProps {
     cours: Course;
     setCours: (cours: Course) => void;
@@ -76,6 +76,17 @@ function CalendarOptionMenu(props: CalendarOptionMenuProps) {
         setTeacherName('');
         setTeacherStatus('Permanent');
     };
+
+    const Separate = async (id:number) => {
+        try {
+            const courses = await api.post('/courses/separate/' + id);
+            console.log(courses);
+        } catch (error) {
+            console.error('Failed to separate courses:', error);
+        }
+    };
+
+
 
     return (
         <Portal>

@@ -2,7 +2,7 @@ import React from 'react';
 import { UE, Course } from '../types/types';
 import { useState, useEffect } from 'react';
 
-function EcuItem(props: { darken: boolean, type: string, ueID: number, onHover: () => void, onLeave: () => void, setHoveredItem: (index:number) => void , setCurrentEcu: (ecu: Course | null) => void }) {
+function EcuItem(props: { darken: boolean, type: string, ueID: number, onHover: () => void, onLeave: () => void, setHoveredItem: (index:number) => void , setCurrentCours: (ecu: Course | null) => void }) {
   const [ue, setUE] = useState<UE | null>(null);
   useEffect(() => {
     fetch(`http://localhost:3000/api/ues/${props.ueID}`)
@@ -23,7 +23,7 @@ function EcuItem(props: { darken: boolean, type: string, ueID: number, onHover: 
       onMouseEnter={props.onHover}
       onMouseLeave={props.onLeave}
       onMouseDown={() => {
-        props.setCurrentEcu({
+        props.setCurrentCours({
           Id: -1,
           UEId: ue.Id,
           Date: new Date(),

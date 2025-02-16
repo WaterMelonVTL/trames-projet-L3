@@ -17,15 +17,19 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path='/calendar/:id' element={<CalendarPage />} />
           <Route path="/edit">
-            <Route path="tramme/:id" element={<SetupTramme  />} />
+            <Route path="tramme/:id" element={<SetupTramme />} />
           </Route>
         </Routes>
       </Router>
-      <div className="absolute w-full h-16 top-0 z-[999] -translate-y-[17%]" style={{ backgroundImage: 'url(./src/assets/noel2.png)', backgroundRepeat: 'repeat-x', backgroundSize: 'auto 100%' }}>
-      </div>
-      <Snowfall color="white" style={{ zIndex: 200 }} />
+
     </div>
   )
 }
 
 export default App
+
+{/* CHRISTMAS THEME
+        <div className="absolute w-full h-16 top-0 z-[999] -translate-y-[17%]" style={{ backgroundImage: 'url(./src/assets/noel2.png)', backgroundRepeat: 'repeat-x', backgroundSize: 'auto 100%' }}>
+      </div>
+      <Snowfall color="white" style={{ zIndex: 200 }} />
+*/}
