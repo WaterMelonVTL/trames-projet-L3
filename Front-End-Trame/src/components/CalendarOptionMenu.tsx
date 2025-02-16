@@ -77,6 +77,9 @@ function CalendarOptionMenu(props: CalendarOptionMenuProps) {
         setTeacherStatus('Permanent');
     };
 
+    const Separate = (id) => {
+        
+
     return (
         <Portal>
             <div
