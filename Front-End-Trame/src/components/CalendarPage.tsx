@@ -22,6 +22,10 @@ function CalendarPage() {
   const [ues, setUes] = React.useState<{ [key: number]: UE[] }>({})
 
   const [defaultDate, setDefaultDate] = useState<Date>(new Date('2001-01-01')); // Starting date
+  
+  // New state for duplicate inputs
+  const [duplicateStart, setDuplicateStart] = useState<string>('');
+  const [duplicateEnd, setDuplicateEnd] = useState<string>('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -87,12 +91,54 @@ function CalendarPage() {
     }
   }
 
-  function getMonday(date: Date): Date { // will be usefull later
+  function getMonday(date: Date): Date { // will be useful later
     const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is Sunday
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
     return new Date(date.setDate(diff));
   }
+  
+  const nextWeek = () => {
+    const newDate = new Date(defaultDate);
+    newDate.setDate(newDate.getDate() + 7);
+    setDefaultDate(newDate);
+  }
 
+  const previousWeek = () => {
+    const newDate = new Date(defaultDate);
+    newDate.setDate(newDate.getDate() - 7);
+    setDefaultDate(newDate);
+  }
+
+  const resetToBaseline = () => {
+    setDefaultDate(new Date('2001-01-01'));
+  }
+
+  async function duplicate() {
+    try {
+      api.delete("/trammes/clear-courses/"+trammeId);
+      let newDate = await api.post(`/trammes/duplicate/${trammeId}`, { 
+        startDate: duplicateStart, 
+        endDate: duplicateEnd, 
+        daysToSkip: [] 
+      });
+      newDate = new Date(newDate);
+      if (newDate.getDay() !== 1) {
+        newDate = getMonday(newDate);
+      }
+      setDefaultDate(newDate);
+    } catch (error) {
+      console.error("Error duplicating tramme:", error);
+    }
+  }
+
+  async function delcours(){
+    try {
+      api.delete("/trammes/clear-courses/"+trammeId);
+    } catch (error) {
+      console.error("Error deleting tramme:", error);
+    }
+  }
+  
   async function fetchClassesForWeek(monday: Date) {
     const classes = [];
     for (let i = 0; i < 7; i++) {
@@ -140,6 +186,53 @@ function CalendarPage() {
           <EcuItem darken={false} type={currentCours.Type} ueID={currentCours.UEId} onHover={() => { }} onLeave={() => { }} onMouseDown={() => { }} />
         </div>
       }
+      {/* Conditional rendering for control buttons */}
+      <div className="mt-4">
+        {defaultDate.getTime() === new Date('2001-01-01').getTime() ? (
+          <div>
+            <input 
+              type="date" 
+              value={duplicateStart} 
+              onChange={(e) => setDuplicateStart(e.target.value)} 
+              placeholder="Start date"
+              className="border border-gray-300 rounded py-2 px-3 mr-2 mb-2" />
+            <input 
+              type="date" 
+              value={duplicateEnd} 
+              onChange={(e) => setDuplicateEnd(e.target.value)} 
+              placeholder="End date"
+              className="border border-gray-300 rounded py-2 px-3 mr-2 mb-2" />
+            <button
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200"
+              onClick={() => duplicate()}>
+              Duplicate
+            </button>
+          </div>
+        ) : (
+          <div>
+            <button
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 mr-2"
+              onClick={() => resetToBaseline()}>
+              Retour à la semaine type
+            </button>
+            <button
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 mr-2"
+              onClick={() => previousWeek()}>
+              Semaine précédente
+            </button>
+            <button
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200"
+              onClick={() => nextWeek()}>
+              Semaine suivante
+            </button>
+          </div>
+        )}
+        {/*<button
+          className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 mt-2"
+          onClick={() => delcours()}>
+          Delete all cours
+        </button>*/}
+      </div>
     </div>
   )
 }
