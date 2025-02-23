@@ -26,7 +26,7 @@ function Home() {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ data: { Name: "Nouvelle Tramme", Year: 2025 }, user: { Id: userID } })
+      body: JSON.stringify({ data: { Name: "Nouvelle Tramme" }, user: { Id: userID } })
     })
       .then((res) => res.json())
       .then((data) => {

@@ -5,7 +5,7 @@ import EcuItem from './EcuItem';
 import { Course, UE, Layer } from '../types/types';
 import { useLocation } from 'react-router-dom';
 import CalendarLayerSelection from './CalendarLayerSelection';
-import { api } from '../public/api/api.js'; // <-- added api import
+import { api } from '../public/api/api.js' // <-- added api import
 
 function CalendarPage() {
   //TODO: Keep the cours data when dragging, make it use an other type that can keep it.
