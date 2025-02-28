@@ -232,7 +232,11 @@ function CalendarPage() {
         ["TP", ue?.TotalHourVolume_TP || 0],
         [],
         ["Cours Magistraux (CM)"],
-        ["Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle", ...weeks.map((_, index) => `S${36 + index} ${new Date(getMonday(new Date(duplicateStart))).toLocaleDateString('fr-FR')}`)]
+        ["Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle", ...weeks.map((_, index) => {
+          const weekStartDate = new Date(duplicateStart);
+          weekStartDate.setDate(weekStartDate.getDate() + (index * 7));
+          return `S${36 + index} ${weekStartDate.toLocaleDateString('fr-FR')}`;
+        })]
       ];
   
       Object.keys(ueSheets[ueName].CM).forEach(timeSlot => {
@@ -254,7 +258,11 @@ function CalendarPage() {
   
       worksheetData.push([]);
       worksheetData.push(["Travaux Dirigés (TD)"]);
-      worksheetData.push(["Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle", ...weeks.map((_, index) => `S${36 + index} ${new Date(getMonday(new Date(duplicateStart))).toLocaleDateString('fr-FR')}`)]);
+      worksheetData.push(["Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle", ...weeks.map((_, index) => {
+        const weekStartDate = new Date(duplicateStart);
+        weekStartDate.setDate(weekStartDate.getDate() + (index * 7));
+        return `S${36 + index} ${weekStartDate.toLocaleDateString('fr-FR')}`;
+      })]);
   
       Object.keys(ueSheets[ueName].TD).forEach(timeSlot => {
         Object.keys(ueSheets[ueName].TD[timeSlot]).forEach(dayIndex => {
@@ -275,7 +283,11 @@ function CalendarPage() {
   
       worksheetData.push([]);
       worksheetData.push(["Travaux Pratiques (TP)"]);
-      worksheetData.push(["Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle", ...weeks.map((_, index) => `S${36 + index} ${new Date(getMonday(new Date(duplicateStart))).toLocaleDateString('fr-FR')}`)]);
+      worksheetData.push(["Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle", ...weeks.map((_, index) => {
+        const weekStartDate = new Date(duplicateStart);
+        weekStartDate.setDate(weekStartDate.getDate() + (index * 7));
+        return `S${36 + index} ${weekStartDate.toLocaleDateString('fr-FR')}`;
+      })]);
   
       Object.keys(ueSheets[ueName].TP).forEach(timeSlot => {
         Object.keys(ueSheets[ueName].TP[timeSlot]).forEach(dayIndex => {
