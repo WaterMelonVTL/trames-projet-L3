@@ -12,7 +12,8 @@ export type Tramme = {
     Id: number;
     Name: string;
     Owner: number;
-    Year: number;
+    StartDate: Date;
+    EndDate: Date;
 };
 
 export type Layer = {
@@ -65,4 +66,12 @@ export type Tokens = {
     UserId: number;
     Expire: Date;
 };
+
+export type CoursePool = {
+    Id : number;
+    UEId : number;
+    Type : string;
+    Volume : number;
+    UE: UE;
+}
 

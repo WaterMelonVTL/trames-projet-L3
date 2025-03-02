@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { catchError } from '../utils/HandleErrors.js';
-import { Tramme, Sequelize, Layer, Course, Group, UE, DesignatedDays } from '../models/index.js';
+import { Tramme, Sequelize, Layer, Course, Group, UE, DesignatedDays, CoursePool } from '../models/index.js';
 import chalk from 'chalk';
 import { json } from 'sequelize';
 
@@ -26,7 +26,7 @@ router.post('/', async (req, res) => {
 });
 
 // Add designated days
-router.put('/addDesignatedDays', async (req, res) =>{
+router.put('/addDesignatedDays', async (req, res) => {
     console.log("DesignatedDays route hit!");
     const { trammeId, designatedDays } = req.body;
 
@@ -133,7 +133,7 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
     const id = req.params.id;
     console.log("updating context with id: ", id);
-    
+
     if (!id) {
         res.status(400).send('Id is required');
         return;
@@ -165,14 +165,31 @@ router.put('/:id', async (req, res) => {
     return res.json(updatedTramme);
 });
 
+
+// returns true if the date is a designated day for the tramme
+router.get('/is-dts/:trammeId/:date', async (req, res) => {
+    const date = req.params.date;
+    const trammeId = req.params.trammeId;
+    const [dtsError, dts] = await catchError(DesignatedDays.findOne({ where: { TrammeId: trammeId, Day: date } }));
+    if (dtsError) {
+        console.error(dtsError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+    if (!dts) {
+        res.status(404).send('Designated day not found');
+        return;
+    }
+    return res.json("true");
+});
+
 router.post('/duplicate/:id', async (req, res) => {
 
+    
+    const designatedDaysRecords = await DesignatedDays.findAll({ where: { TrammeId: req.params.id } });
+    let daysToSkip = designatedDaysRecords.map(record => record.Day);
 
-    let { startDate, endDate, daysToSkip } = req.body; // Premierement, on récupere les données de la requête
-    console.log("start date : ", startDate);
-    console.log("end date : ", endDate);
-    startDate = new Date(startDate);
-    endDate = new Date(endDate);
+
 
     if (!daysToSkip) {
         daysToSkip = []; // au cas ou
@@ -183,13 +200,17 @@ router.post('/duplicate/:id', async (req, res) => {
         res.status(400).send('Id is required');
         return;
     }
-    if (!startDate || !endDate) {
-        res.status(400).send('Start and end date are required');
-        return;
-    }
+
 
     const [trammeError, trammeData] = await catchError(Tramme.findByPk(id)); // On récupère la tramme à étendre
-
+    let startDate = trammeData.StartDate;
+    let endDate = trammeData.EndDate;
+    if (!startDate || !endDate) {
+        res.status(400).send('Start and end date are required to be defined to duplicate');
+        return;
+    }
+    startDate = new Date(startDate);
+    endDate = new Date(endDate);
     if (trammeError) {
         console.error(trammeError);
         res.status(500).send('Internal Server Error');
@@ -214,7 +235,7 @@ router.post('/duplicate/:id', async (req, res) => {
                     through: { attributes: [] },
                     where: {
                         Date: { [Sequelize.Op.lt]: new Date('2001-01-08') }
-                    }, 
+                    },
                     include: {
                         model: Group,
                         through: { attributes: [] }
@@ -246,7 +267,7 @@ router.post('/duplicate/:id', async (req, res) => {
             }
         }
         const flattenedCourses = Array.from(dedupedCourses.values());
-        
+
         const [ueError, ues] = await catchError(UE.findAll({ // On récupère les UEs associées à ce layer pour pouvoir initialiser les heures restantes
             where: {
                 LayerId: layer.Id
@@ -269,7 +290,7 @@ router.post('/duplicate/:id', async (req, res) => {
             RemainingHours[ue.Id] = {
                 CM: ue.TotalHourVolume_CM,
                 TD: ue.TotalHourVolume_TD,
-                Tp: ue.TotalHourVolume_TP
+                TP: ue.TotalHourVolume_TP
             };
         });
 
@@ -298,10 +319,15 @@ router.post('/duplicate/:id', async (req, res) => {
         console.log(chalk.red("Current date : ", currentDate));
         console.log(chalk.red("End date : ", endDate));
         console.log(chalk.red("Cours de la semaine : ", JSON.stringify(weekCourses)));
+        
+        // Calculate total normal groups in the current layer
+        let totalNormalGroupsInLayer = layer.Groups.filter(g => !g.isSpecial).length;
+        if (totalNormalGroupsInLayer === 0) totalNormalGroupsInLayer = layer.Groups.length;
+        
         while (currentDate <= endDate) {
             let currentDay = currentDate.getDay();
 
-            if (daysToSkip && daysToSkip.includes(currentDate.toISOString().slice(0,10))) {
+            if (daysToSkip && daysToSkip.includes(currentDate.toISOString().slice(0, 10))) {
                 currentDate.setDate(currentDate.getDate() + 1);
                 continue;
             }
@@ -320,7 +346,7 @@ router.post('/duplicate/:id', async (req, res) => {
                 const groupsCount = groupsAssociated.length;
                 // Determine maximum length that can be allocated considering remaining hours
                 const maxLength = RemainingHours[course.UEId][course.Type] >= course.length ? course.length : RemainingHours[course.UEId][course.Type];
-                
+
                 const [courseError, newCourse] = await catchError(Course.create({
                     UEId: course.UEId,
                     Date: currentDate,
@@ -329,7 +355,7 @@ router.post('/duplicate/:id', async (req, res) => {
                     StartHour: course.StartHour,
                     ProfId: course.ProfId,
                 }));
-                if (courseError) { 
+                if (courseError) {
                     console.log(chalk.red("Error creating cours :"));
                     console.error(courseError);
                     res.status(500).send('Internal Server Error');
@@ -347,8 +373,8 @@ router.post('/duplicate/:id', async (req, res) => {
                     res.status(500).send('Internal Server Error');
                     return;
                 }
-                // Adjust remaining hours proportional to groups count
-                const effectiveDeduction = newCourse.length * (groupsCount / normalGroupCount);
+                // Adjust remaining hours proportional to groups count using normal groups in current layer
+                const effectiveDeduction = newCourse.length * (groupsCount / totalNormalGroupsInLayer);
                 RemainingHours[course.UEId][course.Type] -= effectiveDeduction;
             }
 
@@ -356,7 +382,34 @@ router.post('/duplicate/:id', async (req, res) => {
             currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        console.log("il reste : ", RemainingHours); // à enregistrer dans la base de données (plus tard)
+        // On a fini de dupliquer les cours, on va maintenant mettre à jour les heures restantes pour chaque UE
+        for (const [ueId, hours] of Object.entries(RemainingHours)) {
+            // Create or update pool item for CM, TD, and TP even if the value is 0
+            const [coursePoolCMError, coursePoolCM] = await catchError(
+                CoursePool.upsert({ UEId: ueId, Type: "CM", Volume: hours.CM })
+            );
+            if (coursePoolCMError) {
+                console.error(coursePoolCMError);
+                res.status(500).send('Internal Server Error');
+                return;
+            }
+            const [coursePoolTDError, coursePoolTD] = await catchError(
+                CoursePool.upsert({ UEId: ueId, Type: "TD", Volume: hours.TD })
+            );
+            if (coursePoolTDError) {
+                console.error(coursePoolTDError);
+                res.status(500).send('Internal Server Error');
+                return;
+            }
+            const [coursePoolTPError, coursePoolTP] = await catchError(
+                CoursePool.upsert({ UEId: ueId, Type: "TP", Volume: hours.TP })
+            );
+            if (coursePoolTPError) {
+                console.error(coursePoolTPError);
+                res.status(500).send('Internal Server Error');
+                return;
+            }
+        }
     } // finito
     console.log(chalk.red("Sending start date : ", startDate));
     res.json(startDate); // On renvoie la date de début pour pouvoir bouger directement dessus dans le client
@@ -364,55 +417,55 @@ router.post('/duplicate/:id', async (req, res) => {
 
 // Clear courses from a tramme that are after January 2001
 router.delete('/clear-courses/:id', async (req, res) => {
-	const id = req.params.id;
-	if (!id) {
-		res.status(400).send('Tramme Id is required');
-		return;
-	}
+    const id = req.params.id;
+    if (!id) {
+        res.status(400).send('Tramme Id is required');
+        return;
+    }
 
-	// Retrieve layers linked to the tramme
-	const [layerError, layers] = await catchError(Layer.findAll({ where: { TrammeId: id } }));
-	if (layerError) {
-		console.error(layerError);
-		res.status(500).send('Internal Server Error');
-		return;
-	}
-	if (!layers || layers.length === 0) {
-		res.status(404).send('No layers found for the tramme');
-		return;
-	}
-	const layerIds = layers.map(l => l.Id);
+    // Retrieve layers linked to the tramme
+    const [layerError, layers] = await catchError(Layer.findAll({ where: { TrammeId: id } }));
+    if (layerError) {
+        console.error(layerError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+    if (!layers || layers.length === 0) {
+        res.status(404).send('No layers found for the tramme');
+        return;
+    }
+    const layerIds = layers.map(l => l.Id);
 
-	// Retrieve UEs associated with these layers
-	const [ueError, ues] = await catchError(UE.findAll({ where: { LayerId: { [Sequelize.Op.in]: layerIds } } }));
-	if (ueError) {
-		console.error(ueError);
-		res.status(500).send('Internal Server Error');
-		return;
-	}
-	if (!ues || ues.length === 0) {
-		res.status(404).send('No UEs found for the tramme layers');
-		return;
-	}
-	const ueIds = ues.map(ue => ue.Id);
+    // Retrieve UEs associated with these layers
+    const [ueError, ues] = await catchError(UE.findAll({ where: { LayerId: { [Sequelize.Op.in]: layerIds } } }));
+    if (ueError) {
+        console.error(ueError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+    if (!ues || ues.length === 0) {
+        res.status(404).send('No UEs found for the tramme layers');
+        return;
+    }
+    const ueIds = ues.map(ue => ue.Id);
 
-	// Define cutoff date: courses after January 2001 (i.e., from February 1, 2001)
-	const cutoffDate = new Date('2001-02-01');
-  
-	// Delete courses for these UEs with Date on or after the cutoff
-	const [delError, count] = await catchError(Course.destroy({
-		where: {
-			UEId: { [Sequelize.Op.in]: ueIds },
-			Date: { [Sequelize.Op.gte]: cutoffDate }
-		}
-	}));
-	if (delError) {
-		console.error(delError);
-		res.status(500).send('Internal Server Error');
-		return;
-	}
+    // Define cutoff date: courses after January 2001 (i.e., from February 1, 2001)
+    const cutoffDate = new Date('2001-02-01');
 
-	res.json({ message: `Deleted ${count} courses` });
+    // Delete courses for these UEs with Date on or after the cutoff
+    const [delError, count] = await catchError(Course.destroy({
+        where: {
+            UEId: { [Sequelize.Op.in]: ueIds },
+            Date: { [Sequelize.Op.gte]: cutoffDate }
+        }
+    }));
+    if (delError) {
+        console.error(delError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+
+    res.json({ message: `Deleted ${count} courses` });
 });
 
 // Delete a tramme by ID

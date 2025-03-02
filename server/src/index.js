@@ -17,10 +17,10 @@ const ip = 'localhost';
 // Middleware to parse JSON bodies
 app.use(express.json());
 app.use(cors({
-    origin: ["http://localhost:5173", "http://localhost:5473", "http://localhost:5474", "http://localhost:3000"], 
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    origin: (origin, callback) => {
+        callback(null, origin || '*');
+    },
+    credentials: true
 }));
 
 app.use(cookieParser());

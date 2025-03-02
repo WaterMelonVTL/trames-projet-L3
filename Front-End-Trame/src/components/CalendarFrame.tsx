@@ -66,7 +66,7 @@ function CalendarFrame(props: { date: Date, fetchedCourse: Course[], currentCour
             <div className="border-2 border-black flex flex-row w-full justify-around rounded-lg rounded-tl-none">
 
                 <div key={"horaires"} className="flex flex-col w-20 ">
-                    <div className="flex flex-col  border border-black font-bold h-8"
+                    <div className="flex flex-col  border border-black font-bold h-12"
                         style={{ backgroundColor: props.color }}>
                     </div>
                     {rows.map((_, colIndex) => (
@@ -87,7 +87,15 @@ function CalendarFrame(props: { date: Date, fetchedCourse: Course[], currentCour
 
                     return (
                         <div key={day} className="flex flex-col flex-grow">
-                            <div className="flex flex-col  border border-black font-bold h-8 " style={{ backgroundColor: props.color }}>{`${day}`}</div>
+                            {/* Updated header: show "type" if year is 2001, else display the formatted date */}
+                            <div className="flex flex-col border border-black font-bold h-12" style={{ backgroundColor: props.color, minHeight: '2rem' }}>
+                                <div>{day}</div>
+                                { currentDate.getFullYear() === 2001 ? (
+                                    <div className="text-xs">type</div>
+                                ) : (
+                                    <div className="text-xs">{currentDate.toISOString().split('T')[0]}</div>
+                                )}
+                            </div>
                             {rows.map((_, colIndex) => (
                                 <>
                                     <div

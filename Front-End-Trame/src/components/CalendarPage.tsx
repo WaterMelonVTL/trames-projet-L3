@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react'
 import CalendarFrame from './CalendarFrame'
 import CalendarCoursSelection from './CalendarCoursSelection'
 import EcuItem from './EcuItem';
-import { Course, UE, Layer } from '../types/types';
+import { Course, UE, Layer, Tramme } from '../types/types';
 import { useLocation } from 'react-router-dom';
 import CalendarLayerSelection from './CalendarLayerSelection';
 import { api } from '../public/api/api.js'; // <-- added api import
+import CalendarPoolSelection from './CalendarPoolSelection';
 import * as XLSX from 'xlsx';
 
 function CalendarPage() {
@@ -15,29 +16,24 @@ function CalendarPage() {
 
   const location = useLocation();
   const trammeId = location.pathname.split('/').pop();
-  const [contextId, setContextId] = useState<number | null>(null);
   const [trammeName, setTrammeName] = useState<string | null>(null);
+  const [trammeData, setTrammeData] = useState<Tramme | null>(null);
   const [layers, setLayers] = useState<Layer[]>([]);
   const [cours, setCours] = useState<Course[]>([]);
   const [currentLayerId, setCurrentLayerId] = useState<number | null>(null);
   const [ues, setUes] = React.useState<{ [key: number]: UE[] }>({})
 
   const [defaultDate, setDefaultDate] = useState<Date>(new Date('2001-01-01')); // Starting date
-  
-  // New state for duplicate inputs
-  const [duplicateStart, setDuplicateStart] = useState<string>('');
-  const [duplicateEnd, setDuplicateEnd] = useState<string>('');
+
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Fetch tramme data using the api
         const trammeData = await api.get(`/trammes/${trammeId}`);
-        const contextId = trammeData.ContextId;
         console.log(trammeData);
-        setContextId(contextId);
         setTrammeName(trammeData.Name);
-        console.log("contextId:", contextId);
+        setTrammeData(trammeData);
 
         // Fetch layers using the api
         const layersData = await api.get(`/layers/tramme/${trammeId}`);
@@ -109,19 +105,24 @@ function CalendarPage() {
     newDate.setDate(newDate.getDate() - 7);
     setDefaultDate(newDate);
   }
-
+  
   const resetToBaseline = () => {
     setDefaultDate(new Date('2001-01-01'));
+  }
+
+  // New placeholder functions for Raccourcis
+  const goToFirstWeek = () => {
+    if (trammeData) setDefaultDate(getMonday(new Date(trammeData.StartDate)));
+  }
+
+  const goToLastWeek = () => {
+    if (trammeData) setDefaultDate(getMonday(new Date(trammeData.EndDate)));
   }
 
   async function duplicate() {
     try {
       api.delete("/trammes/clear-courses/"+trammeId);
-      let newDate = await api.post(`/trammes/duplicate/${trammeId}`, { 
-        startDate: duplicateStart, 
-        endDate: duplicateEnd, 
-        daysToSkip: [] 
-      });
+      let newDate = await api.post(`/trammes/duplicate/${trammeId}`);
       newDate = new Date(newDate);
       if (newDate.getDay() !== 1) {
         newDate = getMonday(newDate);
@@ -176,6 +177,12 @@ function CalendarPage() {
   }
 
   const handleExportWeeks = async () => {
+    if (!trammeData) {
+      alert('No tramme data found.');
+      return;
+    }
+    const duplicateStart = new Date(trammeData.StartDate);
+    const duplicateEnd = new Date(trammeData.EndDate);
     if (duplicateStart && duplicateEnd) {
       const weeks = await fetchClassesForPeriod(getMonday(new Date(duplicateStart)), getMonday(new Date(duplicateEnd)));
       generateExcel(weeks);
@@ -316,7 +323,7 @@ function CalendarPage() {
 
   async function fetchClassesForPeriod(startMonday: Date, endMonday: Date) {
     const weeks = [];
-    let currentMonday = new Date(startMonday);
+    const currentMonday = new Date(startMonday);
   
     while (currentMonday <= endMonday) {
       const weekClasses = await fetchClassesForWeek(currentMonday);
@@ -351,7 +358,7 @@ function CalendarPage() {
       onMouseUp={() => { setCurrentCours(null) }}>
 
       <div className='flex justify-around items-start relative mt-16'>
-        <CalendarCoursSelection setCurrentCours={setCurrentCours} ecus={currentLayerId ? ues[currentLayerId] : [{ Name: "No currentLayerId" }]} />
+        {defaultDate.getTime() === new Date('2001-01-01').getTime() ? <CalendarCoursSelection setCurrentCours={setCurrentCours} ecus={currentLayerId ? ues[currentLayerId] : [{ Name: "No currentLayerId" }]} /> : <CalendarPoolSelection setCurrentCours={setCurrentCours} layerId={currentLayerId || -1} />}
         <div className='flex flex-col'>
           <CalendarLayerSelection layers={layers} setLayers={setLayers} onClick={(id: number) => setCurrentLayerId(id)} currentLayerId={currentLayerId || -1} />
           <CalendarFrame setCurrentCours={setCurrentCours} currentCours={currentCours} AddCours={AddCours} fetchedCourse={cours} setCours={setCours} trammeId={trammeId} date={defaultDate} color={currentLayerId ? layers.find(layer => layer.Id === currentLayerId)?.Color || "#ffffff" : "#ffffff"} />
@@ -364,56 +371,69 @@ function CalendarPage() {
         </div>
       }
       {/* Conditional rendering for control buttons */}
-      <div className="mt-4">
+      <div className="mt-4 flex flex-col items-center">
         {defaultDate.getTime() === new Date('2001-01-01').getTime() ? (
           <div>
-            <input 
-              type="date" 
-              value={duplicateStart} 
-              onChange={(e) => setDuplicateStart(e.target.value)} 
-              placeholder="Start date"
-              className="border border-gray-300 rounded py-2 px-3 mr-2 mb-2" />
-            <input 
-              type="date" 
-              value={duplicateEnd} 
-              onChange={(e) => setDuplicateEnd(e.target.value)} 
-              placeholder="End date"
-              className="border border-gray-300 rounded py-2 px-3 mr-2 mb-2" />
             <button
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200"
+              className="py-2 px-6 rounded-lg transition-colors duration-200 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg"
               onClick={() => duplicate()}>
               Appliquer la semaine type
             </button>
           </div>
         ) : (
-          <div>
-            <button
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 mr-2"
-              onClick={() => resetToBaseline()}>
-              Retour à la semaine type
-            </button>
-            <button
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 mr-2"
-              onClick={() => previousWeek()}>
-              Semaine précédente
-            </button>
-            <button
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 mr-2"
-              onClick={() => nextWeek()}>
-              Semaine suivante
-            </button>
-            <button
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200"
-              onClick={handleExportWeeks}>
-              Export Weeks as JSON
-            </button>
+          <div className="flex justify-around max-w-7xl self-center gap-4">
+            {/* Navigation Section */}
+            <div className="mb-2 flex flex-col items-center">
+              <h3 className="font-bold mb-1 text-blue-800">Navigation</h3>
+              <div className="flex gap-2">
+                <button
+                  className="py-2 px-4 rounded-lg transition-colors duration-200 bg-blue-600 hover:bg-blue-700 text-white shadow"
+                  onClick={() => previousWeek()}>
+                  Semaine précédente
+                </button>
+                <button
+                  className="py-2 px-4 rounded-lg transition-colors duration-200 bg-blue-600 hover:bg-blue-700 text-white shadow"
+                  onClick={() => nextWeek()}>
+                  Semaine suivante
+                </button>
+              </div>
+            </div>
+            {/* Raccourcis Section */}
+            <div className="mb-2 flex flex-col items-center">
+              <h3 className="font-bold mb-1 text-purple-800">Aller à</h3>
+              <div className="flex gap-2">
+                <button
+                  className="py-2 px-4 rounded-lg transition-colors duration-200 bg-purple-600 hover:bg-purple-700 text-white shadow"
+                  onClick={goToFirstWeek}>
+                  Première semaine
+                </button>
+                <button
+                  className="py-2 px-4 rounded-lg transition-colors duration-200 bg-purple-600 hover:bg-purple-700 text-white shadow"
+                  onClick={goToLastWeek}>
+                  Dernière semaine
+                </button>
+              </div>
+            </div>
+            {/* Mode Section */}
+            <div className="mb-2 flex flex-col items-center">
+              <h3 className="font-bold mb-1 text-red-800">Mode</h3>
+              <button
+                className="py-2 px-6 rounded-lg transition-colors duration-200 bg-red-500 hover:bg-red-600 text-white shadow-lg"
+                onClick={() => resetToBaseline()}>
+                Retour à la semaine type
+              </button>
+            </div>
+            {/* Utilitaires Section */}
+            <div className="mb-2 flex flex-col items-center">
+              <h3 className="font-bold mb-1 text-green-800">Utilitaires</h3>
+              <button
+                className="py-2 px-6 rounded-lg transition-colors duration-200 bg-green-600 hover:bg-green-700 text-white shadow-lg"
+                onClick={handleExportWeeks}>
+                Exporter la tramme
+              </button>
+            </div>
           </div>
         )}
-        {/*<button
-          className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 mt-2"
-          onClick={() => delcours()}>
-          Delete all cours
-        </button>*/}
       </div>
     </div>
   )

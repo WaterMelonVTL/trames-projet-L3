@@ -252,14 +252,14 @@ const Tokens = sequelize.define('Tokens', {
 // Define DesignatedDays model
 const DesignatedDays = sequelize.define('DesignatedDays', {
     Id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
     },
 
     Day: {
-      type: DataTypes.DATEONLY,
-      allowNull: false,
+        type: DataTypes.DATEONLY,
+        allowNull: false,
     },
     TrammeId: {
         type: DataTypes.INTEGER,
@@ -269,8 +269,30 @@ const DesignatedDays = sequelize.define('DesignatedDays', {
             key: 'Id'
         }
     }
-  });
-  
+});
+
+// Updated CoursePool model definition
+const CoursePool = sequelize.define('CoursePool', {
+	UEId: {
+		type: DataTypes.INTEGER,
+		allowNull: false,
+		primaryKey: true,
+		references: {
+			model: UE,
+			key: 'Id'
+		}
+	},
+	Type: {
+		type: DataTypes.STRING,
+		allowNull: false,
+		primaryKey: true,
+	},
+	Volume: {
+		type: DataTypes.INTEGER,
+		allowNull: false,
+		defaultValue: 0,
+	}
+});
 
 // Define relationships
 
@@ -297,7 +319,7 @@ Course.belongsToMany(Group, { through: 'Course_Groups', foreignKey: 'CourseId' }
 Group.belongsToMany(Course, { through: 'Course_Groups', foreignKey: 'GroupId' });
 
 // // DesignatedDays relationships
- Tramme.hasMany(DesignatedDays, { foreignKey: 'TrammeId' });
+Tramme.hasMany(DesignatedDays, { foreignKey: 'TrammeId' });
 
 
 /* Note :  (Group, Layer) = N-N can use those : 
@@ -311,22 +333,22 @@ layer.addGroup()
 
 sequelize.sync().then(async () => {
     try {
-      const [user, created] = await User.findOrCreate({
-        where: { FirstName: "Louis", LastName: "Veran" },
-        defaults: {
-          Password: await bcrypt.hash("azerty", 10),
-          Role: "ADMIN"
+        const [user, created] = await User.findOrCreate({
+            where: { FirstName: "Louis", LastName: "Veran" },
+            defaults: {
+                Password: await bcrypt.hash("azerty", 10),
+                Role: "ADMIN"
+            }
+        });
+        if (created) {
+            console.log("Admin user created:", user);
+        } else {
+            console.log("Admin user already exists");
         }
-      });
-      if (created) {
-        console.log("Admin user created:", user);
-      } else {
-        console.log("Admin user already exists");
-      }
     } catch (error) {
-      console.error("Error seeding admin user:", error);
+        console.error("Error seeding admin user:", error);
     }
-  });
+});
 
 
 export {
@@ -340,5 +362,6 @@ export {
     Course,
     Tokens,
     Group,
-    DesignatedDays
+    DesignatedDays,
+    CoursePool
 };
