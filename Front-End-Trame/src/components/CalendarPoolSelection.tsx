@@ -54,7 +54,7 @@ function CalendarCoursSelection(props: { setCurrentCours: (UE: Course | null) =>
                 <div className='mt-16 z-50 max-h-[45rem] overflow-y-auto overflow-x-visible w-full'>
                     {filteredList?.length > 0 ? (
                         filteredList.map((poolItem, index) => (
-                            <div key={poolItem.UE.Id} className='flex flex-col flex-gap-2 mb-4 w-full items-center'>
+                            <div key={"pool"+poolItem.UE.Id+poolItem.Type} className='flex flex-col flex-gap-2 mb-4 w-full items-center'>
                                 {( poolItem.Type === "CM" && poolItem.UE.TotalHourVolume_CM > 0) && <PoolItem
                                     darken={hoveredItem !== -1 && hoveredItem !== index}
                                     type="CM"
