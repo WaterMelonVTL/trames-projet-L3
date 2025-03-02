@@ -4,7 +4,7 @@
       {
         "label": "Start Frontend",
         "type": "shell",
-        "command": "cd .\\Front-End-Trame\\; npm run dev",
+        "command": "cd .\\Front-End-Trame\\; npm install ; npm run dev",
         "problemMatcher": [],
         "presentation": {
           "reveal": "always",
@@ -14,7 +14,7 @@
       {
         "label": "Start Backend",
         "type": "shell",
-        "command": "cd .\\server; npm run dev",
+        "command": "cd .\\server; npm install ; npm run dev",
         "problemMatcher": [],
         "isBackground": false,
         "presentation": {
