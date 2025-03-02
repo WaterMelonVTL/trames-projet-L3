@@ -192,6 +192,8 @@ function CalendarPage() {
   };
 
   const generateExcel = (weeks: any[]) => {
+    const duplicateStart = new Date(trammeData.StartDate);
+    const duplicateEnd = new Date(trammeData.EndDate);
     const workbook = XLSX.utils.book_new();
     console.log("uesdata : ", ues);
     // Create a sheet for each UE
