@@ -3,13 +3,22 @@ import CalendarFrame from './CalendarFrame'
 import CalendarCoursSelection from './CalendarCoursSelection'
 import EcuItem from './EcuItem';
 import { Course, UE, Layer, Tramme } from '../types/types';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom'; // <-- added useSearchParams
 import CalendarLayerSelection from './CalendarLayerSelection';
 import { api } from '../public/api/api.js'; // <-- added api import
 import CalendarPoolSelection from './CalendarPoolSelection';
 import * as XLSX from 'xlsx';
 
 function CalendarPage() {
+  // Retrieve date from url query parameter
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Modify the initial date to always be a Monday
+  const dateParam = searchParams.get("date");
+  const initialDate = dateParam ? getMonday(new Date(dateParam)) : getMonday(new Date('2001-01-01'));
+
+  // Use the date from the url if present or default value
+  const [defaultDate, setDefaultDate] = useState<Date>(initialDate);
+  
   //TODO: Keep the cours data when dragging, make it use an other type that can keep it.
   const [currentCours, setCurrentCours] = useState<Course | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -22,9 +31,19 @@ function CalendarPage() {
   const [cours, setCours] = useState<Course[]>([]);
   const [currentLayerId, setCurrentLayerId] = useState<number | null>(null);
   const [ues, setUes] = React.useState<{ [key: number]: UE[] }>({})
+  const [poolRefreshCounter, setPoolRefreshCounter] = useState<number>(0);
 
-  const [defaultDate, setDefaultDate] = useState<Date>(new Date('2001-01-01')); // Starting date
-
+  // Helper function to update both state and URL query
+  function updateDate(newDate: Date) {
+    console.log("newDate:", newDate);
+    // Format date in local time (YYYY-MM-DD)
+    const yyyy = newDate.getFullYear();
+    const mm = String(newDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(newDate.getDate()).padStart(2, '0');
+    const date = `${yyyy}-${mm}-${dd}`;
+    console.log("date:", date);
+    setSearchParams({ date });
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -83,40 +102,52 @@ function CalendarPage() {
       } else {
         setCours([...cours, data]);
       }
+      // Trigger refresh for CalendarPoolSelection
+      setPoolRefreshCounter(prev => prev + 1);
     } catch (error) {
       console.error('Failed to add the course', error);
     }
   }
 
-  function getMonday(date: Date): Date { // will be useful later
-    const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(date.setDate(diff));
+  function getMonday(date: Date): Date { 
+    // Create a new Date to avoid mutating the original
+    const d = new Date(date);
+    const day = d.getDay();
+    // If already Monday (day === 1), return d as-is.
+    if (day === 1) return d;
+    // Else, calculate last Monday.
+    const diff = (day + 6) % 7; // 0 for Monday, else number of days to subtract
+    d.setDate(d.getDate() - diff);
+    return d;
   }
   
+  // Update navigation functions to use updateDate instead of setDefaultDate directly
   const nextWeek = () => {
-    const newDate = new Date(defaultDate);
+    console.log("oldDate:",defaultDate);
+    const newDate = getMonday(defaultDate);
+    console.log("old date after getMonday:",newDate);
     newDate.setDate(newDate.getDate() + 7);
-    setDefaultDate(newDate);
+    console.log("oldDate, newDate:",defaultDate, newDate);
+    updateDate(newDate);
   }
 
   const previousWeek = () => {
-    const newDate = new Date(defaultDate);
+    const newDate = getMonday(defaultDate);
     newDate.setDate(newDate.getDate() - 7);
-    setDefaultDate(newDate);
+    updateDate(newDate);
   }
   
   const resetToBaseline = () => {
-    setDefaultDate(new Date('2001-01-01'));
+    updateDate(new Date('2001-01-01'));
   }
 
-  // New placeholder functions for Raccourcis
+  // New placeholder functions for Raccourcis updated to use updateDate
   const goToFirstWeek = () => {
-    if (trammeData) setDefaultDate(getMonday(new Date(trammeData.StartDate)));
+    if (trammeData) updateDate(getMonday(new Date(trammeData.StartDate)));
   }
 
   const goToLastWeek = () => {
-    if (trammeData) setDefaultDate(getMonday(new Date(trammeData.EndDate)));
+    if (trammeData) updateDate(getMonday(new Date(trammeData.EndDate)));
   }
 
   async function duplicate() {
@@ -136,6 +167,7 @@ function CalendarPage() {
   async function delcours(){
     try {
       api.delete("/trammes/clear-courses/"+trammeId);
+      // Trigger refresh for CalendarPoolSelection
     } catch (error) {
       console.error("Error deleting tramme:", error);
     }
@@ -143,7 +175,7 @@ function CalendarPage() {
   
   async function fetchClassesForWeek(monday: Date) {
     const classes = [];
-    for (let i = 0; i < 7; i++) {
+    for (let i = -1; i < 6; i++) {
       const date = new Date(monday);
       date.setDate(monday.getDate() + i);
       const dayClasses = await api.get(`/cours/date/${trammeId}/${currentLayerId}/${date.toISOString().split('T')[0]}`);
@@ -353,15 +385,26 @@ function CalendarPage() {
     };
   }, []);
 
+  // Add a useEffect that listens to searchParams changes (e.g., via browser navigation)
+  useEffect(() => {
+    const param = searchParams.get("date");
+    if (param) {
+      setDefaultDate(getMonday(new Date(param)));
+    } else {
+      // Ensure fallback default date is a Monday.
+      setDefaultDate(getMonday(new Date('2001-01-01')));
+    }
+  }, [searchParams]);
+
   return (
     <div className="w-screen h-screen bg-gray-200  pt-8"
       onMouseUp={() => { setCurrentCours(null) }}>
 
       <div className='flex justify-around items-start relative mt-16'>
-        {defaultDate.getTime() === new Date('2001-01-01').getTime() ? <CalendarCoursSelection setCurrentCours={setCurrentCours} ecus={currentLayerId ? ues[currentLayerId] : [{ Name: "No currentLayerId" }]} /> : <CalendarPoolSelection setCurrentCours={setCurrentCours} layerId={currentLayerId || -1} />}
+        {defaultDate.getTime() === new Date('2001-01-01').getTime() ? <CalendarCoursSelection setCurrentCours={setCurrentCours} ecus={currentLayerId ? ues[currentLayerId] : [{ Name: "No currentLayerId" }]} /> : <CalendarPoolSelection setCurrentCours={setCurrentCours} layerId={currentLayerId || -1} refreshTrigger={poolRefreshCounter} />}
         <div className='flex flex-col'>
           <CalendarLayerSelection layers={layers} setLayers={setLayers} onClick={(id: number) => setCurrentLayerId(id)} currentLayerId={currentLayerId || -1} />
-          <CalendarFrame setCurrentCours={setCurrentCours} currentCours={currentCours} AddCours={AddCours} fetchedCourse={cours} setCours={setCours} trammeId={trammeId} date={defaultDate} color={currentLayerId ? layers.find(layer => layer.Id === currentLayerId)?.Color || "#ffffff" : "#ffffff"} />
+          <CalendarFrame setPoolRefreshCounter={setPoolRefreshCounter} setCurrentCours={setCurrentCours} currentCours={currentCours} AddCours={AddCours} fetchedCourse={cours} setCours={setCours} trammeId={trammeId} date={defaultDate} color={currentLayerId ? layers.find(layer => layer.Id === currentLayerId)?.Color || "#ffffff" : "#ffffff"} />
         </div>
       </div>
       {

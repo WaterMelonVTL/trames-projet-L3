@@ -4,7 +4,7 @@ import { CoursePool, Course } from '../types/types';
 import { api } from '../public/api/api.js';
 import PoolItem from './PoolItem';
 
-function CalendarCoursSelection(props: { setCurrentCours: (UE: Course | null) => void, layerId: number }) {
+function CalendarCoursSelection(props: { setCurrentCours: (UE: Course | null) => void, layerId: number, refreshTrigger?: number }) {
 
     const [hoveredItem, setHoveredItem] = useState<number>(-1);
     const [isSearching, setIsSearching] = useState<string>("");
@@ -33,8 +33,13 @@ function CalendarCoursSelection(props: { setCurrentCours: (UE: Course | null) =>
         fetchCoursePool(props.layerId);
     }, [props.layerId]);
 
+    useEffect(() => {
+        if (props.refreshTrigger !== undefined) {
+            fetchCoursePool(props.layerId);
+        }
+    }, [props.refreshTrigger, props.layerId]);
 
-        const search = (search: string) => {
+    const search = (search: string) => {
         setIsSearching(search);
     };
 

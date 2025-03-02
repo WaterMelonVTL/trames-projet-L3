@@ -126,7 +126,6 @@ router.get('/remainingpool/:id', async (req, res) => {
     let remainingPool = [];
     for (let ue of ues) {
         const [poolError, pool] = await catchError(CoursePool.findAll({ where: { UEId: ue.Id } }));
-        console.log(chalk.red("pool : ", JSON.stringify(pool)));
         if (poolError) {
             console.error(poolError);
             res.status(500).send('Internal Server Error');
@@ -137,7 +136,6 @@ router.get('/remainingpool/:id', async (req, res) => {
             remainingPool.push(p);
         }
     }
-    console.log( "returning : ", remainingPool);
     if (remainingPool.length === 0) {
         res.status(404).send('No remaining pool found');
         return;

@@ -1,8 +1,8 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { catchError } from '../utils/HandleErrors.js';
-// Updated import to include Layer and Group
-import { Course, Sequelize, sequelize, Layer, Group, Prof } from '../models/index.js';
+// Updated import to include Layer, Group, Prof and CoursePool
+import { Course, Sequelize, sequelize, Layer, Group, Prof, CoursePool } from '../models/index.js';
 import chalk from 'chalk';
 import { Op } from 'sequelize';
 dotenv.config();
@@ -39,6 +39,19 @@ router.post('/', async (req, res) => {
             }
             return res.status(400).send('No groups provided');
         }
+        // Update CoursePool if course date is not in 2001
+        if (new Date(courseData.Date).getFullYear() !== 2001) {
+            const [poolError, __] = await catchError(
+                CoursePool.decrement(
+                    { Volume: course.length },
+                    { where: { UEId: courseData.UEId, Type: courseData.Type } }
+                )
+            );
+            if (poolError) {
+                console.error(poolError);
+                return res.status(500).send('Internal Server Error');
+            }
+        }
         console.log(courseData);
         courseData.dataValues.Groups = groups;
         console.log(courseData);
@@ -64,7 +77,19 @@ router.post('/', async (req, res) => {
                 res.status(500).send('Internal Server Error');
                 return;
             }
-
+            // Update CoursePool if course date is not in 2001
+            if (new Date(courseData.Date).getFullYear() !== 2001) {
+                const [poolError, __] = await catchError(
+                    CoursePool.decrement(
+                        { Volume: course.length },
+                        { where: { UEId: courseData.UEId, Type: courseData.Type } }
+                    )
+                );
+                if (poolError) {
+                    console.error(poolError);
+                    return res.status(500).send('Internal Server Error');
+                }
+            }
             console.log(courseData);
             courseData.dataValues.Groups = [g];
             console.log("CREATED COURSE FOR GROUP : ", g);
@@ -597,6 +622,26 @@ router.put('/:id', async (req, res) => {
 // Delete a Course by ID
 router.delete('/:id', async (req, res) => {
     const id = req.params.id;
+    // Fetch the course first
+    const [findError, courseToDelete] = await catchError(Course.findOne({ where: { id } }));
+    
+    if (findError || !courseToDelete) {
+        console.error(findError || 'Course not found');
+        return res.status(404).send('Course not found');
+    }
+    // Update CoursePool if course date is not in 2001
+    if (new Date(courseToDelete.Date).getFullYear() !== 2001) {
+        const [poolError, __] = await catchError(
+            CoursePool.increment(
+                { Volume: courseToDelete.dataValues.length },
+                { where: { UEId: courseToDelete.UEId, Type: courseToDelete.Type } }
+            )
+        );
+        if (poolError) {
+            console.error(poolError);
+            return res.status(500).send('Internal Server Error');
+        }
+    }
     const [courseError, courseData] = await catchError(Course.destroy({ where: { id } }));
     if (courseError) {
         console.error(courseError);

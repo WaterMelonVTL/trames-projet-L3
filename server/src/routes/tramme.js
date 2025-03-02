@@ -254,6 +254,8 @@ router.post('/duplicate/:id', async (req, res) => {
         res.status(404).send('Layers not found');
         return;
     }
+    let totcourses = 0;
+
     for (let layer of layers) { // Maintenant on va itérer sur chaque layer pour les dupliquer un par un
         console.log(chalk.red(" Duplicating layer : ", JSON.stringify(layer.dataValues.Name)));
         const dedupedCourses = new Map();
@@ -323,48 +325,52 @@ router.post('/duplicate/:id', async (req, res) => {
         // Calculate total normal groups in the current layer
         let totalNormalGroupsInLayer = layer.Groups.filter(g => !g.isSpecial).length;
         if (totalNormalGroupsInLayer === 0) totalNormalGroupsInLayer = layer.Groups.length;
-        
-        while (currentDate <= endDate) {
-            let currentDay = currentDate.getDay();
 
-            if (daysToSkip && daysToSkip.includes(currentDate.toISOString().slice(0, 10))) {
+        // Helper function to format date as YYYY-MM-DD using local date values
+        const formatLocalDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        while (currentDate <= endDate) {
+            // Check designated days using local date format
+            if (daysToSkip && daysToSkip.includes(formatLocalDate(currentDate))) {
                 currentDate.setDate(currentDate.getDate() + 1);
                 continue;
             }
-
+            let currentDay = currentDate.getDay();
             const courseofDay = weekCourses[currentDay];
             console.log(chalk.red("Current day : ", currentDay, " ", currentDate));
             for (const course of courseofDay) { // On itere sure les cours du jour (le jour de la semaine en question)
-                if (RemainingHours[course.UEId][course.Type] <= 0) {
-                    continue; // Si on a plus d'heures pour cette UE on skip
+                // Skip creating course if remaining hours for the course's type are less than the course length
+                if (RemainingHours[course.UEId][course.Type] < course.length) {
+                    continue;
                 }
-
                 // Calculate usual group count (non-special groups)
                 const groupsAssociated = course.Groups;
                 let normalGroupCount = groupsAssociated.filter(g => !g.isSpecial).length;
                 if (normalGroupCount === 0) normalGroupCount = groupsAssociated.length;
                 const groupsCount = groupsAssociated.length;
-                // Determine maximum length that can be allocated considering remaining hours
-                const maxLength = RemainingHours[course.UEId][course.Type] >= course.length ? course.length : RemainingHours[course.UEId][course.Type];
-
+                
+                // Use the full course length since remaining hours are sufficient
+                const maxLength = course.length;
                 const [courseError, newCourse] = await catchError(Course.create({
                     UEId: course.UEId,
                     Date: currentDate,
-                    length: maxLength, // tentative allocated length
+                    length: maxLength,
                     Type: course.Type,
                     StartHour: course.StartHour,
                     ProfId: course.ProfId,
                 }));
                 if (courseError) {
-                    console.log(chalk.red("Error creating cours :"));
                     console.error(courseError);
-                    res.status(500).send('Internal Server Error');
                     newCourse.destroy();
                     return;
                 }
-
+                totcourses++;
                 const GroupsIds = groupsAssociated.map(group => group.Id);
-                console.log(chalk.red("Setting groups : ", GroupsIds));
                 const [courseGroupError, courseGroup] = await catchError(newCourse.setGroups(GroupsIds));
                 if (courseGroupError) {
                     console.log(chalk.red("Error setting groups :"));
@@ -412,6 +418,7 @@ router.post('/duplicate/:id', async (req, res) => {
         }
     } // finito
     console.log(chalk.red("Sending start date : ", startDate));
+    console.log(chalk.red("Total courses created : ", totcourses));
     res.json(startDate); // On renvoie la date de début pour pouvoir bouger directement dessus dans le client
 });
 
