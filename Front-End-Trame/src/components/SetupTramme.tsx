@@ -5,6 +5,7 @@ import ST_SetupNameStage from './ST_SetupNameStage'
 import ST_LayerStage from './ST_LayerStage'
 import ST_GroupStage from './ST_GroupStage'
 import ST_UeStage from './ST_UeStage'
+import ST_DateStage from './ST_DateStage'
 
 function SetupPage() {
   const navigate = useNavigate()
@@ -18,21 +19,22 @@ function SetupPage() {
   // Stages 3 ... (2+totalLayers): Group stages (one per layer)
   // Stages (3+totalLayers) ... (2+2*totalLayers): Ue stages (one per layer)
   // Final stage: (3+2*totalLayers)
-  const finalStage = 3 + 2 * totalLayers
+  const finalStage = 5 + 2 * totalLayers
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6">
       <ST_SetupHeader setupStage={setupStage} totalLayers={totalLayers} />
       <div className="bg-white shadow-lg rounded-xl border border-gray-200 w-full max-w-4xl h-[30rem] overflow-auto p-8 relative">
         {setupStage === 1 && <ST_SetupNameStage trammeId={trammeId} />}
-        {setupStage === 2 && <ST_LayerStage trammeId={trammeId} setTotalLayers={setTotalLayers} />}
-        {setupStage > 2 && setupStage < (3 + totalLayers) && (
+        {setupStage === 2 && <ST_DateStage trammeId={trammeId} />}
+        {setupStage === 3 && <ST_LayerStage trammeId={trammeId} setTotalLayers={setTotalLayers} />}
+        {setupStage > 3 && setupStage < (4 + totalLayers) && (
           // Group stage for layer index = setupStage - 3
-          <ST_GroupStage trammeId={trammeId} index={setupStage - 3} />
+          <ST_GroupStage trammeId={trammeId} index={setupStage - 4} />
         )}
-        {setupStage >= (3 + totalLayers) && setupStage < finalStage && (
+        {setupStage >= (4 + totalLayers) && setupStage < finalStage && (
           // UE stage for layer index = setupStage - (3 + totalLayers)
-          <ST_UeStage trammeId={trammeId} index={setupStage - (3 + totalLayers)} />
+          <ST_UeStage trammeId={trammeId} index={setupStage - (4 + totalLayers)} />
         )}
         {setupStage === finalStage && (
           <div className="flex flex-col items-center justify-center h-full">

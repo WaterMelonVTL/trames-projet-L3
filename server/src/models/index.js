@@ -38,8 +38,6 @@ const User = sequelize.define('User', {
     },
 });
 
-
-
 // Define Tramme model
 const Tramme = sequelize.define('Tramme', {
     Id: {
@@ -59,9 +57,13 @@ const Tramme = sequelize.define('Tramme', {
             key: 'Id'
         }
     },
-    Year: {
-        type: DataTypes.INTEGER,
-        allowNull: false
+    StartDate: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    EndDate: {
+        type: DataTypes.DATE,
+        allowNull: true
     }
 });
 
@@ -90,6 +92,7 @@ const Layer = sequelize.define('Layer', {
     }
 });
 
+// Define Group model
 const Group = sequelize.define('Group', {
     Id: {
         type: DataTypes.INTEGER,
@@ -132,8 +135,6 @@ const Prof = sequelize.define('Prof', {
         }
     }
 });
-
-
 
 // Define UE model
 const UE = sequelize.define('UE', {
@@ -248,6 +249,29 @@ const Tokens = sequelize.define('Tokens', {
     }
 });
 
+// Define DesignatedDays model
+const DesignatedDays = sequelize.define('DesignatedDays', {
+    Id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+
+    Day: {
+      type: DataTypes.DATEONLY,
+      allowNull: false,
+    },
+    TrammeId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Tramme,
+            key: 'Id'
+        }
+    }
+  });
+  
+
 // Define relationships
 
 // UE relationships
@@ -271,6 +295,10 @@ Group.belongsToMany(Layer, { through: 'Layer_Groups', foreignKey: 'GroupId' });
 Layer.belongsToMany(Group, { through: 'Layer_Groups', foreignKey: 'LayerId' });
 Course.belongsToMany(Group, { through: 'Course_Groups', foreignKey: 'CourseId' });
 Group.belongsToMany(Course, { through: 'Course_Groups', foreignKey: 'GroupId' });
+
+// // DesignatedDays relationships
+ Tramme.hasMany(DesignatedDays, { foreignKey: 'TrammeId' });
+
 
 /* Note :  (Group, Layer) = N-N can use those : 
 group.getLayers()
@@ -311,5 +339,6 @@ export {
     UE,
     Course,
     Tokens,
-    Group
+    Group,
+    DesignatedDays
 };
