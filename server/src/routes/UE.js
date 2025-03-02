@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { catchError } from '../utils/HandleErrors.js';
-import { UE, Layer, Sequelize } from '../models/index.js';
+import { UE, Layer, Sequelize, CoursePool } from '../models/index.js';
 import chalk from 'chalk';
 
 dotenv.config();
@@ -113,6 +113,38 @@ router.get('/layer/:id', async (req, res) => {
     }
 
     return res.json(ues);
+});
+
+router.get('/remainingpool/:id', async (req, res) => {
+    const id = req.params.id;
+    const [ueError, ues] = await catchError(UE.findAll({ where: { LayerId: id } }));
+    if (ueError) {
+        console.error(ueError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+    let remainingPool = [];
+    for (let ue of ues) {
+        const [poolError, pool] = await catchError(CoursePool.findAll({ where: { UEId: ue.Id } }));
+        console.log(chalk.red("pool : ", JSON.stringify(pool)));
+        if (poolError) {
+            console.error(poolError);
+            res.status(500).send('Internal Server Error');
+            return;
+        }
+        for (let p of pool) {
+            p.dataValues.UE = ue;
+            remainingPool.push(p);
+        }
+    }
+    console.log( "returning : ", remainingPool);
+    if (remainingPool.length === 0) {
+        res.status(404).send('No remaining pool found');
+        return;
+    }
+
+
+    return res.json(remainingPool);
 });
 
 //update a UE    
