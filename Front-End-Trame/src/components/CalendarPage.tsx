@@ -8,6 +8,8 @@ import CalendarLayerSelection from './CalendarLayerSelection';
 import { api } from '../public/api/api.js'; // <-- added api import
 import CalendarPoolSelection from './CalendarPoolSelection';
 import * as XLSX from 'xlsx';
+import { Input } from 'react-select/animated';
+import LoadingAnimation from './LoadingAnimation.js';
 
 function CalendarPage() {
   // Retrieve date from url query parameter
@@ -18,7 +20,7 @@ function CalendarPage() {
 
   // Use the date from the url if present or default value
   const [defaultDate, setDefaultDate] = useState<Date>(initialDate);
-  
+
   //TODO: Keep the cours data when dragging, make it use an other type that can keep it.
   const [currentCours, setCurrentCours] = useState<Course | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -32,6 +34,7 @@ function CalendarPage() {
   const [currentLayerId, setCurrentLayerId] = useState<number | null>(null);
   const [ues, setUes] = React.useState<{ [key: number]: UE[] }>({})
   const [poolRefreshCounter, setPoolRefreshCounter] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Helper function to update both state and URL query
   function updateDate(newDate: Date) {
@@ -109,7 +112,7 @@ function CalendarPage() {
     }
   }
 
-  function getMonday(date: Date): Date { 
+  function getMonday(date: Date): Date {
     // Create a new Date to avoid mutating the original
     const d = new Date(date);
     const day = d.getDay();
@@ -120,14 +123,14 @@ function CalendarPage() {
     d.setDate(d.getDate() - diff);
     return d;
   }
-  
+
   // Update navigation functions to use updateDate instead of setDefaultDate directly
   const nextWeek = () => {
-    console.log("oldDate:",defaultDate);
+    console.log("oldDate:", defaultDate);
     const newDate = getMonday(defaultDate);
-    console.log("old date after getMonday:",newDate);
+    console.log("old date after getMonday:", newDate);
     newDate.setDate(newDate.getDate() + 7);
-    console.log("oldDate, newDate:",defaultDate, newDate);
+    console.log("oldDate, newDate:", defaultDate, newDate);
     updateDate(newDate);
   }
 
@@ -136,7 +139,7 @@ function CalendarPage() {
     newDate.setDate(newDate.getDate() - 7);
     updateDate(newDate);
   }
-  
+
   const resetToBaseline = () => {
     updateDate(new Date('2001-01-01'));
   }
@@ -151,41 +154,45 @@ function CalendarPage() {
   }
 
   async function duplicate() {
+    setIsLoading(true);
     try {
-      api.delete("/trammes/clear-courses/"+trammeId);
+      api.delete("/trammes/clear-courses/" + trammeId);
       let newDate = await api.post(`/trammes/duplicate/${trammeId}`);
       newDate = new Date(newDate);
       if (newDate.getDay() !== 1) {
         newDate = getMonday(newDate);
       }
       setDefaultDate(newDate);
+      setIsLoading(false);
     } catch (error) {
       console.error("Error duplicating tramme:", error);
+      setIsLoading(false);
+
     }
   }
 
-  async function delcours(){
+  async function delcours() {
     try {
-      api.delete("/trammes/clear-courses/"+trammeId);
+      api.delete("/trammes/clear-courses/" + trammeId);
       // Trigger refresh for CalendarPoolSelection
     } catch (error) {
       console.error("Error deleting tramme:", error);
     }
   }
-  
+
   async function fetchClassesForWeek(monday: Date) {
     const classes = [];
     for (let i = -1; i < 6; i++) {
       const date = new Date(monday);
       date.setDate(monday.getDate() + i);
       const dayClasses = await api.get(`/cours/date/${trammeId}/${currentLayerId}/${date.toISOString().split('T')[0]}`);
-      
+
       // Fetch additional information for each class
       const formattedClasses = await Promise.all(dayClasses.map(async (course: any) => {
         const ueData = await api.get(`/ues/${course.UEId}`);
         const profData = course.ProfId ? await api.get(`/profs/${course.ProfId}`) : null;
         const endTime = calculateEndTime(course.StartHour, course.length);
-  
+
         return {
           ...course,
           UEName: ueData.Name,
@@ -193,12 +200,12 @@ function CalendarPage() {
           EndHour: endTime
         };
       }));
-  
+
       classes.push(formattedClasses);
     }
     return classes;
   }
-  
+
   function calculateEndTime(startHour: string, length: number): string {
     const [hours, minutes] = startHour.split(':').map(Number);
     const endDate = new Date();
@@ -228,7 +235,7 @@ function CalendarPage() {
     console.log("uesdata : ", ues);
     // Create a sheet for each UE
     const ueSheets: { [key: string]: any } = {};
-  
+
     weeks.forEach((week, weekIndex) => {
       week.forEach((day, dayIndex) => {
         day.forEach((course: any) => {
@@ -254,9 +261,9 @@ function CalendarPage() {
         });
       });
     });
-  
+
     const daysInFrench = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-  
+
     Object.keys(ueSheets).forEach(ueName => {
       const ue = Object.values(ues).flat().find((ue: UE) => ue.Name === ueName);
       const worksheetData = [
@@ -277,7 +284,7 @@ function CalendarPage() {
           return `S${36 + index} ${weekStartDate.toLocaleDateString('fr-FR')}`;
         })]
       ];
-  
+
       Object.keys(ueSheets[ueName].CM).forEach(timeSlot => {
         Object.keys(ueSheets[ueName].CM[timeSlot]).forEach(dayIndex => {
           const info = ueSheets[ueName].CM[timeSlot][dayIndex];
@@ -294,7 +301,7 @@ function CalendarPage() {
           worksheetData.push(row);
         });
       });
-  
+
       worksheetData.push([]);
       worksheetData.push(["Travaux Dirigés (TD)"]);
       worksheetData.push(["Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle", ...weeks.map((_, index) => {
@@ -302,7 +309,7 @@ function CalendarPage() {
         weekStartDate.setDate(weekStartDate.getDate() + (index * 7));
         return `S${36 + index} ${weekStartDate.toLocaleDateString('fr-FR')}`;
       })]);
-  
+
       Object.keys(ueSheets[ueName].TD).forEach(timeSlot => {
         Object.keys(ueSheets[ueName].TD[timeSlot]).forEach(dayIndex => {
           const info = ueSheets[ueName].TD[timeSlot][dayIndex];
@@ -319,7 +326,7 @@ function CalendarPage() {
           worksheetData.push(row);
         });
       });
-  
+
       worksheetData.push([]);
       worksheetData.push(["Travaux Pratiques (TP)"]);
       worksheetData.push(["Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle", ...weeks.map((_, index) => {
@@ -327,7 +334,7 @@ function CalendarPage() {
         weekStartDate.setDate(weekStartDate.getDate() + (index * 7));
         return `S${36 + index} ${weekStartDate.toLocaleDateString('fr-FR')}`;
       })]);
-  
+
       Object.keys(ueSheets[ueName].TP).forEach(timeSlot => {
         Object.keys(ueSheets[ueName].TP[timeSlot]).forEach(dayIndex => {
           const info = ueSheets[ueName].TP[timeSlot][dayIndex];
@@ -344,25 +351,25 @@ function CalendarPage() {
           worksheetData.push(row);
         });
       });
-  
+
       const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
       XLSX.utils.book_append_sheet(workbook, worksheet, ueName);
     });
-  
+
     // Generate Excel file
-    XLSX.writeFile(workbook, trammeName+"-"+layers.find(layer => layer.Id === currentLayerId)?.Name+'.xlsx');
+    XLSX.writeFile(workbook, trammeName + "-" + layers.find(layer => layer.Id === currentLayerId)?.Name + '.xlsx');
   };
 
   async function fetchClassesForPeriod(startMonday: Date, endMonday: Date) {
     const weeks = [];
     const currentMonday = new Date(startMonday);
-  
+
     while (currentMonday <= endMonday) {
       const weekClasses = await fetchClassesForWeek(currentMonday);
       weeks.push(weekClasses);
       currentMonday.setDate(currentMonday.getDate() + 7);
     }
-  
+
     return weeks;
   }
 
@@ -395,6 +402,10 @@ function CalendarPage() {
       setDefaultDate(getMonday(new Date('2001-01-01')));
     }
   }, [searchParams]);
+  const layerColors = layers.map((layer) => layer.Color);
+  if (isLoading) {
+    return <LoadingAnimation colors={layerColors}/>;
+  }
 
   return (
     <div className="w-screen h-screen bg-gray-200  pt-8"
@@ -444,17 +455,29 @@ function CalendarPage() {
             {/* Raccourcis Section */}
             <div className="mb-2 flex flex-col items-center">
               <h3 className="font-bold mb-1 text-purple-800">Aller à</h3>
-              <div className="flex gap-2">
-                <button
-                  className="py-2 px-4 rounded-lg transition-colors duration-200 bg-purple-600 hover:bg-purple-700 text-white shadow"
-                  onClick={goToFirstWeek}>
-                  Première semaine
-                </button>
-                <button
-                  className="py-2 px-4 rounded-lg transition-colors duration-200 bg-purple-600 hover:bg-purple-700 text-white shadow"
-                  onClick={goToLastWeek}>
-                  Dernière semaine
-                </button>
+              <div className="flex flex-col gap-2">
+                <div className='flex gap-2'>
+                  <button
+                    className="py-2 px-4 rounded-lg transition-colors duration-200 bg-purple-600 hover:bg-purple-700 text-white shadow"
+                    onClick={goToFirstWeek}>
+                    Première semaine
+                  </button>
+                  <button
+                    className="py-2 px-4 rounded-lg transition-colors duration-200 bg-purple-600 hover:bg-purple-700 text-white shadow"
+                    onClick={goToLastWeek}>
+                    Dernière semaine
+                  </button>
+                </div>
+                <div className='flex gap-2'>
+                  <h1 className='font-bold mb-1 ml-4 text-purple-800'>Date spécifique : </h1>
+                  <input
+                    type="date"
+                    className='rounded-lg border-2 border-purple-800 flex-grow text-center text-purple-800'
+                    value={defaultDate.toISOString().split('T')[0]}
+                    onChange={(e) => updateDate(new Date(e.target.value))}
+                  />
+
+                </div>
               </div>
             </div>
             {/* Mode Section */}
