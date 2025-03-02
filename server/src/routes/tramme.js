@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { catchError } from '../utils/HandleErrors.js';
-import { Tramme, Sequelize, Layer, Course, Group, UE } from '../models/index.js';
+import { Tramme, Sequelize, Layer, Course, Group, UE, DesignatedDays } from '../models/index.js';
 import chalk from 'chalk';
 import { json } from 'sequelize';
 
@@ -15,7 +15,6 @@ router.post('/', async (req, res) => {
         Name: data.Name,
         ContextId: data.ContextId,
         Owner: user.Id,
-        Year: data.Year
     };
     const [trammeError, trammeData] = await catchError(Tramme.create(tramme));
     if (trammeError) {
@@ -25,6 +24,34 @@ router.post('/', async (req, res) => {
     }
     return res.json(trammeData);
 });
+
+// Add designated days
+router.put('/addDesignatedDays', async (req, res) =>{
+    console.log("DesignatedDays route hit!");
+    const { trammeId, designatedDays } = req.body;
+
+    try {
+        console.log(`MAJ jours banalisés pour trammeId: ${trammeId}`, designatedDays);
+
+        // Nettoyer s'il y a des jours existants
+        const existingDays = await DesignatedDays.findAll({ where: { trammeId } });
+
+        if (existingDays.length > 0) {
+            await DesignatedDays.destroy({ where: { trammeId } });
+        }
+
+        // Création des jours banalisés
+        const newDesignatedDays = await DesignatedDays.bulkCreate(
+            designatedDays.map(day => ({ TrammeId: trammeId, Day: day }))
+        );
+
+        res.status(200).json(newDesignatedDays);
+    } catch (error) {
+        console.error("Erreur lors de l'insertion des jours banalisés:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
 
 // Get all trammes
 router.get('/', async (req, res) => {
@@ -106,6 +133,7 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
     const id = req.params.id;
     console.log("updating context with id: ", id);
+    
     if (!id) {
         res.status(400).send('Id is required');
         return;
@@ -406,5 +434,11 @@ router.delete('/:id', async (req, res) => {
 
     return res.json(trammeData);
 });
+
+
+// // Delete designated days
+// router.delete('/deleteDesignatedDays', async (req, res) =>{
+
+// });
 
 export default router;
