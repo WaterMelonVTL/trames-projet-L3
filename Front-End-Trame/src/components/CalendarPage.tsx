@@ -34,7 +34,7 @@ function CalendarPage() {
   const [currentLayerId, setCurrentLayerId] = useState<number | null>(null);
   const [ues, setUes] = React.useState<{ [key: number]: UE[] }>({})
   const [poolRefreshCounter, setPoolRefreshCounter] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<string | null>(null);
 
   // Helper function to update both state and URL query
   function updateDate(newDate: Date) {
@@ -154,7 +154,7 @@ function CalendarPage() {
   }
 
   async function duplicate() {
-    setIsLoading(true);
+    setIsLoading("Tramme en cours de génération");
     try {
       api.delete("/trammes/clear-courses/" + trammeId);
       let newDate = await api.post(`/trammes/duplicate/${trammeId}`);
@@ -163,10 +163,10 @@ function CalendarPage() {
         newDate = getMonday(newDate);
       }
       setDefaultDate(newDate);
-      setIsLoading(false);
+      setIsLoading(null);
     } catch (error) {
       console.error("Error duplicating tramme:", error);
-      setIsLoading(false);
+      setIsLoading(null);
 
     }
   }
@@ -220,12 +220,16 @@ function CalendarPage() {
       alert('No tramme data found.');
       return;
     }
+    setIsLoading("Exportation en cours");
+
     const duplicateStart = new Date(trammeData.StartDate);
     const duplicateEnd = new Date(trammeData.EndDate);
     if (duplicateStart && duplicateEnd) {
       const weeks = await fetchClassesForPeriod(getMonday(new Date(duplicateStart)), getMonday(new Date(duplicateEnd)));
       generateExcel(weeks);
     } else {
+      setIsLoading(null);
+
       alert('Please select both start and end weeks.');
     }
   };
@@ -264,7 +268,7 @@ function CalendarPage() {
       });
     });
 
-    const daysInFrench = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+    const daysInFrench = [ 'Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 
     Object.keys(ueSheets).forEach(ueName => {
       const ue = Object.values(ues).flat().find((ue: UE) => ue.Name === ueName);
@@ -360,6 +364,7 @@ function CalendarPage() {
 
     // Generate Excel file
     XLSX.writeFile(workbook, trammeName + "-" + layers.find(layer => layer.Id === currentLayerId)?.Name + '.xlsx');
+    setIsLoading(null);
   };
 
   async function fetchClassesForPeriod(startMonday: Date, endMonday: Date) {
@@ -406,7 +411,7 @@ function CalendarPage() {
   }, [searchParams]);
   const layerColors = layers.map((layer) => layer.Color);
   if (isLoading) {
-    return <LoadingAnimation colors={layerColors}/>;
+    return <LoadingAnimation texte={isLoading} colors={layerColors} />;
   }
 
   return (

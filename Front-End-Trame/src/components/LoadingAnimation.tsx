@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react'
 
 interface LoadingAnimationProps {
   colors: string[]
+  texte: string
 }
 
-function LoadingAnimation({ colors }: LoadingAnimationProps) {
+function LoadingAnimation({ colors, texte }: LoadingAnimationProps) {
   // Initialize state for 4 dots, using first colors from prop array
   const [dotColors, setDotColors] = useState<string[]>([
     colors[0] || '#ff0066',
@@ -49,7 +50,7 @@ function LoadingAnimation({ colors }: LoadingAnimationProps) {
       </div>
       <div className=" text-xl drop-shadow-md"
       style={{color: dotColors[0]}}>
-        Trame en cours de génération
+        {texte}
       </div>
       <style>{`
         @keyframes move1 {
