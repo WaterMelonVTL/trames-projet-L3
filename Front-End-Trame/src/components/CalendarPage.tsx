@@ -6,6 +6,7 @@ import { Course, UE, Layer } from '../types/types';
 import { useLocation } from 'react-router-dom';
 import CalendarLayerSelection from './CalendarLayerSelection';
 import { api } from '../public/api/api.js'; // <-- added api import
+import * as XLSX from 'xlsx';
 
 function CalendarPage() {
   //TODO: Keep the cours data when dragging, make it use an other type that can keep it.
@@ -145,9 +146,185 @@ function CalendarPage() {
       const date = new Date(monday);
       date.setDate(monday.getDate() + i);
       const dayClasses = await api.get(`/cours/date/${trammeId}/${currentLayerId}/${date.toISOString().split('T')[0]}`);
-      classes.push(dayClasses);
+      
+      // Fetch additional information for each class
+      const formattedClasses = await Promise.all(dayClasses.map(async (course: any) => {
+        const ueData = await api.get(`/ues/${course.UEId}`);
+        const profData = course.ProfId ? await api.get(`/profs/${course.ProfId}`) : null;
+        const endTime = calculateEndTime(course.StartHour, course.length);
+  
+        return {
+          ...course,
+          UEName: ueData.Name,
+          ProfFullName: profData ? profData.FullName : null,
+          EndHour: endTime
+        };
+      }));
+  
+      classes.push(formattedClasses);
     }
     return classes;
+  }
+  
+  function calculateEndTime(startHour: string, length: number): string {
+    const [hours, minutes] = startHour.split(':').map(Number);
+    const endDate = new Date();
+    endDate.setHours(hours);
+    endDate.setMinutes(minutes + length * 60);
+    endDate.setSeconds(0); // Reset seconds to 0 (maybe i don't understand correctly length)
+    return endDate.toTimeString().split(' ')[0];
+  }
+
+  const handleExportWeeks = async () => {
+    if (duplicateStart && duplicateEnd) {
+      const weeks = await fetchClassesForPeriod(getMonday(new Date(duplicateStart)), getMonday(new Date(duplicateEnd)));
+      generateExcel(weeks);
+    } else {
+      alert('Please select both start and end weeks.');
+    }
+  };
+
+  const generateExcel = (weeks: any[]) => {
+    const workbook = XLSX.utils.book_new();
+    console.log("uesdata : ", ues);
+    // Create a sheet for each UE
+    const ueSheets: { [key: string]: any } = {};
+  
+    weeks.forEach((week, weekIndex) => {
+      week.forEach((day, dayIndex) => {
+        day.forEach((course: any) => {
+          if (!ueSheets[course.UEName]) {
+            ueSheets[course.UEName] = {
+              CM: {},
+              TD: {},
+              TP: {}
+            };
+          }
+          const timeSlot = `${course.StartHour}-${course.EndHour}`;
+          if (!ueSheets[course.UEName][course.Type][timeSlot]) {
+            ueSheets[course.UEName][course.Type][timeSlot] = {};
+          }
+          if (!ueSheets[course.UEName][course.Type][timeSlot][dayIndex]) {
+            ueSheets[course.UEName][course.Type][timeSlot][dayIndex] = {
+              prof: course.ProfFullName || 'ZZ',
+              groups: course.Groups.map((group: any) => group.Name).join(', '),
+              weeks: Array(weeks.length).fill(false)
+            };
+          }
+          ueSheets[course.UEName][course.Type][timeSlot][dayIndex].weeks[weekIndex] = true;
+        });
+      });
+    });
+  
+    const daysInFrench = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+  
+    Object.keys(ueSheets).forEach(ueName => {
+      const ue = Object.values(ues).flat().find((ue: UE) => ue.Name === ueName);
+      const worksheetData = [
+        ["Mention", layers.find(layer => layer.Id === currentLayerId)?.Name],
+        ["Parcours", trammeName || ""],
+        ["Responsable", ue?.ResponsibleName || ""],
+        ["Code UE", ueName],
+        [],
+        ["Volume horaire total"],
+        ["CM", ue?.TotalHourVolume_CM || 0],
+        ["TD", ue?.TotalHourVolume_TD || 0],
+        ["TP", ue?.TotalHourVolume_TP || 0],
+        [],
+        ["Cours Magistraux (CM)"],
+        ["Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle", ...weeks.map((_, index) => {
+          const weekStartDate = new Date(duplicateStart);
+          weekStartDate.setDate(weekStartDate.getDate() + (index * 7));
+          return `S${36 + index} ${weekStartDate.toLocaleDateString('fr-FR')}`;
+        })]
+      ];
+  
+      Object.keys(ueSheets[ueName].CM).forEach(timeSlot => {
+        Object.keys(ueSheets[ueName].CM[timeSlot]).forEach(dayIndex => {
+          const info = ueSheets[ueName].CM[timeSlot][dayIndex];
+          const row = [
+            daysInFrench[dayIndex],
+            timeSlot,
+            '',
+            info.prof,
+            info.groups,
+            '',
+            '',
+            ...info.weeks.map((week: boolean) => (week ? 'X' : ''))
+          ];
+          worksheetData.push(row);
+        });
+      });
+  
+      worksheetData.push([]);
+      worksheetData.push(["Travaux Dirigés (TD)"]);
+      worksheetData.push(["Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle", ...weeks.map((_, index) => {
+        const weekStartDate = new Date(duplicateStart);
+        weekStartDate.setDate(weekStartDate.getDate() + (index * 7));
+        return `S${36 + index} ${weekStartDate.toLocaleDateString('fr-FR')}`;
+      })]);
+  
+      Object.keys(ueSheets[ueName].TD).forEach(timeSlot => {
+        Object.keys(ueSheets[ueName].TD[timeSlot]).forEach(dayIndex => {
+          const info = ueSheets[ueName].TD[timeSlot][dayIndex];
+          const row = [
+            daysInFrench[dayIndex],
+            timeSlot,
+            '',
+            info.prof,
+            info.groups,
+            '',
+            '',
+            ...info.weeks.map((week: boolean) => (week ? 'X' : ''))
+          ];
+          worksheetData.push(row);
+        });
+      });
+  
+      worksheetData.push([]);
+      worksheetData.push(["Travaux Pratiques (TP)"]);
+      worksheetData.push(["Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle", ...weeks.map((_, index) => {
+        const weekStartDate = new Date(duplicateStart);
+        weekStartDate.setDate(weekStartDate.getDate() + (index * 7));
+        return `S${36 + index} ${weekStartDate.toLocaleDateString('fr-FR')}`;
+      })]);
+  
+      Object.keys(ueSheets[ueName].TP).forEach(timeSlot => {
+        Object.keys(ueSheets[ueName].TP[timeSlot]).forEach(dayIndex => {
+          const info = ueSheets[ueName].TP[timeSlot][dayIndex];
+          const row = [
+            daysInFrench[dayIndex],
+            timeSlot,
+            '',
+            info.prof,
+            info.groups,
+            '',
+            '',
+            ...info.weeks.map((week: boolean) => (week ? 'X' : ''))
+          ];
+          worksheetData.push(row);
+        });
+      });
+  
+      const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+      XLSX.utils.book_append_sheet(workbook, worksheet, ueName);
+    });
+  
+    // Generate Excel file
+    XLSX.writeFile(workbook, trammeName+"-"+layers.find(layer => layer.Id === currentLayerId)?.Name+'.xlsx');
+  };
+
+  async function fetchClassesForPeriod(startMonday: Date, endMonday: Date) {
+    const weeks = [];
+    let currentMonday = new Date(startMonday);
+  
+    while (currentMonday <= endMonday) {
+      const weekClasses = await fetchClassesForWeek(currentMonday);
+      weeks.push(weekClasses);
+      currentMonday.setDate(currentMonday.getDate() + 7);
+    }
+  
+    return weeks;
   }
 
   useEffect(() => {
@@ -221,9 +398,14 @@ function CalendarPage() {
               Semaine précédente
             </button>
             <button
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200"
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 mr-2"
               onClick={() => nextWeek()}>
               Semaine suivante
+            </button>
+            <button
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200"
+              onClick={handleExportWeeks}>
+              Export Weeks as JSON
             </button>
           </div>
         )}
