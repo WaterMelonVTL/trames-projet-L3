@@ -1,13 +1,22 @@
 import React from 'react';
 import { UE, Course, CoursePool } from '../types/types';
 
-function EcuItem(props: { darken: boolean, type: string, PoolItem: CoursePool, onHover: () => void, onLeave: () => void, setHoveredItem: (index:number) => void , setCurrentCours: (ecu: Course | null) => void }) {
+function PoolItem(props: { darken: boolean, type: string, PoolItem: CoursePool, onHover: () => void, onLeave: () => void, setHoveredItem: (index:number) => void, setCurrentCours: (ecu: Course | null) => void }) {
 
-
+  // Compute background style based on remaining hours (Volume)
+  const backgroundStyle = (() => {
+    if (props.PoolItem.Volume === 0) {
+      return { background: "repeating-linear-gradient(45deg, #cccccc, #cccccc 10px, #e6e6e6 10px, #e6e6e6 20px)" };
+    } else if (props.PoolItem.Volume < 0) {
+      return { background: "repeating-linear-gradient(45deg, #ffcccc, #ffcccc 10px, #ffe6e6 10px, #ffe6e6 20px)" };
+    } else {
+      return { background: !props.darken ? props.PoolItem.UE?.Color : darkenColor(props.PoolItem.UE.Color, 0.2) };
+    }
+  })();
 
   return (
-    <div className='w-full h-12 rounded-md shadow-md flex select-none items-center justify-between p-4 mb-4 border-2 border-black cursor-pointer transition-colors duration-300 hover:shadow-lg hover:scale-105'
-      style={{ backgroundColor: !props.darken ? props.PoolItem.UE?.Color : darkenColor(props.PoolItem.UE.Color, 0.2) }}
+    <div className='w-full h-12 rounded-md shadow-sm flex select-none items-center justify-between p-4 mb-4 border border-gray-300 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 hover:bg-opacity-90'
+      style={backgroundStyle}
       onMouseEnter={props.onHover}
       onMouseLeave={props.onLeave}
       onMouseDown={() => {
@@ -24,7 +33,9 @@ function EcuItem(props: { darken: boolean, type: string, PoolItem: CoursePool, o
         props.setHoveredItem(-1);
       }}
     >
-      <h1 className='text-xl'>{props.PoolItem.UE.Name} ({props.type}) - {props.PoolItem.Volume}/{props.type ==="CM" ? props.PoolItem.UE.TotalHourVolume_CM : props.type==="TD" ? props.PoolItem.UE.TotalHourVolume_TD : props.PoolItem.UE.TotalHourVolume_TP}</h1>
+      <h1 className='text-xl'>
+        {props.PoolItem.UE.Name} ({props.type}) - {props.PoolItem.Volume}/{props.type === "CM" ? props.PoolItem.UE.TotalHourVolume_CM : props.type === "TD" ? props.PoolItem.UE.TotalHourVolume_TD : props.PoolItem.UE.TotalHourVolume_TP}
+      </h1>
     </div>
   );
 }
@@ -48,4 +59,4 @@ function darkenColor(color: string, amount: number): string {
   return (usePound ? "#" : "") + (r << 16 | g << 8 | b).toString(16).padStart(6, '0');
 }
 
-export default EcuItem;
+export default PoolItem;

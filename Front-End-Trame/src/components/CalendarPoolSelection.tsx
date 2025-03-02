@@ -22,8 +22,16 @@ function CalendarCoursSelection(props: { setCurrentCours: (UE: Course | null) =>
     }, [coursePool, isSearching]);
     const fetchCoursePool = async (layerId:number) => {
         try {
-            const coursepool = await api.get('/ues/remainingpool/' + layerId)
-            setCoursePool(coursepool);
+            const coursepool = await api.get('/ues/remainingpool/' + layerId);
+            // Sort: negatives first, then positives, then zeros.
+            setCoursePool(coursepool.sort((a, b) => {
+                const groupA = a.Volume < 0 ? 0 : a.Volume > 0 ? 1 : 2;
+                const groupB = b.Volume < 0 ? 0 : b.Volume > 0 ? 1 : 2;
+                if (groupA !== groupB) {
+                    return groupA - groupB;
+                }
+                return b.Volume - a.Volume;
+            }));
             console.log("coursepool", coursepool);
         } catch (error) {
             console.error(error);
