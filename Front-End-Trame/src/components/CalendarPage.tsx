@@ -210,17 +210,26 @@ function CalendarPage() {
             };
           }
           const timeSlot = `${course.StartHour}-${course.EndHour}`;
+          const groups = course.Groups.map((group: any) => group.Name).join(', ');
           if (!ueSheets[course.UEName][course.Type][timeSlot]) {
             ueSheets[course.UEName][course.Type][timeSlot] = {};
           }
           if (!ueSheets[course.UEName][course.Type][timeSlot][dayIndex]) {
-            ueSheets[course.UEName][course.Type][timeSlot][dayIndex] = {
-              prof: course.ProfFullName || 'ZZ',
-              groups: course.Groups.map((group: any) => group.Name).join(', '),
-              weeks: Array(weeks.length).fill(false)
-            };
+            ueSheets[course.UEName][course.Type][timeSlot][dayIndex] = [];
           }
-          ueSheets[course.UEName][course.Type][timeSlot][dayIndex].weeks[weekIndex] = true;
+          const existingEntry = ueSheets[course.UEName][course.Type][timeSlot][dayIndex].find((entry: any) => entry.groups === groups);
+          if (existingEntry) {
+            existingEntry.weeks[weekIndex] = true;
+          } else {
+            ueSheets[course.UEName][course.Type][timeSlot][dayIndex].push({
+              prof: course.ProfFullName || 'ZZ',
+              groups: groups,
+              weeks: Array(weeks.length).fill(false)
+            });
+            ueSheets[course.UEName][course.Type][timeSlot][dayIndex].forEach((info: any) => {
+              info.weeks[weekIndex] = true;
+            });
+          }
         });
       });
     });
@@ -250,18 +259,19 @@ function CalendarPage() {
   
       Object.keys(ueSheets[ueName].CM).forEach(timeSlot => {
         Object.keys(ueSheets[ueName].CM[timeSlot]).forEach(dayIndex => {
-          const info = ueSheets[ueName].CM[timeSlot][dayIndex];
-          const row = [
-            daysInFrench[dayIndex],
-            timeSlot,
-            '',
-            info.prof,
-            info.groups,
-            '',
-            '',
-            ...info.weeks.map((week: boolean) => (week ? 'X' : ''))
-          ];
-          worksheetData.push(row);
+          ueSheets[ueName].CM[timeSlot][dayIndex].forEach((info: any) => {
+            const row = [
+              daysInFrench[dayIndex],
+              timeSlot,
+              '',
+              info.prof,
+              info.groups,
+              '',
+              '',
+              ...info.weeks.map((week: boolean) => (week ? 'X' : ''))
+            ];
+            worksheetData.push(row);
+          });
         });
       });
   
@@ -275,18 +285,19 @@ function CalendarPage() {
   
       Object.keys(ueSheets[ueName].TD).forEach(timeSlot => {
         Object.keys(ueSheets[ueName].TD[timeSlot]).forEach(dayIndex => {
-          const info = ueSheets[ueName].TD[timeSlot][dayIndex];
-          const row = [
-            daysInFrench[dayIndex],
-            timeSlot,
-            '',
-            info.prof,
-            info.groups,
-            '',
-            '',
-            ...info.weeks.map((week: boolean) => (week ? 'X' : ''))
-          ];
-          worksheetData.push(row);
+          ueSheets[ueName].TD[timeSlot][dayIndex].forEach((info: any) => {
+            const row = [
+              daysInFrench[dayIndex],
+              timeSlot,
+              '',
+              info.prof,
+              info.groups,
+              '',
+              '',
+              ...info.weeks.map((week: boolean) => (week ? 'X' : ''))
+            ];
+            worksheetData.push(row);
+          });
         });
       });
   
@@ -300,18 +311,19 @@ function CalendarPage() {
   
       Object.keys(ueSheets[ueName].TP).forEach(timeSlot => {
         Object.keys(ueSheets[ueName].TP[timeSlot]).forEach(dayIndex => {
-          const info = ueSheets[ueName].TP[timeSlot][dayIndex];
-          const row = [
-            daysInFrench[dayIndex],
-            timeSlot,
-            '',
-            info.prof,
-            info.groups,
-            '',
-            '',
-            ...info.weeks.map((week: boolean) => (week ? 'X' : ''))
-          ];
-          worksheetData.push(row);
+          ueSheets[ueName].TP[timeSlot][dayIndex].forEach((info: any) => {
+            const row = [
+              daysInFrench[dayIndex],
+              timeSlot,
+              '',
+              info.prof,
+              info.groups,
+              '',
+              '',
+              ...info.weeks.map((week: boolean) => (week ? 'X' : ''))
+            ];
+            worksheetData.push(row);
+          });
         });
       });
   
