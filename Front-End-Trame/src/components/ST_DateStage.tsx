@@ -3,8 +3,9 @@ import { DateRange } from 'react-date-range';
 import DatePicker, {DateObject} from "react-multi-date-picker";
 import 'react-date-range/dist/styles.css'; // main style file
 import 'react-date-range/dist/theme/default.css'; // theme css
-import AnalogTimePicker from 'react-multi-date-picker/plugins/analog_time_picker';
+import { enGB } from 'date-fns/locale';
 import { api } from '../public/api/api.js'
+import Icon from 'react-multi-date-picker/components/icon';
 
 interface DateStageProps {
     trammeId: string;
@@ -58,7 +59,6 @@ const ST_DateStage: React.FC<DateStageProps> = ({ trammeId }) => {
 
     return dates;
   }
-
 
   // API pour mettre à jour les jours banalisés
     const updateDesignatedDays = async (newDesignatedDays: Date[]) => {
@@ -119,6 +119,55 @@ const ST_DateStage: React.FC<DateStageProps> = ({ trammeId }) => {
       updateDesignatedDays(finalDates);
     }
 
+    const fetchDates = async () => {
+      try {
+        const tramme = await api.get(`/trammes/${trammeId}`);
+        setDateRange({
+          startDate: new Date(tramme.StartDate),
+          endDate: new Date(tramme.EndDate),
+          key: 'selection'
+        });
+
+      } catch (error) {
+        console.error('Error fetching tramme date data:', error);
+      }
+    };
+
+    async function fetchDesignatedDays() {
+      try {
+        const dDaysResponse = await api.get(`/trammes/${trammeId}/designatedDays`);
+        const dDays = dDaysResponse.map((d: any) => new Date(d.Day));
+        setDesignatedDays(dDays);
+      } catch (error) {
+        console.error("Error fetching designated days:", error);
+      }
+    }
+    
+    useEffect(() => {
+      fetchDates();
+      fetchDesignatedDays();
+    }, [trammeId]);
+
+    // First, group designated days by month/year:
+    const groupedDays = designatedDays.reduce((groups, date) => {
+      // Create a key like "February 2025"
+      const key = date.toLocaleString("default", { month: "long", year: "numeric" });
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(date);
+      return groups;
+    }, {} as Record<string, Date[]>);
+
+    // Function to clear designated days
+    const clearDesignatedDays = async () => {
+      try {
+        await api.put('/trammes/addDesignatedDays', { trammeId, designatedDays: [] });
+        setDesignatedDays([]);
+        console.log("All designated days cleared.");
+      } catch (error) {
+        console.error("Error clearing designated days:", error);
+      }
+    };
+
 
   return (
     <div className="flex flex-col items-center gap-6 mb-8">
@@ -128,6 +177,7 @@ const ST_DateStage: React.FC<DateStageProps> = ({ trammeId }) => {
             <DateRange
                 ranges={[dateRange]}
                 onChange={(handleUpdateDateRange)}
+                locale={enGB}
             />
         </div>
 
@@ -140,16 +190,36 @@ const ST_DateStage: React.FC<DateStageProps> = ({ trammeId }) => {
                 multiple
                 range
                 sort
+                render={<Icon/>}
+                weekStartDayIndex={1}
+                
             />
         </div>
-        <div>
-        <p>Jours banalisés:</p>
-        <ul>
-          {designatedDays.map((d, i) => (
-            <li key={i}>{d.toDateString()}</li>
+
+        <div className="w-full">
+        <p className="font-medium mb-2">Votre sélection :</p>
+        <div className="flex flex-row gap-6 overflow-x-auto justify-center">
+          {Object.entries(groupedDays).map(([month, days]) => (
+            <div key={month} className="flex flex-col items-center">
+              <h3 className="font-bold text-lg">{month}</h3>
+              <ul className="list-none">
+                {days
+                  .sort((a, b) => a.getTime() - b.getTime())
+                  .map((d, idx) => (
+                    <li key={idx} className="py-1">{d.toLocaleDateString()}</li>
+                  ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
       </div>
+      <button
+        onClick={clearDesignatedDays}
+        className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+        >
+          Tout supprimer
+        </button>
+
     </div>
 );
 

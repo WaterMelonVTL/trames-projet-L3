@@ -52,6 +52,21 @@ router.put('/addDesignatedDays', async (req, res) => {
     }
 });
 
+// Get designated days by trammeId
+router.get('/:trammeId/designatedDays', async (req, res) => {
+    try {
+      const { trammeId } = req.params;
+
+      const designatedDays = await DesignatedDays.findAll({
+        where: { TrammeId: trammeId }
+      });
+      return res.json(designatedDays);
+    } catch (error) {
+      console.error("Error fetching designated days:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  });
+  
 
 // Get all trammes
 router.get('/', async (req, res) => {
