@@ -10,86 +10,148 @@ import CalendarPoolSelection from './CalendarPoolSelection';
 import * as XLSX from 'xlsx';
 import { Input } from 'react-select/animated';
 import LoadingAnimation from './LoadingAnimation.js';
+import {
+  useTramme,
+  useLayers,
+  useUEsByLayer,
+  useGroupsByLayer,
+  useClassesForWeek,
+  useAddCourse,
+  useDeleteCourse,
+  useUpdateLayer,
+  getMonday
+} from '../hooks/useCalendarData';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-function CalendarPage() {
+// Create a client
+const queryClient = new QueryClient();
+
+// Wrap the component with QueryClientProvider
+function CalendarPageWrapper() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <CalendarPageContent />
+    </QueryClientProvider>
+  );
+}
+
+function CalendarPageContent() {
   // Retrieve date from url query parameter
   const [searchParams, setSearchParams] = useSearchParams();
-  // Modify the initial date to always be a Monday
   const dateParam = searchParams.get("date");
   const initialDate = dateParam ? getMonday(new Date(dateParam)) : getMonday(new Date('2001-01-01'));
 
   // Use the date from the url if present or default value
   const [defaultDate, setDefaultDate] = useState<Date>(initialDate);
 
-  //TODO: Keep the cours data when dragging, make it use an other type that can keep it.
   const [currentCours, setCurrentCours] = useState<Course | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   const location = useLocation();
-  const trammeId = location.pathname.split('/').pop();
-  const [trammeName, setTrammeName] = useState<string | null>(null);
-  const [trammeData, setTrammeData] = useState<Tramme | null>(null);
-  const [layers, setLayers] = useState<Layer[]>([]);
-  const [cours, setCours] = useState<Course[]>([]);
+  const trammeId = location.pathname.split('/').pop() || '';
+
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+  const [selectedCourseType, setSelectedCourseType] = useState<string | null>(null);
   const [currentLayerId, setCurrentLayerId] = useState<number | null>(null);
-  const [ues, setUes] = React.useState<{ [key: number]: UE[] }>({})
   const [poolRefreshCounter, setPoolRefreshCounter] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState<string | null>(null);
+
+  // Use React Query hooks for data fetching
+  const { data: trammeData, isLoading: isTrammeLoading } = useTramme(trammeId);
+  const { data: layers = [], isLoading: isLayersLoading } = useLayers(trammeId);
+  const updateLayerMutation = useUpdateLayer();
+
+  // Set initial layer ID when layers are loaded
+  useEffect(() => {
+    if (layers?.length > 0 && !currentLayerId) {
+      setCurrentLayerId(layers[0].Id);
+    }
+  }, [layers]);
+
+  // Fetch UEs for the current layer
+  const { data: ues = [] } = useUEsByLayer(currentLayerId);
+
+  // Group UEs by layer ID
+  const uesByLayer = React.useMemo(() => {
+    if (!layers || !ues) return {};
+
+    return layers.reduce((acc: { [key: string]: UE[] }, layer: Layer) => {
+      acc[layer.Id] = ues.filter((ue: UE) => ue.LayerId === layer.Id);
+      return acc;
+    }, {} as { [key: string]: UE[] });
+  }, [layers, ues]);
+
+  // Fetch groups for the current layer
+  const { data: groups = [] } = useGroupsByLayer(currentLayerId);
+
+  // Fetch classes for the current week
+  const {
+    data: weekClasses = [],
+    isLoading: isClassesLoading
+  } = useClassesForWeek(defaultDate, trammeId, currentLayerId);
+
+  // Filter courses by selected group and course type
+  const filteredCours = React.useMemo(() => {
+    let filtered = weekClasses;
+
+    // Filter by group if one is selected
+    if (selectedGroupId !== null) {
+      filtered = filtered.filter(course =>
+        course.Groups && course.Groups.some(group => group.Id === selectedGroupId)
+      );
+    }
+
+    // Filter by course type if one is selected
+    if (selectedCourseType !== null) {
+      filtered = filtered.filter(course => course.Type === selectedCourseType);
+    }
+
+    return filtered;
+  }, [weekClasses, selectedGroupId, selectedCourseType]);
+
+  // Use the mutation hook for adding courses
+  const addCourseMutation = useAddCourse();
+
+  // Add the deletion mutation hook
+  const deleteCourseMutation = useDeleteCourse();
 
   // Helper function to update both state and URL query
   function updateDate(newDate: Date) {
-    console.log("newDate:", newDate);
     // Format date in local time (YYYY-MM-DD)
     const yyyy = newDate.getFullYear();
     const mm = String(newDate.getMonth() + 1).padStart(2, '0');
     const dd = String(newDate.getDate()).padStart(2, '0');
     const date = `${yyyy}-${mm}-${dd}`;
-    console.log("date:", date);
     setSearchParams({ date });
   }
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch tramme data using the api
-        const trammeData = await api.get(`/trammes/${trammeId}`);
-        console.log(trammeData);
-        setTrammeName(trammeData.Name);
-        setTrammeData(trammeData);
-
-        // Fetch layers using the api
-        const layersData = await api.get(`/layers/tramme/${trammeId}`);
-        setLayers(layersData);
-        setCurrentLayerId(layersData[0].Id);
-
-        // Fetch UEs using the api
-        const uesData = await api.get(`/ues/tramme/${trammeId}`);
-        console.log("uesData:", uesData);
-        const uesByLayer = layersData.reduce((acc: { [key: string]: UE[] }, layer: Layer) => {
-          acc[layer.Id] = uesData.filter((ue: UE) => ue.LayerId === layer.Id);
-          return acc;
-        }, {} as { [key: string]: UE[] });
-        setUes(uesByLayer);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-    fetchData();
-  }, [trammeId]);
-
+  // AddCours function using the mutation
   async function AddCours(course: Course, date: string, time: string) {
-    console.log("called add cours :", course, date, time);
-    let groups = course.Groups;
-    if (!groups) {
-      groups = await api.get(`/groups/layer/${currentLayerId}?onlyDefault=true`);
+    let selectedGroups;
+
+    if (course.Groups) {
+      selectedGroups = course.Groups;
+    } else if (selectedGroupId !== null) {
+      const selectedGroup = groups.find(group => group.Id === selectedGroupId);
+      if (selectedGroup) {
+        selectedGroups = [selectedGroup];
+      } else {
+        console.error("Selected group not found in loaded groups");
+        return;
+      }
+    } else {
+      selectedGroups = await api.cache.getGroupsByLayer(currentLayerId, true);
     }
-    if (!groups) {
-      console.error("No groups found for layer:", currentLayerId);
+
+    if (!selectedGroups || selectedGroups.length === 0) {
+      console.error("No groups selected for the course");
       return;
     }
 
     try {
-      const data = await api.post(`/cours`, {
+      // Check if this is a move operation (course has originalId)
+      const isMoving = course.originalId !== undefined;
+
+      await addCourseMutation.mutateAsync({
         course: {
           UEId: course.UEId,
           Type: course.Type,
@@ -97,14 +159,14 @@ function CalendarPage() {
           StartHour: time,
           length: course.length,
         },
-        groups: groups,
-        separate: (course.Type === 'TD' || course.Type === 'TP') && course.Id === -1
+        groups: selectedGroups,
+        separate: (course.Type === 'TD' || course.Type === 'TP') && course.Id === -1,
+        trammeId,
+        layerId: currentLayerId,
+        isMoving,
+        originalId: course.originalId
       });
-      if (Array.isArray(data)) {
-        setCours([...cours, ...data]);
-      } else {
-        setCours([...cours, data]);
-      }
+
       // Trigger refresh for CalendarPoolSelection
       setPoolRefreshCounter(prev => prev + 1);
     } catch (error) {
@@ -112,25 +174,54 @@ function CalendarPage() {
     }
   }
 
-  function getMonday(date: Date): Date {
-    // Create a new Date to avoid mutating the original
-    const d = new Date(date);
-    const day = d.getDay();
-    // If already Monday (day === 1), return d as-is.
-    if (day === 1) return d;
-    // Else, calculate last Monday.
-    const diff = (day + 6) % 7; // 0 for Monday, else number of days to subtract
-    d.setDate(d.getDate() - diff);
-    return d;
-  }
+  // Create a function to handle course deletion
+  const handleDeleteCourse = (courseId: number | string, date: string, forMoving = false) => {
+    try {
+      // Guard against undefined or invalid IDs
+      if (!courseId) {
+        console.error("Attempted to delete course with invalid ID:", courseId);
+        return;
+      }
 
-  // Update navigation functions to use updateDate instead of setDefaultDate directly
+      console.log(`CalendarPage deleting course ${courseId}, isMoving=${forMoving}`);
+
+      deleteCourseMutation.mutate({
+        courseId,
+        trammeId,
+        layerId: currentLayerId,
+        date,
+        isMoving: forMoving,
+        setPoolRefreshCounter  // Pass the state updater function
+      }, {
+        // Add onSuccess callback here to handle the successful deletion
+        onSuccess: () => {
+          // Only update currentCours if this is a move operation
+          if (forMoving && currentCours) {
+            console.log(`Setting originalId=${courseId} for current course`);
+            setCurrentCours({
+              ...currentCours,
+              originalId: courseId
+            });
+          }
+
+          // For deletes, the pool refresh is now handled inside the mutation
+        },
+
+        // Additional error handling 
+        onError: (error) => {
+          console.error("Error deleting course:", error);
+          // Consider showing a toast or alert to the user
+        }
+      });
+    } catch (error) {
+      console.error("Failed to delete course:", error);
+    }
+  };
+
+  // Navigation functions
   const nextWeek = () => {
-    console.log("oldDate:", defaultDate);
     const newDate = getMonday(defaultDate);
-    console.log("old date after getMonday:", newDate);
     newDate.setDate(newDate.getDate() + 7);
-    console.log("oldDate, newDate:", defaultDate, newDate);
     updateDate(newDate);
   }
 
@@ -144,7 +235,6 @@ function CalendarPage() {
     updateDate(new Date('2001-01-01'));
   }
 
-  // New placeholder functions for Raccourcis updated to use updateDate
   const goToFirstWeek = () => {
     if (trammeData) updateDate(getMonday(new Date(trammeData.StartDate)));
   }
@@ -156,29 +246,64 @@ function CalendarPage() {
   async function duplicate() {
     setIsLoading("Tramme en cours de génération");
     try {
-      api.delete("/trammes/clear-courses/" + trammeId);
+      await api.delete("/trammes/clear-courses/" + trammeId);
       let newDate = await api.post(`/trammes/duplicate/${trammeId}`);
       newDate = new Date(newDate);
       if (newDate.getDay() !== 1) {
         newDate = getMonday(newDate);
       }
-      setDefaultDate(newDate);
+      updateDate(newDate);
       setIsLoading(null);
+      window.location.reload();
+
+      // Invalidate cache
+      queryClient.invalidateQueries({ queryKey: ['classes'] });
     } catch (error) {
       console.error("Error duplicating tramme:", error);
       setIsLoading(null);
-
     }
   }
 
-  async function delcours() {
-    try {
-      api.delete("/trammes/clear-courses/" + trammeId);
-      // Trigger refresh for CalendarPoolSelection
-    } catch (error) {
-      console.error("Error deleting tramme:", error);
+  // Keep track of loading state
+  const [isLoading, setIsLoading] = useState<string | null>(null);
+
+  // Handle mouse movement for drag and drop
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      setMousePosition({ x: event.clientX, y: event.clientY });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, []);
+
+  // Update default date when URL params change
+  useEffect(() => {
+    const param = searchParams.get("date");
+    if (param) {
+      setDefaultDate(getMonday(new Date(param)));
+    } else {
+      setDefaultDate(getMonday(new Date('2001-01-01')));
     }
+  }, [searchParams]);
+
+  // Display loading animation if data is loading
+  const layerColors = layers.map((layer) => layer.Color);
+  if (isLoading || isTrammeLoading || isLayersLoading) {
+    return <LoadingAnimation texte={isLoading || "Loading..."} colors={layerColors} />;
   }
+  function calculateEndTime(startHour: string, length: number): string {
+    const [hours, minutes] = startHour.split(':').map(Number);
+    const endDate = new Date();
+    endDate.setHours(hours);
+    endDate.setMinutes(minutes + length * 60);
+    endDate.setSeconds(0); // Reset seconds to 0 (maybe i don't understand correctly length)
+    return endDate.toTimeString().split(' ')[0];
+  }
+
 
   async function fetchClassesForWeek(monday: Date) {
     const classes = [];
@@ -206,13 +331,17 @@ function CalendarPage() {
     return classes;
   }
 
-  function calculateEndTime(startHour: string, length: number): string {
-    const [hours, minutes] = startHour.split(':').map(Number);
-    const endDate = new Date();
-    endDate.setHours(hours);
-    endDate.setMinutes(minutes + length * 60);
-    endDate.setSeconds(0); // Reset seconds to 0 (maybe i don't understand correctly length)
-    return endDate.toTimeString().split(' ')[0];
+  async function fetchClassesForPeriod(startMonday: Date, endMonday: Date) {
+    const weeks = [];
+    const currentMonday = new Date(startMonday);
+
+    while (currentMonday <= endMonday) {
+      const weekClasses = await fetchClassesForWeek(currentMonday);
+      weeks.push(weekClasses);
+      currentMonday.setDate(currentMonday.getDate() + 7);
+    }
+
+    return weeks;
   }
 
   const handleExportWeeks = async () => {
@@ -277,13 +406,13 @@ function CalendarPage() {
       });
     });
 
-    const daysInFrench = [ 'Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+    const daysInFrench = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 
     Object.keys(ueSheets).forEach(ueName => {
       const ue = Object.values(ues).flat().find((ue: UE) => ue.Name === ueName);
       const worksheetData = [
         ["Mention", layers.find(layer => layer.Id === currentLayerId)?.Name],
-        ["Parcours", trammeName || ""],
+        ["Parcours", trammeData.Name || ""],
         ["Responsable", ue?.ResponsibleName || ""],
         ["Code UE", ueName],
         [],
@@ -375,74 +504,83 @@ function CalendarPage() {
     });
 
     // Generate Excel file
-    XLSX.writeFile(workbook, trammeName + "-" + layers.find(layer => layer.Id === currentLayerId)?.Name + '.xlsx');
+    XLSX.writeFile(workbook, trammeData.Name + "-" + layers.find(layer => layer.Id === currentLayerId)?.Name + '.xlsx');
     setIsLoading(null);
   };
-
-  async function fetchClassesForPeriod(startMonday: Date, endMonday: Date) {
-    const weeks = [];
-    const currentMonday = new Date(startMonday);
-
-    while (currentMonday <= endMonday) {
-      const weekClasses = await fetchClassesForWeek(currentMonday);
-      weeks.push(weekClasses);
-      currentMonday.setDate(currentMonday.getDate() + 7);
-    }
-
-    return weeks;
-  }
-
-  useEffect(() => {
-    fetchClassesForWeek(defaultDate).then(classes => {
-      setCours(classes.flat());
-      console.log("classes:", classes);
-    });
-  }, [defaultDate, currentLayerId]);
-
-  useEffect(() => {
-    const handleMouseMove = (event: MouseEvent) => {
-      setMousePosition({ x: event.clientX, y: event.clientY });
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-    };
-  }, []);
-
-  // Add a useEffect that listens to searchParams changes (e.g., via browser navigation)
-  useEffect(() => {
-    const param = searchParams.get("date");
-    if (param) {
-      setDefaultDate(getMonday(new Date(param)));
-    } else {
-      // Ensure fallback default date is a Monday.
-      setDefaultDate(getMonday(new Date('2001-01-01')));
-    }
-  }, [searchParams]);
-  const layerColors = layers.map((layer) => layer.Color);
-  if (isLoading) {
-    return <LoadingAnimation texte={isLoading} colors={layerColors} />;
-  }
 
   return (
     <div className="w-screen h-screen bg-gray-200  pt-8"
       onMouseUp={() => { setCurrentCours(null) }}>
 
       <div className='flex justify-around items-start relative mt-16'>
-        {defaultDate.getTime() === new Date('2001-01-01').getTime() ? <CalendarCoursSelection setCurrentCours={setCurrentCours} ecus={currentLayerId ? ues[currentLayerId] : [{ Name: "No currentLayerId" }]} /> : <CalendarPoolSelection setCurrentCours={setCurrentCours} layerId={currentLayerId || -1} refreshTrigger={poolRefreshCounter} />}
+        {defaultDate.getTime() === new Date('2001-01-01').getTime() ?
+          <CalendarCoursSelection setCurrentCours={setCurrentCours} ecus={currentLayerId ? uesByLayer[currentLayerId] : [{ Name: "No currentLayerId" }]} /> :
+          <CalendarPoolSelection setCurrentCours={setCurrentCours} layerId={currentLayerId || -1} refreshTrigger={poolRefreshCounter} />
+        }
         <div className='flex flex-col'>
-          <CalendarLayerSelection layers={layers} setLayers={setLayers} onClick={(id: number) => setCurrentLayerId(id)} currentLayerId={currentLayerId || -1} />
-          <CalendarFrame setPoolRefreshCounter={setPoolRefreshCounter} setCurrentCours={setCurrentCours} currentCours={currentCours} AddCours={AddCours} fetchedCourse={cours} setCours={setCours} trammeId={trammeId} date={defaultDate} color={currentLayerId ? layers.find(layer => layer.Id === currentLayerId)?.Color || "#ffffff" : "#ffffff"} />
+          <div className='flex justify-between items-end w-[80vw]'>
+            <CalendarLayerSelection
+              layers={layers}
+              updateLayer={(layer) => updateLayerMutation.mutate(layer)}
+              onClick={(id: number) => setCurrentLayerId(id)}
+              currentLayerId={currentLayerId || -1}
+            />
+
+            <div className="flex gap-2">
+              {/* Group filter dropdown */}
+              {groups.length > 0 && (
+                <select
+                  className="px-3 py-1 border rounded-lg flex-grow bg-white mb-2 shadow-md"
+                  onChange={(e) => setSelectedGroupId(e.target.value === "all" ? null : parseInt(e.target.value))}
+                  value={selectedGroupId || "all"}
+                >
+                  <option value="all">Tous les groupes</option>
+                  {groups.map(group => (
+                    <option key={group.Id} value={group.Id}>
+                      {group.Name}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {/* Course type filter dropdown */}
+              <select
+                className="px-3 py-1 border rounded-lg flex-grow bg-white mb-2 shadow-md"
+                onChange={(e) => setSelectedCourseType(e.target.value === "all" ? null : e.target.value)}
+                value={selectedCourseType || "all"}
+              >
+                <option value="all">Tous les types</option>
+                <option value="CM">CM</option>
+                <option value="TD">TD</option>
+                <option value="TP">TP</option>
+              </select>
+            </div>
+          </div>
+
+          <CalendarFrame
+            setPoolRefreshCounter={setPoolRefreshCounter}
+            setCurrentCours={setCurrentCours}
+            currentCours={currentCours}
+            AddCours={AddCours}
+            fetchedCourse={filteredCours}
+            setCours={() => { }} // We don't need to set course externally anymore
+            trammeId={trammeId}
+            date={defaultDate}
+            color={currentLayerId ? layers.find(layer => layer.Id === currentLayerId)?.Color || "#ffffff" : "#ffffff"}
+            onDeleteCourse={handleDeleteCourse}
+          />
         </div>
       </div>
-      {
-        currentCours &&
-        <div className="absolute z-[100] -translate-x-1/2 translate-y-1/2 text-black text-xl w-80" style={{ top: `${mousePosition.y}px`, left: `${mousePosition.x}px` }}>
-          <EcuItem darken={false} type={currentCours.Type} ueID={currentCours.UEId} onHover={() => { }} onLeave={() => { }} onMouseDown={() => { }} />
+
+      {/* Draggable course element */}
+      {currentCours && (
+        <div className="absolute z-[100] -translate-x-1/2 translate-y-1/2 text-black text-xl w-80"
+          style={{ top: `${mousePosition.y}px`, left: `${mousePosition.x}px` }}>
+          <EcuItem darken={false} type={currentCours.Type} ueID={currentCours.UEId}
+            onHover={() => { }} onLeave={() => { }} onMouseDown={() => { }} />
         </div>
-      }
+      )}
+
       {/* Conditional rendering for control buttons */}
       <div className="mt-4 flex flex-col items-center">
         {defaultDate.getTime() === new Date('2001-01-01').getTime() ? (
@@ -521,7 +659,7 @@ function CalendarPage() {
         )}
       </div>
     </div>
-  )
+  );
 }
 
-export default CalendarPage
+export default CalendarPageWrapper;

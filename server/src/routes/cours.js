@@ -29,6 +29,28 @@ router.post('/', async (req, res) => {
                 res.status(500).send('Internal Server Error');
                 return;
             }
+            
+            // Update CoursePool for each group if course date is not in 2001
+            if (new Date(courseData.Date).getFullYear() !== 2001) {
+                for (const group of groups) {
+                    const [poolError, __] = await catchError(
+                        CoursePool.decrement(
+                            { Volume: course.length },
+                            { 
+                                where: { 
+                                    UEId: courseData.UEId, 
+                                    Type: courseData.Type,
+                                    GroupId: group.Id
+                                } 
+                            }
+                        )
+                    );
+                    if (poolError) {
+                        console.error(`Error updating CoursePool for group ${group.Id}:`, poolError);
+                        // Continue with other groups even if one fails
+                    }
+                }
+            }
         } else {
             console.log(chalk.red('No groups provided'));
             const [deleteError, _] = await catchError(courseData.destroy());
@@ -39,19 +61,7 @@ router.post('/', async (req, res) => {
             }
             return res.status(400).send('No groups provided');
         }
-        // Update CoursePool if course date is not in 2001
-        if (new Date(courseData.Date).getFullYear() !== 2001) {
-            const [poolError, __] = await catchError(
-                CoursePool.decrement(
-                    { Volume: course.length },
-                    { where: { UEId: courseData.UEId, Type: courseData.Type } }
-                )
-            );
-            if (poolError) {
-                console.error(poolError);
-                return res.status(500).send('Internal Server Error');
-            }
-        }
+        
         console.log(courseData);
         courseData.dataValues.Groups = groups;
         console.log(courseData);
@@ -77,19 +87,26 @@ router.post('/', async (req, res) => {
                 res.status(500).send('Internal Server Error');
                 return;
             }
-            // Update CoursePool if course date is not in 2001
+            
+            // Update CoursePool for the specific group if course date is not in 2001
             if (new Date(courseData.Date).getFullYear() !== 2001) {
                 const [poolError, __] = await catchError(
                     CoursePool.decrement(
                         { Volume: course.length },
-                        { where: { UEId: courseData.UEId, Type: courseData.Type } }
+                        { 
+                            where: { 
+                                UEId: courseData.UEId, 
+                                Type: courseData.Type,
+                                GroupId: g.Id
+                            } 
+                        }
                     )
                 );
                 if (poolError) {
-                    console.error(poolError);
-                    return res.status(500).send('Internal Server Error');
+                    console.error(`Error updating CoursePool for group ${g.Id}:`, poolError);
                 }
             }
+            
             console.log(courseData);
             courseData.dataValues.Groups = [g];
             console.log("CREATED COURSE FOR GROUP : ", g);
@@ -622,26 +639,43 @@ router.put('/:id', async (req, res) => {
 // Delete a Course by ID
 router.delete('/:id', async (req, res) => {
     const id = req.params.id;
-    // Fetch the course first
-    const [findError, courseToDelete] = await catchError(Course.findOne({ where: { id } }));
+    // Fetch the course first with associated groups
+    const [findError, courseToDelete] = await catchError(
+        Course.findOne({ 
+            where: { id },
+            include: ['Groups'] 
+        })
+    );
     
     if (findError || !courseToDelete) {
         console.error(findError || 'Course not found');
         return res.status(404).send('Course not found');
     }
-    // Update CoursePool if course date is not in 2001
-    if (new Date(courseToDelete.Date).getFullYear() !== 2001) {
-        const [poolError, __] = await catchError(
-            CoursePool.increment(
-                { Volume: courseToDelete.dataValues.length },
-                { where: { UEId: courseToDelete.UEId, Type: courseToDelete.Type } }
-            )
-        );
-        if (poolError) {
-            console.error(poolError);
-            return res.status(500).send('Internal Server Error');
+    
+    // Update CoursePool for each associated group if course date is not in 2001
+    if (new Date(courseToDelete.Date).getFullYear() !== 2001 && 
+        courseToDelete.Groups && courseToDelete.Groups.length > 0) {
+        
+        for (const group of courseToDelete.Groups) {
+            const [poolError, __] = await catchError(
+                CoursePool.increment(
+                    { Volume: courseToDelete.length },
+                    { 
+                        where: { 
+                            UEId: courseToDelete.UEId, 
+                            Type: courseToDelete.Type,
+                            GroupId: group.Id 
+                        } 
+                    }
+                )
+            );
+            if (poolError) {
+                console.error(`Error updating CoursePool for group ${group.Id}:`, poolError);
+                // Continue with other groups even if one fails
+            }
         }
     }
+    
     const [courseError, courseData] = await catchError(Course.destroy({ where: { id } }));
     if (courseError) {
         console.error(courseError);

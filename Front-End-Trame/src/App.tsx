@@ -4,24 +4,36 @@ import React from 'react';
 import Home from './components/Home';
 import Login from './components/Login';
 import CalendarPage from './components/CalendarPage';
-import Snowfall from 'react-snowfall'
+//import Snowfall from 'react-snowfall'
 import SetupTramme from './components/SetupTramme';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: Infinity, // UEs and groups won't become stale
+      cacheTime: 1000 * 60 * 60, // Cache for 1 hour
+    },
+  },
+});
 function App() {
 
 
   return (
     <div className='w-screen h-screen absolute top-0 left-0'>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path='/calendar/:id' element={<CalendarPage />} />
-          <Route path="/edit">
-            <Route path="tramme/:id" element={<SetupTramme />} />
-          </Route>
-        </Routes>
-      </Router>
-
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path='/calendar/:id' element={<CalendarPage />} />
+            <Route path="/edit">
+              <Route path="tramme/:id" element={<SetupTramme />} />
+            </Route>
+          </Routes>
+        </Router>
+      </QueryClientProvider>
     </div>
   )
 }

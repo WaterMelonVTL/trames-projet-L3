@@ -3,7 +3,31 @@ import CoursItem from './CoursItem';
 import { Course } from '../types/types';
 import {api} from '../public/api/api.js'; // ensure your api module is imported
 
-function CalendarFrame(props: { date: Date, fetchedCourse: Course[], currentCours: Course | null, setCours: (ecu: Course[] | null) => void, setCurrentCours: (ecu: Course | null) => void, trammeId: string | undefined, AddCours: (cours: Course, date: string, time: string) => void, color: string, setPoolRefreshCounter: React.Dispatch<React.SetStateAction<number>> }) {
+interface CalendarFrameProps {
+    date: Date;
+    fetchedCourse: Course[];
+    currentCours: Course | null;
+    setCours: (ecu: Course[] | null) => void;
+    setCurrentCours: (ecu: Course | null) => void;
+    trammeId: string | undefined;
+    AddCours: (cours: Course, date: string, time: string) => void;
+    color: string;
+    setPoolRefreshCounter: React.Dispatch<React.SetStateAction<number>>;
+    onDeleteCourse?: (courseId: number | string, date: string, forMoving?: boolean) => void;
+}
+
+function CalendarFrame({
+    date,
+    fetchedCourse,
+    currentCours,
+    setCours,
+    setCurrentCours,
+    trammeId,
+    AddCours,
+    color,
+    setPoolRefreshCounter,
+    onDeleteCourse
+}: CalendarFrameProps) {
     const [designatedDays, setDesignatedDays] = useState<{ [key: string]: boolean }>({});
     const daysOfWeek = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi']; // Add samedi if you want to display it
     const rows = Array.from({ length: 7 }, (_, i) => i + 1);
@@ -11,15 +35,15 @@ function CalendarFrame(props: { date: Date, fetchedCourse: Course[], currentCour
     const creneauHeight = 6;
     const breakHeight = creneauHeight * 15 / 90;
 
-    const defaultDate = props.date;
+    const defaultDate = date;
 
     useEffect(() => {
-        // On props.date or props.trammeId change, check designated days for each displayed day
-        if (!props.trammeId) return;
+        // On date or trammeId change, check designated days for each displayed day
+        if (!trammeId) return;
         daysOfWeek.forEach((_, index) => {
             const currentDate = getDateForDay(index);
             const dateKey = currentDate.toISOString().split('T')[0];
-            api.get(`/trammes/is-dts/${props.trammeId}/${dateKey}`)
+            api.get(`/trammes/is-dts/${trammeId}/${dateKey}`)
                 .then(() => {
                     console.log("dateKey", dateKey);
                     setDesignatedDays(prev => ({ ...prev, [dateKey]: true }));
@@ -30,7 +54,7 @@ function CalendarFrame(props: { date: Date, fetchedCourse: Course[], currentCour
         });
         console.log("designatedDays", designatedDays);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [props.date, props.trammeId]);
+    }, [date, trammeId]);
 
     function getDateForDay(jour: number): Date {
         const date = new Date(defaultDate);
@@ -57,25 +81,48 @@ function CalendarFrame(props: { date: Date, fetchedCourse: Course[], currentCour
             d1.getDate() === d2.getDate();
     }
 
-    function RemoveCours(id: number) {
-        fetch(`http://localhost:3000/api/cours/${id}`, { method: 'DELETE' })
-            .then(response => {
-                if (response.ok) {
-                    props.setCours(props.fetchedCourse.filter((cours) => cours.Id !== id));
-                    props.setPoolRefreshCounter(prev => prev + 1);
-
+    function RemoveCours(id: number | string, forMoving: boolean = true) {
+        if (onDeleteCourse && id) {
+            // Find the course in the fetched courses
+            const course = fetchedCourse.find(c => String(c.Id) === String(id));
+            
+            console.log(`Attempting to remove course ${id}, found in fetched courses: ${!!course}`);
+            
+            if (course) {
+                // Success path - we found the course
+                console.log(`Removing course ${id} for ${forMoving ? 'moving' : 'deletion'}`);
+                onDeleteCourse(id, course.Date, forMoving);
+            } else {
+                console.error(`Course ${id} not found in fetchedCourse array of length ${fetchedCourse.length}`);
+                console.log("Available course IDs:", fetchedCourse.map(c => `${c.Id} (${typeof c.Id})`).join(", "));
+                
+                // IMPROVED FALLBACK: Use current date from the UI calendar
+                let fallbackDate;
+                
+                // Try to get a sensible date from the current UI view
+                if (defaultDate) {
+                    fallbackDate = defaultDate.toISOString().split('T')[0];
+                    console.log(`Using calendar default date for fallback: ${fallbackDate}`);
                 } else {
-                    console.error('Failed to delete the course');
+                    // Last resort - use current date
+                    fallbackDate = new Date().toISOString().split('T')[0];
+                    console.log(`Using today's date for fallback: ${fallbackDate}`);
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
+                
+                // Try deletion with the fallback date
+                onDeleteCourse(id, fallbackDate, forMoving);
+            }
+        }
     }
 
-    useEffect(() => {
-        console.log("cours from jsp ou:", props.fetchedCourse);
-    }, [props.fetchedCourse]);
+    // Use this for regular deletions (right-click menu, etc.)
+    const handleDelete = (courseId: number | string, date: string) => {
+        if (onDeleteCourse) {
+            console.log(`Handling regular delete for course ${courseId}`);
+            // Pass false to indicate this is a regular deletion, not a move
+            onDeleteCourse(courseId, date, false);
+        }
+    };
 
     return (
         <div className="w-[80vw] text-black select-none ">
@@ -83,13 +130,13 @@ function CalendarFrame(props: { date: Date, fetchedCourse: Course[], currentCour
 
                 <div key={"horaires"} className="flex flex-col w-20 ">
                     <div className="flex flex-col  border border-black font-bold h-12"
-                        style={{ backgroundColor: props.color }}>
+                        style={{ backgroundColor: color }}>
                     </div>
                     {rows.map((_, colIndex) => (
                         <>
                             <div key={colIndex} className={` flex flex-col justify-between border border-black`} style={{
                                 height: `${creneauHeight}rem`,
-                                backgroundColor: props.color
+                                backgroundColor: color
                             }}>
                                 <div>{crenaux[colIndex].start} </div>
                                 <div>{crenaux[colIndex].end}</div>
@@ -106,7 +153,7 @@ function CalendarFrame(props: { date: Date, fetchedCourse: Course[], currentCour
                     return (
                         <div key={day} className="flex flex-col flex-grow">
                             {/* Updated header: show "type" if year is 2001, else display the formatted date */}
-                            <div className="flex flex-col border border-black font-bold h-12" style={{ backgroundColor: isDesignated ? 'lightgray' : props.color, minHeight: '2rem' }}>
+                            <div className="flex flex-col border border-black font-bold h-12" style={{ backgroundColor: isDesignated ? 'lightgray' : color, minHeight: '2rem' }}>
                                 <div>{day}</div>
                                 {currentDate.getFullYear() === 2001 ? (
                                     <div className="text-xs">type</div>
@@ -127,8 +174,8 @@ function CalendarFrame(props: { date: Date, fetchedCourse: Course[], currentCour
                                             console.log(`vous avez clické sur ${day} ${crenaux[colIndex].start}`);
                                         }}
                                         onMouseUp={() => {
-                                            if (props.currentCours) {
-                                                props.AddCours(props.currentCours, currentDate.toISOString(), formatTime(crenaux[colIndex].start));
+                                            if (currentCours) {
+                                                AddCours(currentCours, currentDate.toISOString(), formatTime(crenaux[colIndex].start));
                                             }
                                         }}
                                         onContextMenu={(e) => {
@@ -136,7 +183,7 @@ function CalendarFrame(props: { date: Date, fetchedCourse: Course[], currentCour
                                             console.log(`right click sur ${day} ${crenaux[colIndex].start}`);
                                         }}
                                     >
-                                        {props.fetchedCourse.map((cours) => {
+                                        {fetchedCourse.map((cours) => {
                                             const courseDate = new Date(cours.Date); // Convert string to Date object
                                             const courseStartTime = cours.StartHour;
                                             // Compare using local date parts
@@ -151,14 +198,27 @@ function CalendarFrame(props: { date: Date, fetchedCourse: Course[], currentCour
                                                     <><CoursItem
                                                         key={cours.Id.toString()}
                                                         cours={cours}
-                                                        setCours={props.setCours}
+                                                        setCours={setCours}
 
                                                         créneau={crenaux[colIndex]}
                                                         onMouseDown={(e) => {
                                                             if (e.button === 0) {
-                                                                props.setCurrentCours(cours);
-                                                                console.log("cours:", cours);
-                                                                RemoveCours(cours.Id);
+                                                                console.log("Dragging course:", cours);
+                                                                
+                                                                // Ensure course ID is treated consistently
+                                                                const courseId = cours.Id;
+                                                                if (!courseId) {
+                                                                    console.error("Attempted to move/delete course with undefined ID");
+                                                                    return;
+                                                                }
+                                                                
+                                                                // Set the current course first before deletion
+                                                                setCurrentCours({...cours});
+                                                                
+                                                                // Small delay to ensure the current course is set before deletion
+                                                                setTimeout(() => {
+                                                                    RemoveCours(courseId, true);
+                                                                }, 10);
                                                             }
                                                         }}
                                                     />

@@ -1,40 +1,51 @@
 import React from 'react';
 import { UE, Course } from '../types/types';
-import { useState, useEffect } from 'react';
+import { useUE } from '../hooks/useApiData';
 
-function EcuItem(props: { darken: boolean, type: string, ueID: number, onHover: () => void, onLeave: () => void, setHoveredItem: (index:number) => void , setCurrentCours: (ecu: Course | null) => void }) {
-  const [ue, setUE] = useState<UE | null>(null);
-  useEffect(() => {
-    fetch(`http://localhost:3000/api/ues/${props.ueID}`)
-      .then(res => res.json())
-      .then(data => setUE(data));
-  }, [props.ueID]);
+function EcuItem(props: { 
+  darken: boolean, 
+  type: string, 
+  ueID: number, 
+  onHover: () => void, 
+  onLeave: () => void, 
+  setHoveredItem?: (index:number) => void, 
+  setCurrentCours?: (ecu: Course | null) => void 
+}) {
+  // Use the centralized UE hook instead of local state and fetch
+  const { data: ue, isLoading } = useUE(props.ueID);
 
-  if (ue === null) {
-    return <div className='w-full h-12 rounded-md shadow-md flex select-none items-center justify-between p-4 mb-4 border-2 border-black cursor-pointer transition-colors duration-300 hover:shadow-lg hover:scale-105'
-      style={{ backgroundColor: !props.darken ? '#f4f4f4' : darkenColor('#f4f4f4', 0.2) }}>
-
-      <h1 className='text-xl'>Chargement...</h1>
-    </div>;
+  // Handle loading state
+  if (isLoading || !ue) {
+    return (
+      <div className='w-full h-12 rounded-md shadow-md flex select-none items-center justify-between p-4 mb-4 border-2 border-black cursor-pointer transition-colors duration-300 hover:shadow-lg hover:scale-105'
+        style={{ backgroundColor: !props.darken ? '#f4f4f4' : darkenColor('#f4f4f4', 0.2) }}>
+        <h1 className='text-xl'>Chargement...</h1>
+      </div>
+    );
   }
+
   return (
     <div className='w-full h-12 rounded-md shadow-md flex select-none items-center justify-between p-4 mb-4 border-2 border-black cursor-pointer transition-colors duration-300 hover:shadow-lg hover:scale-105'
-      style={{ backgroundColor: !props.darken ? ue?.Color : darkenColor(ue.Color, 0.2) }}
+      style={{ backgroundColor: !props.darken ? ue.Color : darkenColor(ue.Color, 0.2) }}
       onMouseEnter={props.onHover}
       onMouseLeave={props.onLeave}
       onMouseDown={() => {
-        props.setCurrentCours({
-          Id: -1,
-          UEId: ue.Id,
-          Date: new Date(),
-          StartHour: '08:00',
-          length: 1.5,
-          Type: props.type,
-          TrammeId: -1,
-          LayerId: -1,
-          ProfId: ue.ResponsibleId // à changer plus tard.... On peut recuperer le prof de l'ue par type dans la DB. à fetcher
-        });
-        props.setHoveredItem(-1);
+        if (props.setCurrentCours) {
+          props.setCurrentCours({
+            Id: -1,
+            UEId: ue.Id,
+            Date: new Date(),
+            StartHour: '08:00',
+            length: 1.5,
+            Type: props.type,
+            TrammeId: -1,
+            LayerId: -1,
+            ProfId: ue.ResponsibleId
+          });
+        }
+        if (props.setHoveredItem) {
+          props.setHoveredItem(-1);
+        }
       }}
     >
       <h1 className='text-xl'>{ue.Name} ({props.type})</h1>
