@@ -559,3 +559,278 @@ export function getMonday(date) {
   d.setDate(d.getDate() - diff);
   return d;
 }
+
+// New hook for separating courses with optimistic updates
+export function useSeparateCourse() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ courseId, trammeId, layerId }) => {
+      console.log(`Separating course with ID: ${courseId}`);
+      return api.post(`/cours/separate/${courseId}`);
+    },
+    
+    onMutate: async ({ courseId, trammeId, layerId }) => {
+      console.log("Starting optimistic update for separation:", courseId);
+      
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['classes'] });
+      
+      // Find the course to separate in all cached weeks
+      const classQueries = queryClient.getQueryCache().findAll({
+        predicate: query => query.queryKey[0] === 'classes' && query.queryKey[1] === 'week'
+      });
+      
+      let courseToSeparate;
+      let affectedQueryKey;
+      let previousCourses;
+      
+      for (const query of classQueries) {
+        const courses = queryClient.getQueryData(query.queryKey) || [];
+        courseToSeparate = courses.find(c => String(c.Id) === String(courseId));
+        
+        if (courseToSeparate) {
+          affectedQueryKey = query.queryKey;
+          previousCourses = courses;
+          break;
+        }
+      }
+      
+      if (!courseToSeparate) {
+        console.error("Course to separate not found in cache:", courseId);
+        return { success: false };
+      }
+      
+      // Create optimistic separated courses
+      // We only need to implement a placeholder since we don't know how many courses will be created
+      const optimisticCourse = {
+        ...courseToSeparate,
+        isOptimistic: true,
+        separationInProgress: true
+      };
+      
+      // Update the cache with optimistic data (just the placeholder for visual feedback)
+      const updatedCourses = previousCourses.map(course => 
+        String(course.Id) === String(courseId) ? optimisticCourse : course
+      );
+      
+      queryClient.setQueryData(affectedQueryKey, updatedCourses);
+      
+      return { 
+        previousCourses, 
+        affectedQueryKey, 
+        courseToSeparate,
+        success: true
+      };
+    },
+    
+    onSuccess: async (newCourses, variables, context) => {
+      if (!context || !context.success) return;
+      
+      const { affectedQueryKey, previousCourses, courseToSeparate } = context;
+      
+      try {
+        // Enhance the new courses with additional info like UE name and end time
+        const enhancedNewCourses = await Promise.all(newCourses.map(async (course) => {
+          try {
+            const ueData = await api.cache.getUEById(course.UEId);
+            const profData = course.ProfId ? await api.cache.getProfById(course.ProfId) : null;
+            const endTime = calculateEndTime(course.StartHour, course.length);
+            
+            return {
+              ...course,
+              UEName: ueData?.Name || courseToSeparate.UEName || "Unknown",
+              ProfFullName: profData?.FullName || courseToSeparate.ProfFullName || null,
+              EndHour: endTime
+            };
+          } catch (e) {
+            console.error("Error enhancing separated course:", e);
+            return {
+              ...course,
+              UEName: courseToSeparate.UEName || "Unknown",
+              EndHour: calculateEndTime(course.StartHour, course.length)
+            };
+          }
+        }));
+        
+        // Replace the original course with the new separated courses
+        const currentCourses = queryClient.getQueryData(affectedQueryKey) || [];
+        const updatedCourses = [
+          ...currentCourses.filter(c => String(c.Id) !== String(courseToSeparate.Id)),
+          ...enhancedNewCourses
+        ];
+        
+        queryClient.setQueryData(affectedQueryKey, updatedCourses);
+        console.log("Cache updated with separated courses:", enhancedNewCourses.length);
+      } catch (error) {
+        console.error("Error handling separated courses:", error);
+        // If enhancement fails, just use the raw server data
+        const currentCourses = queryClient.getQueryData(affectedQueryKey) || [];
+        const updatedCourses = [
+          ...currentCourses.filter(c => String(c.Id) !== String(courseToSeparate.Id)),
+          ...newCourses
+        ];
+        queryClient.setQueryData(affectedQueryKey, updatedCourses);
+      }
+    },
+    
+    onError: (error, variables, context) => {
+      if (!context || !context.success) return;
+      
+      console.error('Failed to separate course:', error);
+      
+      // Revert to previous state if the mutation fails
+      const { previousCourses, affectedQueryKey } = context;
+      queryClient.setQueryData(affectedQueryKey, previousCourses);
+    }
+  });
+}
+
+// New hook for merging courses with optimistic updates
+function useMergeCourse() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ courseId, trammeId, layerId }) => {
+      console.log(`Merging courses with reference ID: ${courseId}`);
+      return api.post(`/cours/merge/${courseId}`);
+    },
+    
+    onMutate: async ({ courseId, trammeId, layerId }) => {
+      console.log("Starting optimistic update for merge:", courseId);
+      
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['classes'] });
+      
+      // Find the course to use as a reference and other related courses in all cached weeks
+      const classQueries = queryClient.getQueryCache().findAll({
+        predicate: query => query.queryKey[0] === 'classes' && query.queryKey[1] === 'week'
+      });
+      
+      let referenceCourse;
+      let affectedQueryKey;
+      let previousCourses;
+      let relatedCourses = [];
+      
+      for (const query of classQueries) {
+        const courses = queryClient.getQueryData(query.queryKey) || [];
+        referenceCourse = courses.find(c => String(c.Id) === String(courseId));
+        
+        if (referenceCourse) {
+          affectedQueryKey = query.queryKey;
+          previousCourses = courses;
+          
+          // Find all related courses (same UE, date, start time)
+          relatedCourses = courses.filter(c => 
+            c.UEId === referenceCourse.UEId &&
+            c.Date === referenceCourse.Date &&
+            c.StartHour === referenceCourse.StartHour &&
+            String(c.Id) !== String(courseId)
+          );
+          
+          break;
+        }
+      }
+      
+      if (!referenceCourse) {
+        console.error("Reference course for merge not found in cache:", courseId);
+        return { success: false };
+      }
+      
+      // Create an optimistic merged course
+      const optimisticMergedCourse = {
+        ...referenceCourse,
+        Id: `temp-merged-${Date.now()}`,
+        isOptimistic: true,
+        mergeInProgress: true
+      };
+      
+      // Get IDs of all courses that will be merged (to remove them)
+      const courseIdsToRemove = [
+        String(courseId), 
+        ...relatedCourses.map(c => String(c.Id))
+      ];
+      
+      // Update the cache with optimistic data
+      const updatedCourses = [
+        ...previousCourses.filter(c => !courseIdsToRemove.includes(String(c.Id))),
+        optimisticMergedCourse
+      ];
+      
+      queryClient.setQueryData(affectedQueryKey, updatedCourses);
+      
+      return { 
+        previousCourses, 
+        affectedQueryKey, 
+        referenceCourse,
+        courseIdsToRemove,
+        success: true
+      };
+    },
+    
+    onSuccess: async (mergedCourse, variables, context) => {
+      if (!context || !context.success) return;
+      
+      const { affectedQueryKey, previousCourses, referenceCourse, courseIdsToRemove } = context;
+      
+      try {
+        // Enhance the merged course with additional info
+        let enhancedMergedCourse;
+        try {
+          const ueData = await api.cache.getUEById(mergedCourse.UEId);
+          const profData = mergedCourse.ProfId ? await api.cache.getProfById(mergedCourse.ProfId) : null;
+          const endTime = calculateEndTime(mergedCourse.StartHour, mergedCourse.length);
+          
+          enhancedMergedCourse = {
+            ...mergedCourse,
+            UEName: ueData?.Name || referenceCourse.UEName || "Unknown",
+            ProfFullName: profData?.FullName || referenceCourse.ProfFullName || null,
+            EndHour: endTime
+          };
+        } catch (e) {
+          console.error("Error enhancing merged course:", e);
+          enhancedMergedCourse = {
+            ...mergedCourse,
+            UEName: referenceCourse.UEName || "Unknown",
+            EndHour: calculateEndTime(mergedCourse.StartHour, mergedCourse.length)
+          };
+        }
+        
+        // Replace the related courses with the single merged course
+        const currentCourses = queryClient.getQueryData(affectedQueryKey) || [];
+        const updatedCourses = [
+          ...currentCourses.filter(c => !courseIdsToRemove.includes(String(c.Id)) && !c.isOptimistic),
+          enhancedMergedCourse
+        ];
+        
+        queryClient.setQueryData(affectedQueryKey, updatedCourses);
+        console.log("Cache updated with merged course:", enhancedMergedCourse.Id);
+      } catch (error) {
+        console.error("Error handling merged course:", error);
+        // If enhancement fails, just use the raw server data
+        const currentCourses = queryClient.getQueryData(affectedQueryKey) || [];
+        const updatedCourses = [
+          ...currentCourses.filter(c => !courseIdsToRemove.includes(String(c.Id)) && !c.isOptimistic),
+          mergedCourse
+        ];
+        queryClient.setQueryData(affectedQueryKey, updatedCourses);
+      }
+    },
+    
+    onError: (error, variables, context) => {
+      if (!context || !context.success) return;
+      
+      console.error('Failed to merge courses:', error);
+      
+      // Revert to previous state if the mutation fails
+      const { previousCourses, affectedQueryKey } = context;
+      queryClient.setQueryData(affectedQueryKey, previousCourses);
+    }
+  });
+}
+
+// Ensure these exports are added at the end of the file
+export {
+  useMergeCourse,
+  calculateEndTime
+};

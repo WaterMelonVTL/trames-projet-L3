@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Course } from '../types/types';
 import Portal from './Portal';
 import {api} from '../public/api/api.js';
+import * as CalendarHooks from '../hooks/useCalendarData';
+
 interface CalendarOptionMenuProps {
     cours: Course;
     setCours: React.Dispatch<React.SetStateAction<Course[]>>;
@@ -9,13 +11,17 @@ interface CalendarOptionMenuProps {
     position: { top: number, left: number };
 }
 
-function CalendarOptionMenu(props: CalendarOptionMenuProps) {
+export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
     const menuRef = useRef<HTMLDivElement>(null);
     const startTimes = [8, 9.75, 11.5, 13.25, 15, 16.75, 18.5];
 
     // New state variables for the Professeur section
     const [teacherName, setTeacherName] = useState('');
     const [teacherStatus, setTeacherStatus] = useState('Permanent');
+    
+    // Use the mutation hooks with the namespace
+    const separateMutation = CalendarHooks.useSeparateCourse();
+    const mergeMutation = CalendarHooks.useMergeCourse();
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -79,12 +85,15 @@ function CalendarOptionMenu(props: CalendarOptionMenuProps) {
 
     const Separate = async (id: number) => {
         try {
-            const newCourses = await api.post('/cours/separate/' + id);
-            props.setCours((prev: Course[]) => [
-                ...prev.filter(c => c.Id !== id),
-                ...newCourses,
-            ]);
-            console.log('Separated courses:', newCourses);
+            // Use the mutation hook instead of direct API call
+            await separateMutation.mutateAsync({
+                courseId: id,
+                trammeId: props.cours.TrammeId,
+                layerId: props.cours.LayerId
+            });
+            
+            // Close menu after successful operation
+            props.close();
         } catch (error) {
             console.error('Failed to separate courses:', error);
         }
@@ -92,20 +101,15 @@ function CalendarOptionMenu(props: CalendarOptionMenuProps) {
 
     const Merge = async (id: number) => {
         try {
-            const mergedCourse = await api.post('/cours/merge/' + id);
-            console.log("Merge: props.setCours =", props.setCours);
-            if (typeof props.setCours !== 'function') {
-                throw new Error('setCours is not a function');
-            }
-            props.setCours((prev: Course[]) => [
-                ...prev.filter(c =>
-                    !(c.UEId === mergedCourse.UEId &&
-                      c.Date === mergedCourse.Date &&
-                      c.StartHour === mergedCourse.StartHour)
-                ),
-                mergedCourse,
-            ]);
-            console.log('Merged course:', mergedCourse);
+            // Use the mutation hook instead of direct API call
+            await mergeMutation.mutateAsync({
+                courseId: id,
+                trammeId: props.cours.TrammeId,
+                layerId: props.cours.LayerId
+            });
+            
+            // Close menu after successful operation
+            props.close();
         } catch (error) {
             console.error('Failed to merge courses:', error);
         }
@@ -235,5 +239,3 @@ function CalendarOptionMenu(props: CalendarOptionMenuProps) {
         </Portal>
     );
 }
-
-export default CalendarOptionMenu;

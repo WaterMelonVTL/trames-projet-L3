@@ -221,6 +221,16 @@ function CalendarFrame({
                                                                 }, 10);
                                                             }
                                                         }}
+                                                        onContextMenu={(e) => {
+                                                            e.preventDefault();
+                                                            // Context menu handling logic would go here
+                                                            // This would typically open a menu with options like delete, separate, merge
+                                                            console.log(`Context menu opened for course: ${cours.Id}`);
+                                                            // Call RemoveCours with forMoving=false for actual deletion
+                                                            if (e.shiftKey) {
+                                                                handleDelete(cours.Id, cours.Date);
+                                                            }
+                                                        }}
                                                     />
 
                                                     </>
