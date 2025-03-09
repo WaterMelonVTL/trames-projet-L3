@@ -282,6 +282,15 @@ const CoursePool = sequelize.define('CoursePool', {
 			key: 'Id'
 		}
 	},
+	GroupId: {
+		type: DataTypes.INTEGER,
+		allowNull: false,
+		primaryKey: true,
+		references: {
+			model: Group,
+			key: 'Id'
+		}
+	},
 	Type: {
 		type: DataTypes.STRING,
 		allowNull: false,

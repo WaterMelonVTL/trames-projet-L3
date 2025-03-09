@@ -1,3 +1,11 @@
+// Add this new interface for grouped course pools
+export interface GroupedCoursePool {
+  UE: UE;
+  Type: string;
+  Volume: number;
+  GroupIds: number[];
+}
+
 export type User = {
     Id: number;
     FirstName: string;
@@ -43,17 +51,22 @@ export type UE = {
     TD_NeedInformaticRoom: boolean;
 };
 
-export type Course = {
-    Id: number;
-    UEId: number;
-    Type: string;
-    Date: Date;
-    StartHour: string;
-    length: number;
-    ProfId?: number;
-    Groups: Group[];
-
-};
+export interface Course {
+  Id: number | string;
+  UEId: number;
+  Type: string;
+  Date: string | Date;
+  StartHour: string;
+  length: number;
+  TrammeId: number;
+  LayerId: number;
+  ProfId?: number | null;
+  Groups?: Group[];
+  UEName?: string;
+  ProfFullName?: string | null;
+  EndHour?: string;
+  originalId?: number | string; // Add this field to track the original ID during moves
+}
 
 // New types based on DB models
 export type Group = {
