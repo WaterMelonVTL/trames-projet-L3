@@ -287,13 +287,20 @@ router.post('/duplicate/:id', async (req, res) => {
             return;
         }
 
-        let RemainingHours = {}; // On initialise un objet pour stocker les heures restantes pour chaque UE
+        // Filter out special groups
+        const regularGroups = layer.Groups.filter(group => !group.isSpecial);
+        
+        // Initialize remaining hours per UE and regular group
+        let RemainingHours = {}; 
         ues.forEach(ue => {
-            RemainingHours[ue.Id] = {
-                CM: ue.TotalHourVolume_CM,
-                TD: ue.TotalHourVolume_TD,
-                TP: ue.TotalHourVolume_TP
-            };
+            RemainingHours[ue.Id] = {};
+            regularGroups.forEach(group => {
+                RemainingHours[ue.Id][group.Id] = {
+                    CM: ue.TotalHourVolume_CM,
+                    TD: ue.TotalHourVolume_TD,
+                    TP: ue.TotalHourVolume_TP
+                };
+            });
         });
 
         let currentDate = new Date(startDate);  // On initialise la date de début
@@ -343,77 +350,119 @@ router.post('/duplicate/:id', async (req, res) => {
             let currentDay = currentDate.getDay();
             const courseofDay = weekCourses[currentDay];
             console.log(chalk.red("Current day : ", currentDay, " ", currentDate));
-            for (const course of courseofDay) { // On itere sure les cours du jour (le jour de la semaine en question)
-                // Skip creating course if remaining hours for the course's type are less than the course length
-                if (RemainingHours[course.UEId][course.Type] < course.length) {
+            
+            for (const course of courseofDay) {
+                // Get all groups associated with this course
+                const allGroupsAssociated = course.Groups;
+                
+                // Filter out special groups
+                const groupsAssociated = allGroupsAssociated.filter(group => !group.isSpecial);
+                
+                // Skip if no regular groups are associated with this course
+                if (groupsAssociated.length === 0) {
                     continue;
                 }
-                // Calculate usual group count (non-special groups)
-                const groupsAssociated = course.Groups;
-                let normalGroupCount = groupsAssociated.filter(g => !g.isSpecial).length;
-                if (normalGroupCount === 0) normalGroupCount = groupsAssociated.length;
-                const groupsCount = groupsAssociated.length;
                 
-                // Use the full course length since remaining hours are sufficient
-                const maxLength = course.length;
+                // Find groups that have enough remaining hours
+                const eligibleGroups = groupsAssociated.filter(group => {
+                    return RemainingHours[course.UEId] && 
+                           RemainingHours[course.UEId][group.Id] && 
+                           RemainingHours[course.UEId][group.Id][course.Type] >= course.length;
+                });
+                
+                // Skip if no groups have enough remaining hours
+                if (eligibleGroups.length === 0) {
+                    continue;
+                }
+                
+                // Create the course
                 const [courseError, newCourse] = await catchError(Course.create({
                     UEId: course.UEId,
                     Date: currentDate,
-                    length: maxLength,
+                    length: course.length,
                     Type: course.Type,
                     StartHour: course.StartHour,
                     ProfId: course.ProfId,
                 }));
+                
                 if (courseError) {
                     console.error(courseError);
-                    newCourse.destroy();
-                    return;
-                }
-                totcourses++;
-                const GroupsIds = groupsAssociated.map(group => group.Id);
-                const [courseGroupError, courseGroup] = await catchError(newCourse.setGroups(GroupsIds));
-                if (courseGroupError) {
-                    console.log(chalk.red("Error setting groups :"));
-                    console.error(courseGroupError);
-                    newCourse.destroy();
                     res.status(500).send('Internal Server Error');
                     return;
                 }
-                // Adjust remaining hours proportional to groups count using normal groups in current layer
-                const effectiveDeduction = newCourse.length * (groupsCount / totalNormalGroupsInLayer);
-                RemainingHours[course.UEId][course.Type] -= effectiveDeduction;
+                totcourses++;
+                
+                // Add all eligible groups to the course
+                const eligibleGroupIds = eligibleGroups.map(group => group.Id);
+                const [courseGroupError, courseGroup] = await catchError(newCourse.setGroups(eligibleGroupIds));
+                
+                if (courseGroupError) {
+                    console.log(chalk.red("Error setting groups :"));
+                    console.error(courseGroupError);
+                    await newCourse.destroy();
+                    res.status(500).send('Internal Server Error');
+                    return;
+                }
+                
+                // Deduct hours from each eligible group
+                eligibleGroups.forEach(group => {
+                    if (RemainingHours[course.UEId] && RemainingHours[course.UEId][group.Id]) {
+                        RemainingHours[course.UEId][group.Id][course.Type] -= newCourse.length;
+                    }
+                });
             }
 
             // On incrémente currentDate pour passer au jour suivant
             currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        // On a fini de dupliquer les cours, on va maintenant mettre à jour les heures restantes pour chaque UE
-        for (const [ueId, hours] of Object.entries(RemainingHours)) {
-            // Create or update pool item for CM, TD, and TP even if the value is 0
-            const [coursePoolCMError, coursePoolCM] = await catchError(
-                CoursePool.upsert({ UEId: ueId, Type: "CM", Volume: hours.CM })
-            );
-            if (coursePoolCMError) {
-                console.error(coursePoolCMError);
-                res.status(500).send('Internal Server Error');
-                return;
-            }
-            const [coursePoolTDError, coursePoolTD] = await catchError(
-                CoursePool.upsert({ UEId: ueId, Type: "TD", Volume: hours.TD })
-            );
-            if (coursePoolTDError) {
-                console.error(coursePoolTDError);
-                res.status(500).send('Internal Server Error');
-                return;
-            }
-            const [coursePoolTPError, coursePoolTP] = await catchError(
-                CoursePool.upsert({ UEId: ueId, Type: "TP", Volume: hours.TP })
-            );
-            if (coursePoolTPError) {
-                console.error(coursePoolTPError);
-                res.status(500).send('Internal Server Error');
-                return;
+        // Update the course pool with individual group remaining hours
+        for (const [ueId, groupHours] of Object.entries(RemainingHours)) {
+            for (const [groupId, hours] of Object.entries(groupHours)) {
+                // Update the course pool for CM
+                const [coursePoolCMError, coursePoolCM] = await catchError(
+                    CoursePool.upsert({ 
+                        UEId: ueId, 
+                        GroupId: groupId, 
+                        Type: "CM", 
+                        Volume: hours.CM 
+                    })
+                );
+                if (coursePoolCMError) {
+                    console.error(coursePoolCMError);
+                    res.status(500).send('Internal Server Error');
+                    return;
+                }
+                
+                // Update the course pool for TD
+                const [coursePoolTDError, coursePoolTD] = await catchError(
+                    CoursePool.upsert({ 
+                        UEId: ueId, 
+                        GroupId: groupId, 
+                        Type: "TD", 
+                        Volume: hours.TD 
+                    })
+                );
+                if (coursePoolTDError) {
+                    console.error(coursePoolTDError);
+                    res.status(500).send('Internal Server Error');
+                    return;
+                }
+                
+                // Update the course pool for TP
+                const [coursePoolTPError, coursePoolTP] = await catchError(
+                    CoursePool.upsert({ 
+                        UEId: ueId, 
+                        GroupId: groupId, 
+                        Type: "TP", 
+                        Volume: hours.TP 
+                    })
+                );
+                if (coursePoolTPError) {
+                    console.error(coursePoolTPError);
+                    res.status(500).send('Internal Server Error');
+                    return;
+                }
             }
         }
     } // finito
