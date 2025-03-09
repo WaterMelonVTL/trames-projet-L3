@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import CalendarOptionMenu from "./CalendarOptionMenu";
 import { Course, Prof, Room, UE } from "../types/types";
-import { useUE, useGroupsByCourse,  } from "../hooks/useApiData.js";
+import { useUE, useGroupsByCourse, useGroups } from "../hooks/useApiData.js";
 import { useIsCourseLocked} from "../hooks/useCalendarData.js";
 function calculateLuminance(hexColor: string): number {
   if (!hexColor) {
@@ -28,6 +28,9 @@ function CoursItem(props: {
 }): JSX.Element {
   // Use our centralized hooks
   const { data: ue, isLoading: isUeLoading } = useUE(props.cours.UEId);
+  
+  // Get all groups to match IDs with complete objects
+  const { data: allGroups, isLoading: isGroupsLoading } = useGroups();
   
   // Only fetch groups if they're not already present in the course object
   const shouldFetchGroups = !props.cours.Groups && typeof props.cours.Id === 'number' && !String(props.cours.Id).startsWith('temp');
@@ -90,6 +93,40 @@ function CoursItem(props: {
     return <div className=" w-full h-full bg-gray-300 animate-pulse"></div>
   }
 
+  // Helper function to get group name
+  const getGroupName = (group: any): string => {
+    // Case 1: Group is a full object with a Name
+    if (typeof group === 'object' && group !== null && group.Name) {
+      return group.Name;
+    }
+    
+    // Case 2: Group is an object with ID but no Name - look it up in allGroups
+    if (typeof group === 'object' && group !== null && group.Id && !group.Name) {
+      const groupId = String(group.Id);
+      if (allGroups && allGroups.length > 0) {
+        const foundGroup = allGroups.find(g => String(g.Id) === groupId);
+        if (foundGroup && foundGroup.Name) {
+          return foundGroup.Name;
+        }
+      }
+    }
+    
+    // Case 3: Group is an ID (number/string) - look it up in allGroups
+    if ((typeof group === 'number' || typeof group === 'string') && allGroups && allGroups.length > 0) {
+      const groupId = String(group);
+      const foundGroup = allGroups.find(g => String(g.Id) === groupId);
+      if (foundGroup && foundGroup.Name) {
+        return foundGroup.Name;
+      }
+    }
+    
+    // Fallback: Return ID with G- prefix
+    return `G-${typeof group === 'object' && group !== null ? group.Id : group}`;
+  };
+
+  // Determine which groups data to display
+  const groupsToDisplay = props.cours.Groups || groups || [];
+
   return (
     <div
       ref={itemRef}
@@ -123,9 +160,11 @@ function CoursItem(props: {
       <h1 className="text-base">{props.cours.Type}</h1>
       <h1 className="text-xl">{props.cours.ProfFullName}</h1>
       <div className="flex space-x-2">
-        {(props.cours.Groups || []).map(
-          (group, index) => <h1 key={index} className="text-base">{group.Name}</h1>
-        )}
+        {groupsToDisplay.map((group, index) => (
+          <h1 key={index} className="text-base">
+            {getGroupName(group)}
+          </h1>
+        ))}
       </div>
       {
         showOption && (

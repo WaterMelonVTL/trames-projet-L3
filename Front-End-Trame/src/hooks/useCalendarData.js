@@ -443,13 +443,13 @@ export function useDeleteCourse() {
         queryClient.setQueryData(queryKey, forcedUpdate);
       }
       
-      // If we're NOT moving and the deletion was successful, increment the pool refresh counter
+      // Always increment the pool refresh counter when provided
+      // It's better to refresh too much than not enough
       if (variables.setPoolRefreshCounter) {
         console.log('Refreshing course pool after deletion');
         variables.setPoolRefreshCounter(prev => prev + 1);
       }
       
-      // If we're dragging/moving, we don't want to invalidate and refetch as it disrupts the UX
       if (!variables.isMoving) {
         // Force a selective cache update for this week's data
         queryClient.invalidateQueries({ queryKey: queryKey });

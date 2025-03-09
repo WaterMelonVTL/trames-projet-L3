@@ -63,6 +63,38 @@ export function useGroupsByLayer(layerId, onlyDefault = false) {
   });
 }
 
+// New hook to fetch multiple groups by their IDs
+export function useGroupsByIds(groupIds) {
+  // Convert to string for stable query key, and only run if we have IDs
+  const groupIdsKey = groupIds ? JSON.stringify(groupIds) : null;
+  const enabled = !!groupIds && Array.isArray(groupIds) && groupIds.length > 0;
+  
+  return useQuery({
+    queryKey: ['groups', 'byIds', groupIdsKey],
+    queryFn: async () => {
+      if (!groupIds || !Array.isArray(groupIds) || groupIds.length === 0) {
+        return [];
+      }
+      
+      // Fetch each group by ID using the existing cache function
+      const promises = groupIds.map(id => 
+        api.cache.getGroupById(id)
+          .catch(() => {
+            console.warn(`Failed to fetch group with ID: ${id}`);
+            return null;
+          })
+      );
+      
+      const results = await Promise.all(promises);
+      // Filter out nulls (failed requests)
+      return results.filter(group => group !== null);
+    },
+    enabled: enabled,
+    staleTime: 1000 * 60 * 30, // 30 minutes
+    cacheTime: 1000 * 60 * 60, // Cache for 1 hour
+  });
+}
+
 // Modified to handle 404 responses properly and prevent retries
 export function useGroupsByCourse(courseId) {
   // Skip null/undefined/temp IDs to prevent unnecessary requests
