@@ -182,6 +182,7 @@ function CalendarPageContent() {
         console.error("Attempted to delete course with invalid ID:", courseId);
         return;
       }
+      setPoolRefreshCounter(prev => prev + 1);
 
       console.log(`CalendarPage deleting course ${courseId}, isMoving=${forMoving}`);
 
@@ -191,7 +192,7 @@ function CalendarPageContent() {
         layerId: currentLayerId,
         date,
         isMoving: forMoving,
-        setPoolRefreshCounter  // Pass the state updater function
+        setPoolRefreshCounter  
       }, {
         // Add onSuccess callback here to handle the successful deletion
         onSuccess: () => {
@@ -252,12 +253,15 @@ function CalendarPageContent() {
       if (newDate.getDay() !== 1) {
         newDate = getMonday(newDate);
       }
+      queryClient.invalidateQueries({ queryKey: ['classes'] });
+
       updateDate(newDate);
-      setIsLoading(null);
-      window.location.reload();
+      queryClient.invalidateQueries({ queryKey: ['classes'] });
+
+      window.location.reload(); // IMPORTANT TO AVOID GHOST CLASSES WITH UNPREDICTABLE BEHAVIOR
+      setIsLoading("Génération terminée, vous allez être redirigé");
 
       // Invalidate cache
-      queryClient.invalidateQueries({ queryKey: ['classes'] });
     } catch (error) {
       console.error("Error duplicating tramme:", error);
       setIsLoading(null);
@@ -293,8 +297,11 @@ function CalendarPageContent() {
   // Display loading animation if data is loading
   const layerColors = layers.map((layer) => layer.Color);
   if (isLoading || isTrammeLoading || isLayersLoading) {
-    return <LoadingAnimation texte={isLoading || "Loading..."} colors={layerColors} />;
+    return <LoadingAnimation texte={isLoading || "Chargement..."} colors={layerColors} />;
   }
+
+
+
   function calculateEndTime(startHour: string, length: number): string {
     const [hours, minutes] = startHour.split(':').map(Number);
     const endDate = new Date();
