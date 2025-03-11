@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Layer } from '../types/types'
 import EditLayerModal from './EditLayerModal'
+import { api } from '../public/api/api.js'
 
 interface LayerStageProps {
   trammeId: string;
@@ -16,11 +17,12 @@ const ST_LayerStage: React.FC<LayerStageProps> = ({ trammeId, setTotalLayers }) 
 
   useEffect(() => {
     const fetchLayers = async () => {
-      const response = await fetch(`http://localhost:3000/api/layers/tramme/${trammeId}`)
-      if(response.ok){
-        const data = await response.json()
+      try {
+        const data = await api.get(`/layers/tramme/${trammeId}`)
         setLayers(data)
         setTotalLayers(data.length)
+      } catch (error) {
+        console.error('Error fetching layers:', error)
       }
     }
     fetchLayers()
@@ -42,36 +44,35 @@ const ST_LayerStage: React.FC<LayerStageProps> = ({ trammeId, setTotalLayers }) 
     ];
     const randomColor = pastelColors[Math.floor(Math.random() * pastelColors.length)];
     
-    const response = await fetch('http://localhost:3000/api/layers/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-      layer: {
-        Name: layerName,
-        TrammeId: trammeId,
-        Color: layerColor || randomColor
-      },
-      user: { Id: 1 }
+    try {
+      const newLayer = await api.post('/layers/', {
+        layer: {
+          Name: layerName,
+          TrammeId: trammeId,
+          Color: layerColor || randomColor
+        },
+        user: { Id: 1 }
       })
-    })
-    if (response.ok) {
-      const newLayer = await response.json()
+      
       setLayers([...layers, newLayer])
       setLayerName('')
       setLayerColor('')
       setTotalLayers(layers.length + 1)
+    } catch (error) {
+      console.error('Error adding layer:', error)
     }
   }
 
   const removeLayer = async (index: number, e: React.MouseEvent) => {
     e.stopPropagation()
     const layerToRemove = layers[index]
-    const response = await fetch(`http://localhost:3000/api/layers/${layerToRemove.Id}`, {
-      method: 'DELETE'
-    })
-    if (response.ok) {
+    
+    try {
+      await api.delete(`/layers/${layerToRemove.Id}`)
       setLayers(layers.filter((_, i) => i !== index))
-      setTotalLayers(layers.length  - 1)
+      setTotalLayers(layers.length - 1)
+    } catch (error) {
+      console.error('Error removing layer:', error)
     }
   }
 

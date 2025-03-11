@@ -1,4 +1,4 @@
-import { catchError } from "./errorServices";
+import { catchError } from "../utils/HandleErrors.js";
 import { jwtVerify } from "jose";
 
 
@@ -13,7 +13,7 @@ export function roleAbove(role1, role2) {
 
 export async function verifyAuthorization(token, role_min = "USER", needEmailVerified = false) {
     const encoder = new TextEncoder();
-    const secret = globalThis.TOKEN_SECRET;
+    const secret = process.env.TOKEN_SECRET;
     if (!secret) {
         console.error('TOKEN_SECRET is not configured');
         return [false, null];
@@ -37,7 +37,7 @@ export async function verifyAuthorization(token, role_min = "USER", needEmailVer
 }
 
 export function getAuthorizationToken(request) {
-    const authHeader = request.headers.get('Authorization');
+    const authHeader = request.headers['authorization'];
     if (!authHeader) {
         console.error('Authorization header missing');
         return null;
@@ -60,6 +60,14 @@ export async function needRole(request, role) {
         return [false, null];
     }
     return await verifyAuthorization(authValue, role);
+}
+
+export async function authorize(request, role_min = "USER") {
+    const authValue = getAuthorizationToken(request);
+    if (!authValue) {
+        return [false, null];
+    }
+    return await verifyAuthorization(authValue, role_min);
 }
 
 export async function isUser(request, userId) {

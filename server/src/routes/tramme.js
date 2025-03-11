@@ -4,6 +4,7 @@ import { catchError } from '../utils/HandleErrors.js';
 import { Tramme, Sequelize, Layer, Course, Group, UE, DesignatedDays, CoursePool } from '../models/index.js';
 import chalk from 'chalk';
 import { json } from 'sequelize';
+import { authorize, isUser } from '../services/authServices.js';
 
 dotenv.config();
 const router = express.Router();
@@ -13,11 +14,20 @@ const duplicationProgress = {};
 
 // Create a new tramme
 router.post('/', async (req, res) => {
-    const { data, user } = req.body; // user est à récupérer depuis le token pour sécuriser la création
+    const [authorized, user] = await authorize(req, 'USER');
+    console.log("user : ", user);
+    console.log("authorized : ", authorized);
+    if (!authorized) {
+        console.error(authorized);
+        res.status(401).send('Unauthorized');
+        return;
+    }
+    console.log("user : ", user);
+    const { data } = req.body; // user est à récupérer depuis le token pour sécuriser la création
     const tramme = {
         Name: data.Name,
         ContextId: data.ContextId,
-        Owner: user.Id,
+        Owner: user.UserId,
     };
     const [trammeError, trammeData] = await catchError(Tramme.create(tramme));
     if (trammeError) {
@@ -110,13 +120,14 @@ router.get('/search/:searchQuery', async (req, res) => {
 });
 
 // Get trammes by user ID
-router.get('/user/:id', async (req, res) => {
-    const id = req.params.id;
-
-    if (!id) {
-        res.status(400).send('Id is required');
+router.get('/user/', async (req, res) => {
+    const [authorized, user] = await authorize(req, 'USER');
+    if (!authorized) {
+        console.error(authorized);
+        res.status(401).send('Unauthorized');
         return;
     }
+    const id = user.UserId;
 
     const [trammeError, trammes] = await catchError(Tramme.findAll({ where: { Owner: id } }));
     if (trammeError) {
@@ -136,11 +147,21 @@ router.get('/:id', async (req, res) => {
         return;
     }
 
+
+
     const [trammeError, trammeData] = await catchError(Tramme.findByPk(id));
 
     if (trammeError) {
         console.error(trammeError);
         res.status(500).send('Internal Server Error');
+        return;
+    }
+
+    const [authorized, userInfo] = await isUser(req, trammeData.Owner);
+    console.log("authorized : ", authorized);
+    console.log("userInfo : ", userInfo);
+    if (!authorized && userInfo && userInfo.Role !== 'ADMIN') {
+        res.status(401).send('Unauthorized');
         return;
     }
 
@@ -166,6 +187,11 @@ router.put('/:id', async (req, res) => {
 
     } if (!trammeData) {
         res.status(404).send('Context not found');
+        return;
+    }
+    const [authorized, userInfo] = await isUser(req, trammeData.Owner);
+    if (!authorized && userInfo && userInfo.Role !== 'ADMIN') {
+        res.status(401).send('Unauthorized');
         return;
     }
 
@@ -246,6 +272,9 @@ router.post('/duplicate/:id', async (req, res) => {
 
     const [trammeError, trammeData] = await catchError(Tramme.findByPk(id)); // On récupère la tramme à étendre
     
+    
+
+
     // Update progress state
     duplicationProgress[id].state = 'chargement des données';
     duplicationProgress[id].percentageTotal = 10;
@@ -273,6 +302,13 @@ router.post('/duplicate/:id', async (req, res) => {
     if (!trammeData) {
         duplicationProgress[id].state = 'erreur';
         res.status(404).send('Trame not found');
+        return;
+    }
+
+
+    const [authorized, userInfo] = await isUser(req, trammeData.Owner);
+    if (!authorized && userInfo &&userInfo.Role !== 'ADMIN') {
+        res.status(401).send('Unauthorized');
         return;
     }
 

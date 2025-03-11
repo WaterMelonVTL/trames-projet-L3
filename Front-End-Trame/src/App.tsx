@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import CalendarPage from './pages/CalendarPage';
 //import Snowfall from 'react-snowfall'
 import SetupTramme from './pages/SetupTramme';
+import { AuthProvider } from './Contexts/AuthContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Create a client
@@ -22,18 +23,22 @@ function App() {
 
   return (
     <div className='w-screen h-screen absolute top-0 left-0'>
-      <QueryClientProvider client={queryClient}>
-        <Router>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path='/calendar/:id' element={<CalendarPage />} />
-            <Route path="/edit">
-              <Route path="tramme/:id" element={<SetupTramme />} />
-            </Route>
-          </Routes>
-        </Router>
-      </QueryClientProvider>
+      <Router>
+
+        <AuthProvider>
+          <QueryClientProvider client={queryClient}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path='/calendar/:id' element={<CalendarPage />} />
+              <Route path="/edit">
+                <Route path="tramme/:id" element={<SetupTramme />} />
+              </Route>
+            </Routes>
+          </QueryClientProvider>
+        </AuthProvider>
+      </Router>
+
     </div>
   )
 }

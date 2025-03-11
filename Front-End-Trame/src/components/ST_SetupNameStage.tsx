@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { api } from '../public/api/api.js'
 
 interface SetupNameStageProps {
   trammeId: string;
@@ -9,15 +10,8 @@ const ST_SetupNameStage: React.FC<SetupNameStageProps> = ({ trammeId }) => {
 
   const updateTrammeName = async (newName: string) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/trammes/${trammeId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ Name: newName })
-      })
-      if (response.ok) {
-        const updatedTramme = await response.json()
-        setTrammeName(updatedTramme.Name)
-      }
+      const updatedTramme = await api.put(`/trammes/${trammeId}`, { Name: newName })
+      setTrammeName(updatedTramme.Name)
     } catch (error) {
       console.error('Error updating tramme name:', error)
     }
@@ -25,11 +19,8 @@ const ST_SetupNameStage: React.FC<SetupNameStageProps> = ({ trammeId }) => {
 
   const fetchTrammeName = async () => {
     try {
-      const response = await fetch(`http://localhost:3000/api/trammes/${trammeId}`)
-      if (response.ok) {
-        const tramme = await response.json()
-        setTrammeName(tramme.Name)
-      }
+      const tramme = await api.get(`/trammes/${trammeId}`)
+      setTrammeName(tramme.Name)
     } catch (error) {
       console.error('Error fetching tramme name:', error)
     }

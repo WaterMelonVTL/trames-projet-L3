@@ -4,9 +4,10 @@ import { useAuth } from '../Contexts/AuthContext.jsx'; // Fixed capital 'C' in C
 import {api} from '../public/api/api';
 import LoadingAnimation from '../components/LoadingAnimation';
 function Login() {
-  const { login, isAuthenticated, loading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const { login, isAuthenticated, loading } = useAuth();
+
   const [isLoading, setIsLoading] = useState(false);
 
   const [isLogin, setIsLogin] = useState(true);

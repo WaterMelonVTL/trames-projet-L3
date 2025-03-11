@@ -75,7 +75,7 @@ export function AuthProvider({ children }) {
     return (
         <AuthContext.Provider value={value}>
             {authState.loading ? (
-                <LoadingAnimation texte={"Chargement en cours..."} colors = {"#999999"} />
+                <LoadingAnimation texte={"Chargement en cours..."} colors = {["#999999"]} />
             ) : children}
         </AuthContext.Provider>
     );

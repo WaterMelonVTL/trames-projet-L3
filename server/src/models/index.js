@@ -27,6 +27,10 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING,
         allowNull: false
     },
+    Email: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
     Password: {
         type: DataTypes.STRING,
         allowNull: false
@@ -346,7 +350,8 @@ sequelize.sync().then(async () => {
             where: { FirstName: "Louis", LastName: "Veran" },
             defaults: {
                 Password: await bcrypt.hash("azerty", 10),
-                Role: "ADMIN"
+                Role: "ADMIN",
+                Email: "veranlouis66310@gmail.com"
             }
         });
         if (created) {

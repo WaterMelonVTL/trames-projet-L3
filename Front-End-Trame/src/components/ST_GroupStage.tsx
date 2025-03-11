@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { api } from '../public/api/api.js'
 
 interface GroupStageProps {
   trammeId: string;
@@ -16,40 +17,37 @@ const ST_GroupStage: React.FC<GroupStageProps> = ({ trammeId, index }) => {
 
   useEffect(() => {
     const fetchLayers = async () => {
-      const response = await fetch(`http://localhost:3000/api/layers/tramme/${trammeId}?withGroups=true`)
-      if(response.ok){
-        const data = await response.json()
+      try {
+        const data = await api.get(`/layers/tramme/${trammeId}?withGroups=true`)
         console.log(data)
         setLayers(data)
         setCurrentLayerId(data[0].Id)
         setCurrentLayerName(data[0].Name)
+      } catch (error) {
+        console.error('Error fetching layers:', error)
       }
     }
     fetchLayers()
   }, [trammeId])
 
-  // Removed the fetchGroups useEffect since groups come inside layers
+  useEffect(() => {
+    if (!currentLayerId) return
+    const fetchUes = async () => {
+      try {
+        const data = await api.get(`/ues/layer/${currentLayerId}`)
+        setUeList(data)
+      } catch (error) {
+        console.error('Failed to fetch UEs for layer:', currentLayerId)
+      }
+    }
+    fetchUes()
+  }, [currentLayerId])
 
   useEffect(() => {
     if (!layers[index]) return
     setCurrentLayerId(layers[index].Id)
     setCurrentLayerName(layers[index].Name)
   }, [index, layers])
-
-  // New useEffect to fetch UEs for the current layer
-  useEffect(() => {
-    if (!currentLayerId) return
-    const fetchUes = async () => {
-      const response = await fetch(`http://localhost:3000/api/ues/layer/${currentLayerId}`)
-      if(response.ok){
-        const data = await response.json()
-        setUeList(data)
-      } else {
-        console.error('Failed to fetch UEs for layer:', currentLayerId)
-      }
-    }
-    fetchUes()
-  }, [currentLayerId])
 
   const addGroup = async () => {
     if (!groupName) return
@@ -60,18 +58,15 @@ const ST_GroupStage: React.FC<GroupStageProps> = ({ trammeId, index }) => {
       }
       return layer
     }))
-    const response = await fetch('http://localhost:3000/api/groups/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    
+    try {
+      const newGroup = await api.post('/groups/', {
         group: {
           Name: groupName,
           LayerId: currentLayerId
         }
       })
-    })
-    if (response.ok) {
-      const newGroup = await response.json()
+      
       setLayers(prevLayers => prevLayers.map(layer => {
         if(layer.Id === currentLayerId){
           const updatedGroups = (layer.Groups || []).filter(g => g.Name !== groupName)
@@ -79,7 +74,10 @@ const ST_GroupStage: React.FC<GroupStageProps> = ({ trammeId, index }) => {
         }
         return layer
       }))
+    } catch (error) {
+      console.error('Error adding group:', error)
     }
+    
     setGroupName('')
   }
 
@@ -87,16 +85,17 @@ const ST_GroupStage: React.FC<GroupStageProps> = ({ trammeId, index }) => {
     const currentLayer = layers.find(layer => layer.Id === currentLayerId)
     if (!currentLayer || !currentLayer.Groups) return
     const groupToRemove = currentLayer.Groups[groupIndex]
-    const response = await fetch(`http://localhost:3000/api/groups/${groupToRemove.Id}`, {
-      method: 'DELETE'
-    })
-    if (response.ok) {
+    
+    try {
+      await api.delete(`/groups/${groupToRemove.Id}`)
       setLayers(prevLayers => prevLayers.map(layer => {
         if(layer.Id === currentLayerId){
           return { ...layer, Groups: layer.Groups.filter((_: any, i: number) => i !== groupIndex) }
         }
         return layer
       }))
+    } catch (error) {
+      console.error('Error removing group:', error)
     }
   }
 

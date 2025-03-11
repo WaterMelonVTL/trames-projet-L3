@@ -2,6 +2,7 @@ import express from 'express';
 import { User, Sequelize, sequelize } from '../models/index.js';
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
+import { authorize } from '../services/authServices.js';
 
 dotenv.config();
 
@@ -81,6 +82,22 @@ router.get('/search/:searchQuery', async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 });
+router.get('/get/me', async (req, res) => {
+    const [userError, user] = await authorize(req, "USER");
+    if (userError) {
+        res.status(401).send('Unauthorized');
+        return;
+    }
+    const payload = {
+        UserId: user.UserId,
+        Email: user.Email,
+        Role: user.Role,
+        FirstName: user.FirstName,
+        LastName: user.LastName
+    }
+    res.json(payload);
+});
+
 
 router.get('/get/:id', async (req, res) => {
     const userId = req.params.id;

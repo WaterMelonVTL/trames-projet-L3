@@ -1,9 +1,7 @@
 import express from 'express';
 import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
-import { catchError } from '../utils/HandleErrors.js';
-import { createUser } from '../services/userServices';
-import { needRole } from '../services/authServices';
+
 import { User, Tokens } from '../models/index.js';
 
 const router = express.Router();
@@ -11,6 +9,7 @@ const router = express.Router();
 // Token generation utility functions
 const generateAccessToken = async (payload) => {
     const TOKEN_SECRET = process.env.TOKEN_SECRET;
+    console.log('TOKEN_SECRET : ', TOKEN_SECRET);
     const secretKey = new TextEncoder().encode(TOKEN_SECRET);
     return await new SignJWT(payload)
         .setProtectedHeader({ alg: 'HS256' })

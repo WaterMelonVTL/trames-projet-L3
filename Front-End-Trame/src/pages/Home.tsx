@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Tramme } from '../types/types.ts'
+import { api } from '../public/api/api.js'
 import { useNavigate } from 'react-router-dom';
 
 const ARROW = <svg fill="#000000" height="200px" width="200px" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" viewBox="0 0 330 330" xmlSpace="preserve">
@@ -14,34 +15,49 @@ const ARROW = <svg fill="#000000" height="200px" width="200px" version="1.1" id=
 </svg>
 
 function Home() {
-  const userID = 1 // Later get it from authentication
-  const username = "Louis" // Later get it from authentication
 
   const [trammes, setTrammes] = useState([] as Tramme[])
+  const [username, setUsername] = useState('')
   const navigate = useNavigate();
 
-  const CreateTramme = () => {
-    fetch('http://localhost:3000/api/trammes', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ data: { Name: "Nouvelle Tramme" }, user: { Id: userID } })
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setTrammes([...trammes, data]);
-        navigate(`/edit/tramme/${data.Id}`);
-      });
+  const CreateTramme = async () => {
+    try {
+      const data = await api.post('/trammes', { data: { Name: "Nouvelle Tramme" } })
+
+      setTrammes([...trammes, data]);
+      navigate(`/edit/tramme/${data.Id}`);
+    } catch (error) {
+      console.error(error)
+    }
   }
 
   useEffect(() => {
-    fetch(`http://localhost:3000/api/trammes/user/${userID}`)
-      .then((res) => res.json())
-      .then((data) => {
+    const fetchTrammes = async () => {
+      try {
+        const data = await api.get(`/trammes/user/`)
+
         setTrammes(data)
-      })
-  }, [userID])
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
+    fetchTrammes()
+  }, [])
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const data = await api.get('/users/me')
+
+        setUsername(data.FirstName)
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
+    fetchUser()
+  }, [])
 
   return (
     <div className='flex flex-col items-center justify-center h-screen'>
@@ -58,7 +74,7 @@ function Home() {
             <div className='w-full h-40 border-2 flex flex-row justify-between items-center p-8 border-black rounded-lg hover:cursor-pointer hover:bg-blue-500 hover:text-white transition-all duration-300' key={index} onClick={() => navigate(`/calendar/${tramme.Id}`)}>
               <div className='flex flex-col justify-around'>
                 <h1>{tramme.Name}</h1>
-                <button className='bg-blue-500 text-white rounded-lg px-2' onClick={(e) => {e.stopPropagation(); navigate(`/edit/tramme/${tramme.Id}`)}}>Editer</button>
+                <button className='bg-blue-500 text-white rounded-lg px-2' onClick={(e) => { e.stopPropagation(); navigate(`/edit/tramme/${tramme.Id}`) }}>Editer</button>
               </div>
               <div className='w-1/4 h-1/2 flex justify-center items-center'>{ARROW}</div>
             </div>

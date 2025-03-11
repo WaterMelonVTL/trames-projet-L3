@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import ST_FileUploadModal from './ST_FileUploadModal'
 import * as XLSX from 'xlsx'  // make sure to install xlsx package
 import EditUeModal from './EditUeModal';
+import { api } from '../public/api/api.js'
 
 interface UeStageProps {
   trammeId: string;
@@ -44,14 +45,15 @@ const ST_UeStage: React.FC<UeStageProps> = ({ trammeId, index }) => {
   // Fetch layers and set current layer from index (similar to group stage)
   useEffect(() => {
     const fetchLayers = async () => {
-      const response = await fetch(`http://localhost:3000/api/layers/tramme/${trammeId}?withGroups=true`)
-      if (response.ok) {
-        const data = await response.json()
+      try {
+        const data = await api.get(`/layers/tramme/${trammeId}?withGroups=true`)
         setLayers(data)
         if (data[index]) {
           setCurrentLayerId(data[index].Id)
           setCurrentLayerName(data[index].Name)
         }
+      } catch (error) {
+        console.error('Error fetching layers:', error)
       }
     }
     fetchLayers()
@@ -59,24 +61,20 @@ const ST_UeStage: React.FC<UeStageProps> = ({ trammeId, index }) => {
 
   // Fetch UEs for the current layer
   const fetchUes = async (layerId: string) => {
-    const response = await fetch(`http://localhost:3000/api/ues/layer/${layerId}`)
-    if (response.ok) {
-      const data = await response.json()
+    try {
+      const data = await api.get(`/ues/layer/${layerId}`)
       setUes(data)
-    } else {
+    } catch (error) {
       console.error('Failed to fetch UEs for layer:', layerId)
     }
   }
 
   const fetchTramme = async () => {
     try {
-      const response = await fetch(`http://localhost:3000/api/trammes/${trammeId}`)
-      if (response.ok) {
-        const fTramme = await response.json();
-        setTramme(fTramme);
-      }
+      const fTramme = await api.get(`/trammes/${trammeId}`)
+      setTramme(fTramme)
     } catch (error) {
-      console.error('Error fetching tramme name:', error)
+      console.error('Error fetching tramme:', error)
     }
   }
 
@@ -220,27 +218,139 @@ const ST_UeStage: React.FC<UeStageProps> = ({ trammeId, index }) => {
 
   // New function to send a UE to the server with a responsible object
   const sendUEToServer = async (newUE: any) => {
-    const response = await fetch('http://localhost:3000/api/ues', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ue: newUE, user: { Id: 1 } })
-    });
-    if (response.ok) {
-      return await response.json();
-    } else {
-      console.error('Failed to add UE:', newUE.Name);
-      return null;
+    try {
+      return await api.post('/ues', { ue: newUE, user: { Id: 1 } })
+    } catch (error) {
+      console.error('Failed to add UE:', newUE.Name, error)
+      return null
     }
   };
 
   // New function to add multiple UEs. Uses layers[index].Id since index is available via props.
   const addUEs = async (uesToAdd: any[]) => {
+    // Generate highly distinctive colors using HSL color model
+    const generateDistinctColors = (count: number) => {
+      const colors: string[] = [];
+      // Use the golden ratio to create well-distributed hues
+      const goldenRatioConjugate = 0.618033988749895;
+      let hue = Math.random(); // Random starting hue
+      
+      const saturationRange = [0.5, 0.7]; // Medium saturation for distinctiveness
+      const lightnessRange = [0.75, 0.85]; // Light enough to be pastel but not too light
+      
+      for (let i = 0; i < count; i++) {
+        // Advance to next hue using golden ratio
+        hue += goldenRatioConjugate;
+        hue %= 1;
+        
+        // Generate variation in saturation and lightness
+        const s = saturationRange[0] + Math.random() * (saturationRange[1] - saturationRange[0]);
+        const l = lightnessRange[0] + Math.random() * (lightnessRange[1] - lightnessRange[0]);
+        
+        // Convert HSL to HEX
+        const rgbColor = hslToRgb(hue, s, l);
+        const hexColor = rgbToHex(rgbColor[0], rgbColor[1], rgbColor[2]);
+        
+        colors.push(hexColor);
+      }
+      return colors;
+    };
+    
+    // HSL to RGB conversion
+    const hslToRgb = (h: number, s: number, l: number): number[] => {
+      let r, g, b;
+
+      if (s === 0) {
+        r = g = b = l; // achromatic
+      } else {
+        const hue2rgb = (p: number, q: number, t: number) => {
+          if (t < 0) t += 1;
+          if (t > 1) t -= 1;
+          if (t < 1/6) return p + (q - p) * 6 * t;
+          if (t < 1/2) return q;
+          if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+          return p;
+        };
+
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+      }
+
+      return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+    };
+    
+    // RGB to HEX conversion
+    const rgbToHex = (r: number, g: number, b: number): string => {
+      const toHex = (c: number) => {
+        const hex = c.toString(16);
+        return hex.length === 1 ? '0' + hex : hex;
+      };
+      return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    };
+    
+    // Get current UE colors
+    const currentColors = ues.map(ue => ue.Color);
+    
+    // Generate more colors than we need to allow for filtering
+    const distinctColors = generateDistinctColors(Math.max(50, uesToAdd.length * 2));
+    
+    // Color distance function to ensure sufficient visual distinction
+    const getColorDistance = (hex1: string, hex2: string): number => {
+      // Convert hex to RGB
+      const r1 = parseInt(hex1.substring(1, 3), 16);
+      const g1 = parseInt(hex1.substring(3, 5), 16);
+      const b1 = parseInt(hex1.substring(5, 7), 16);
+      
+      const r2 = parseInt(hex2.substring(1, 3), 16);
+      const g2 = parseInt(hex2.substring(3, 5), 16);
+      const b2 = parseInt(hex2.substring(5, 7), 16);
+      
+      // Calculate Euclidean distance in RGB space
+      return Math.sqrt(
+        Math.pow(r1 - r2, 2) + 
+        Math.pow(g1 - g2, 2) + 
+        Math.pow(b1 - b2, 2)
+      );
+    };
+    
+    // Filter out colors too similar to existing ones
+    // A higher threshold means more distinct colors
+    const colorThreshold = 100; // Minimum RGB distance to consider colors distinct
+    
+    const availableColors = distinctColors.filter(newColor => {
+      // Check against existing UE colors
+      for (const existingColor of currentColors) {
+        if (getColorDistance(newColor, existingColor) < colorThreshold) {
+          return false;
+        }
+      }
+      return true;
+    });
+    
+    // Track colors used in this batch
+    const usedColors = new Set<string>();
+    
     const newUEs = await Promise.all(uesToAdd.map((ue) => {
-      const pastelColors = [
-        '#FFB3BA', '#BAFFC9', '#BAE1FF', '#FFE4B5', '#E0BBE4',
-        '#957DAD', '#D4A5A5', '#9CD1AE', '#F9C0C0', '#95B8D1',
-        '#E8DFF5', '#FFE5B4', '#A8E6CF', '#FCD1D1', '#AEC6CF'
-      ];
+      let color;
+      
+      // Find a color not yet used in this batch
+      const remainingColors = availableColors.filter(c => !usedColors.has(c));
+      
+      if (remainingColors.length > 0) {
+        color = remainingColors[Math.floor(Math.random() * remainingColors.length)];
+      } else if (availableColors.length > 0) {
+        color = availableColors[Math.floor(Math.random() * availableColors.length)];
+      } else {
+        // Last resort - generate a new random color
+        const [r, g, b] = hslToRgb(Math.random(), 0.6, 0.8);
+        color = rgbToHex(r, g, b);
+      }
+      
+      // Mark this color as used
+      usedColors.add(color);
 
       return {
         Name: ue['Code UE'],
@@ -248,10 +358,11 @@ const ST_UeStage: React.FC<UeStageProps> = ({ trammeId, index }) => {
         TotalHourVolume_TD: ue['Nb Heures - TD'],
         TotalHourVolume_TP: ue['Nb Heures - TP'],
         ResponsibleName: ue['ResponsibleName'],
-        Color: pastelColors[Math.floor(Math.random() * pastelColors.length)],
+        Color: color,
         LayerId: layers[index].Id
       };
     }));
+    
     try {
       const responses = await Promise.all(newUEs.map(ue => sendUEToServer(ue)));
       const addedUEs = responses.filter(ue => ue !== null);
@@ -278,10 +389,8 @@ const ST_UeStage: React.FC<UeStageProps> = ({ trammeId, index }) => {
   // Updated addUE for manual creation - now sends a responsible object
   const addUE = async () => {
     if (!ueName) return;
-    const response = await fetch('http://localhost:3000/api/ues', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    try {
+      await api.post('/ues', {
         ue: {
           Name: ueName,
           Color: ueColor,
@@ -295,22 +404,20 @@ const ST_UeStage: React.FC<UeStageProps> = ({ trammeId, index }) => {
         },
         user: { Id: 1 }
       })
-    });
-    if (response.ok) {
       // Refresh the UEs for the current layer
-      fetchUes(currentLayerId);
+      fetchUes(currentLayerId)
+    } catch (error) {
+      console.error('Error adding UE:', error)
     }
   };
 
   // New function to remove a UE by id
   const removeUE = async (ueId: string | number) => {
-    const response = await fetch(`http://localhost:3000/api/ues/${ueId}`, {
-      method: 'DELETE'
-    });
-    if (response.ok) {
-      setUes(prev => prev.filter(ue => ue.Id !== ueId));
-    } else {
-      console.error(`Failed to delete UE with id: ${ueId}`);
+    try {
+      await api.delete(`/ues/${ueId}`)
+      setUes(prev => prev.filter(ue => ue.Id !== ueId))
+    } catch (error) {
+      console.error(`Failed to delete UE with id: ${ueId}`, error)
     }
   };
 
