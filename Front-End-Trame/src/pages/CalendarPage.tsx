@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react'
-import CalendarFrame from './CalendarFrame'
-import CalendarCoursSelection from './CalendarCoursSelection'
-import EcuItem from './EcuItem';
-import { Course, UE, Layer, Tramme } from '../types/types';
+import CalendarFrame from '../components/CalendarFrame.js'
+import CalendarCoursSelection from '../components/CalendarCoursSelection.js'
+import EcuItem from '../components/EcuItem.js';
+import { Course, UE, Layer, Tramme } from '../types/types.js';
 import { useLocation, useSearchParams } from 'react-router-dom'; // <-- added useSearchParams
-import CalendarLayerSelection from './CalendarLayerSelection';
+import CalendarLayerSelection from '../components/CalendarLayerSelection.js';
 import { api } from '../public/api/api.js'; // <-- added api import
-import CalendarPoolSelection from './CalendarPoolSelection';
+import CalendarPoolSelection from '../components/CalendarPoolSelection.js';
 import * as XLSX from 'xlsx';
 import { Input } from 'react-select/animated';
-import LoadingAnimation from './LoadingAnimation.js';
+import LoadingAnimation from '../components/LoadingAnimation.js';
 import {
   useTramme,
   useLayers,
@@ -20,7 +20,7 @@ import {
   useDeleteCourse,
   useUpdateLayer,
   getMonday
-} from '../hooks/useCalendarData';
+} from '../hooks/useCalendarData.js';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Create a client

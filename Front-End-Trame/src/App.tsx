@@ -1,11 +1,11 @@
 import './App.css'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import React from 'react';
-import Home from './components/Home';
-import Login from './components/Login';
-import CalendarPage from './components/CalendarPage';
+import Home from './pages/Home';
+import Login from './pages/Login';
+import CalendarPage from './pages/CalendarPage';
 //import Snowfall from 'react-snowfall'
-import SetupTramme from './components/SetupTramme';
+import SetupTramme from './pages/SetupTramme';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Create a client
