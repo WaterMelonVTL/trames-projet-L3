@@ -275,30 +275,51 @@ const ST_UeStage: React.FC<UeStageProps> = ({ trammeId, index }) => {
     addUEs(filteredData);
   };
 
-  // Updated addUE for manual creation - now sends a responsible object
+  // Updated addUE for manual creation - now sends a responsible object and logs the data
   const addUE = async () => {
     if (!ueName) return;
+    
+    // Create UE object with explicit boolean conversions
+    const newUE = {
+      Name: ueName,
+      Color: ueColor,
+      ResponsibleName: ueProfResponsable,
+      TotalHourVolume_CM: ueTotalVolumeCM,
+      TotalHourVolume_TD: ueTotalVolumeTD,
+      TotalHourVolume_TP: ueTotalVolumeTP,
+      TD_NeedInformaticRoom: ueTDNeedInformatized === true,
+      TP_NeedInformaticRoom: ueTPNeedInformatized === true,
+      LayerId: currentLayerId
+    };
+    
+    console.log('Sending UE data to server:', newUE);
+    
     const response = await fetch('http://localhost:3000/api/ues', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        ue: {
-          Name: ueName,
-          Color: ueColor,
-          ResponsibleName: ueProfResponsable,
-          TotalHourVolume_CM: ueTotalVolumeCM,
-          TotalHourVolume_TD: ueTotalVolumeTD,
-          TotalHourVolume_TP: ueTotalVolumeTP,
-          TDNeedInformatized: ueTDNeedInformatized,
-          TPNeedInformatized: ueTPNeedInformatized,
-          LayerId: currentLayerId
-        },
+        ue: newUE,
         user: { Id: 1 }
       })
     });
+    
     if (response.ok) {
+      console.log('UE created successfully');
+      // Clear form fields
+      setUeName('');
+      setUeColor('#FFFFFF');
+      setUeProfResponsable('');
+      setUeTotalVolumeCM(0);
+      setUeTotalVolumeTD(0);
+      setUeTotalVolumeTP(0);
+      setUeTDNeedInformatized(false);
+      setUeTPNeedInformatized(false);
+      
       // Refresh the UEs for the current layer
       fetchUes(currentLayerId);
+    } else {
+      const errorData = await response.text();
+      console.error('Failed to create UE:', errorData);
     }
   };
 

@@ -509,6 +509,7 @@ function CalendarPageContent() {
         })]
       ];
 
+      // CM section remains unchanged
       Object.keys(ueSheets[ueName].CM).forEach(timeSlot => {
         Object.keys(ueSheets[ueName].CM[timeSlot]).forEach(dayIndex => {
           ueSheets[ueName].CM[timeSlot][dayIndex].forEach((info: any) => {
@@ -535,6 +536,7 @@ function CalendarPageContent() {
         return `S${36 + index} ${weekStartDate.toLocaleDateString('fr-FR')}`;
       })]);
 
+      // Modified TD section to check TD_NeedInformaticRoom
       Object.keys(ueSheets[ueName].TD).forEach(timeSlot => {
         Object.keys(ueSheets[ueName].TD[timeSlot]).forEach(dayIndex => {
           ueSheets[ueName].TD[timeSlot][dayIndex].forEach((info: any) => {
@@ -546,7 +548,7 @@ function CalendarPageContent() {
               info.groups,
               '',
               '',
-              ...info.weeks.map((week: boolean) => (week ? 'X' : ''))
+              ...info.weeks.map((week: boolean) => (week ? (ue?.TD_NeedInformaticRoom ? 'I' : 'X') : ''))
             ];
             worksheetData.push(row);
           });
@@ -561,6 +563,7 @@ function CalendarPageContent() {
         return `S${36 + index} ${weekStartDate.toLocaleDateString('fr-FR')}`;
       })]);
 
+      // Modified TP section to check TP_NeedInformaticRoom
       Object.keys(ueSheets[ueName].TP).forEach(timeSlot => {
         Object.keys(ueSheets[ueName].TP[timeSlot]).forEach(dayIndex => {
           ueSheets[ueName].TP[timeSlot][dayIndex].forEach((info: any) => {
@@ -572,7 +575,7 @@ function CalendarPageContent() {
               info.groups,
               '',
               '',
-              ...info.weeks.map((week: boolean) => (week ? 'X' : ''))
+              ...info.weeks.map((week: boolean) => (week ? (ue?.TP_NeedInformaticRoom ? 'I' : 'X') : ''))
             ];
             worksheetData.push(row);
           });
