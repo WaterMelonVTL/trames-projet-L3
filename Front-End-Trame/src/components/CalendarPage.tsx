@@ -55,6 +55,8 @@ function CalendarPageContent() {
   const [currentLayerId, setCurrentLayerId] = useState<number | null>(null);
   const [poolRefreshCounter, setPoolRefreshCounter] = useState<number>(0);
 
+  const [loadingPercentage, setLoadingPercentage] = useState<number | undefined>(undefined);
+
   // Use React Query hooks for data fetching
   const { data: trammeData, isLoading: isTrammeLoading } = useTramme(trammeId);
   const { data: layers = [], isLoading: isLayersLoading } = useLayers(trammeId);
@@ -246,9 +248,79 @@ function CalendarPageContent() {
 
   async function duplicate() {
     setIsLoading("Tramme en cours de génération");
+    setLoadingPercentage(0);
+    
+    // Start a polling interval to check progress
+    const progressInterval = setInterval(async () => {
+      try {
+        const progressData = await api.get(`/trammes/duplicate-progress/${trammeId}`);
+        if (progressData) {
+          // Update percentage for progress bar
+          setLoadingPercentage(progressData.percentageTotal || 0);
+          
+          // Update loading text based on state
+          const state = progressData.state || 'initialisation';
+          const layer = progressData.currentLayer ? ` - ${progressData.currentLayer}` : '';
+          const percentage = progressData.percentageTotal ? ` (${progressData.percentageTotal}%)` : '';
+          setLoadingPercentage(progressData.percentageTotal || 0);
+          let statusMessage;
+          switch(state) {
+            case 'initialisation':
+              statusMessage = "Initialisation de la génération...";
+              break;
+            case 'chargement des données':
+              statusMessage = "Chargement des données...";
+              break;
+            case 'chargement des couches':
+              statusMessage = "Chargement des couches...";
+              break;
+            case 'préparation de la génération':
+              statusMessage = "Préparation de la génération...";
+              break;
+            case 'chargement des UEs':
+              statusMessage = `Chargement des UEs${layer}`;
+              break;
+            case 'préparation des cours':
+              statusMessage = `Préparation des cours${layer}`;
+              break;
+            case 'génération des jours':
+              statusMessage = `Génération des jours${layer}${percentage}`;
+              break;
+            case 'mise à jour des heures restantes dans la base de données':
+              statusMessage = `Mise à jour des heures restantes${layer}`;
+              break;
+            case 'finalisation':
+              statusMessage = "Finalisation de la génération...";
+              break;
+            case 'erreur':
+              statusMessage = "Une erreur est survenue durant la génération";
+              break;
+            default:
+              statusMessage = `${state}${layer}${percentage}`;
+          }
+          
+          setIsLoading(statusMessage);
+          
+          // Stop polling if we're done or there's an error
+          if (state === 'finalisation' || state === 'erreur' || progressData.percentageTotal === 100) {
+            if (state === 'erreur') {
+              setTimeout(() => setIsLoading(null), 1000);
+              clearInterval(progressInterval);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching progress:", error);
+      }
+    }, 500); // Check every 500ms
+    
     try {
       await api.delete("/trammes/clear-courses/" + trammeId);
       let newDate = await api.post(`/trammes/duplicate/${trammeId}`);
+      
+      // Clear the interval once the main request completes
+      clearInterval(progressInterval);
+      
       newDate = new Date(newDate);
       if (newDate.getDay() !== 1) {
         newDate = getMonday(newDate);
@@ -261,10 +333,11 @@ function CalendarPageContent() {
       window.location.reload(); // IMPORTANT TO AVOID GHOST CLASSES WITH UNPREDICTABLE BEHAVIOR
       setIsLoading("Génération terminée, vous allez être redirigé");
 
-      // Invalidate cache
     } catch (error) {
+      clearInterval(progressInterval);
       console.error("Error duplicating tramme:", error);
-      setIsLoading(null);
+      setIsLoading("Erreur lors de la génération");
+      setTimeout(() => setIsLoading(null), 3000);
     }
   }
 
@@ -297,7 +370,7 @@ function CalendarPageContent() {
   // Display loading animation if data is loading
   const layerColors = layers.map((layer) => layer.Color);
   if (isLoading || isTrammeLoading || isLayersLoading) {
-    return <LoadingAnimation texte={isLoading || "Chargement..."} colors={layerColors} />;
+    return <LoadingAnimation texte={isLoading || "Chargement..."} colors={layerColors} percentage={loadingPercentage}/>;
   }
 
 

@@ -8,6 +8,9 @@ import { json } from 'sequelize';
 dotenv.config();
 const router = express.Router();
 
+// In-memory store for tracking duplication progress
+const duplicationProgress = {};
+
 // Create a new tramme
 router.post('/', async (req, res) => {
     const { data, user } = req.body; // user est à récupérer depuis le token pour sécuriser la création
@@ -198,19 +201,43 @@ router.get('/is-dts/:trammeId/:date', async (req, res) => {
     return res.json("true");
 });
 
+// Add new endpoint to get duplication progress
+router.get('/duplicate-progress/:trammeId', async (req, res) => {
+    const trammeId = req.params.trammeId;
+    
+    if (duplicationProgress[trammeId]) {
+        res.json(duplicationProgress[trammeId]);
+    } else {
+        res.json({ 
+            state: 'idle',
+            percentage: 0, 
+            currentLayer: null,
+            percentageLayer: 0,
+            percentageTotal: 0
+        });
+    }
+});
+
 router.post('/duplicate/:id', async (req, res) => {
 
     
     const designatedDaysRecords = await DesignatedDays.findAll({ where: { TrammeId: req.params.id } });
     let daysToSkip = designatedDaysRecords.map(record => record.Day);
 
-
+    // Initialize progress tracking
+    const id = req.params.id;
+    duplicationProgress[id] = {
+        state: 'initialisation',
+        percentage: 0,
+        currentLayer: null,
+        percentageLayer: 0,
+        percentageTotal: 5 // Start at 5% for initialization
+    };
 
     if (!daysToSkip) {
         daysToSkip = []; // au cas ou
     }
-    const id = req.params.id;
-
+    
     if (!id) {
         res.status(400).send('Id is required');
         return;
@@ -218,24 +245,40 @@ router.post('/duplicate/:id', async (req, res) => {
 
 
     const [trammeError, trammeData] = await catchError(Tramme.findByPk(id)); // On récupère la tramme à étendre
+    
+    // Update progress state
+    duplicationProgress[id].state = 'chargement des données';
+    duplicationProgress[id].percentageTotal = 10;
+    
     let startDate = trammeData.StartDate;
     let endDate = trammeData.EndDate;
     if (!startDate || !endDate) {
+        duplicationProgress[id].state = 'erreur';
         res.status(400).send('Start and end date are required to be defined to duplicate');
         return;
     }
     startDate = new Date(startDate);
     endDate = new Date(endDate);
+    
+    // Calculate the total duration for percentage calculations
+    const totalDateDuration = endDate.getTime() - startDate.getTime();
+    
     if (trammeError) {
+        duplicationProgress[id].state = 'erreur';
         console.error(trammeError);
         res.status(500).send('Internal Server Error');
         return;
     }
 
     if (!trammeData) {
+        duplicationProgress[id].state = 'erreur';
         res.status(404).send('Trame not found');
         return;
     }
+
+    // Update progress - loading layers
+    duplicationProgress[id].state = 'chargement des couches';
+    duplicationProgress[id].percentageTotal = 15;
 
     const [layerError, layers] = await catchError(Layer.findAll( // On récupère les layers de la tramme pour pouvoir trouver les cours
         {
@@ -260,18 +303,34 @@ router.post('/duplicate/:id', async (req, res) => {
         }));
 
     if (layerError) {
+        duplicationProgress[id].state = 'erreur';
         console.error(layerError);
         res.status(500).send('Internal Server Error');
         return;
     }
 
     if (!layers) {
+        duplicationProgress[id].state = 'erreur';
         res.status(404).send('Layers not found');
         return;
     }
+    
+    // Update progress - starting generation
+    duplicationProgress[id].state = 'préparation de la génération';
+    duplicationProgress[id].percentageTotal = 20;
+    
     let totcourses = 0;
+    const totalLayers = layers.length;
 
-    for (let layer of layers) { // Maintenant on va itérer sur chaque layer pour les dupliquer un par un
+    for (let layerIndex = 0; layerIndex < layers.length; layerIndex++) {
+        const layer = layers[layerIndex];
+        
+        // Update progress for this layer
+        duplicationProgress[id].currentLayer = layer.Name || `Couche ${layerIndex + 1}`;
+        duplicationProgress[id].state = 'génération des jours';
+        duplicationProgress[id].percentageLayer = 0;
+        
+        // ...existing code...
         console.log(chalk.red(" Duplicating layer : ", JSON.stringify(layer.dataValues.Name)));
         const dedupedCourses = new Map();
         for (const group of layer.Groups) {
@@ -285,6 +344,9 @@ router.post('/duplicate/:id', async (req, res) => {
         }
         const flattenedCourses = Array.from(dedupedCourses.values());
 
+        // Update progress - loading UEs
+        duplicationProgress[id].state = 'chargement des UEs';
+        
         const [ueError, ues] = await catchError(UE.findAll({ // On récupère les UEs associées à ce layer pour pouvoir initialiser les heures restantes
             where: {
                 LayerId: layer.Id
@@ -292,12 +354,14 @@ router.post('/duplicate/:id', async (req, res) => {
         }));
 
         if (ueError) {
+            duplicationProgress[id].state = 'erreur';
             console.error(ueError);
             res.status(500).send('Internal Server Error');
             return;
         }
 
         if (!ues) {
+            duplicationProgress[id].state = 'erreur';
             res.status(404).send('UEs not found');
             return;
         }
@@ -320,6 +384,8 @@ router.post('/duplicate/:id', async (req, res) => {
 
         let currentDate = new Date(startDate);  // On initialise la date de début
 
+        // Update progress - preparing week courses
+        duplicationProgress[id].state = 'préparation des cours';
 
         const weekCourses = [[], [], [], [], [], [], []]; // On crée un tableau pour chaque jour de la semaine
         const baseDate = new Date('2001-01-01'); // On crée une date de base pour calculer les jours de la semaine
@@ -336,6 +402,10 @@ router.post('/duplicate/:id', async (req, res) => {
                 }
             }
         }
+        
+        // Update progress - generating days
+        duplicationProgress[id].state = 'génération des jours';
+        
         // l'idée c'est d'avoir un tableau avec les cours de chaque jour de la semaine, 
         // pour pouvoir à partir d'une date savoir quels cours il y a ce jour là 
         // (en récupérant son jour de la semaine)
@@ -357,6 +427,15 @@ router.post('/duplicate/:id', async (req, res) => {
         };
 
         while (currentDate <= endDate) {
+            // Update layer percentage based on date progress
+            const elapsedTime = currentDate.getTime() - startDate.getTime();
+            duplicationProgress[id].percentageLayer = Math.min(100, Math.round((elapsedTime / totalDateDuration) * 100));
+            
+            // Calculate total percentage considering layers
+            // 85% of the process is generating the days, 15% is other tasks (init, finalization)
+            const layerContribution = (layerIndex + duplicationProgress[id].percentageLayer / 100) / totalLayers;
+            duplicationProgress[id].percentageTotal = Math.min(95, Math.round(20 + layerContribution * 75));
+            
             // Check designated days using local date format
             if (daysToSkip && daysToSkip.includes(formatLocalDate(currentDate))) {
                 currentDate.setDate(currentDate.getDate() + 1);
@@ -366,6 +445,7 @@ router.post('/duplicate/:id', async (req, res) => {
             const courseofDay = weekCourses[currentDay];
             console.log(chalk.red("Current day : ", currentDay, " ", currentDate));
             
+            // ...existing course creation code...
             for (const course of courseofDay) {
                 // Get all groups associated with this course
                 const allGroupsAssociated = course.Groups;
@@ -431,6 +511,11 @@ router.post('/duplicate/:id', async (req, res) => {
             currentDate.setDate(currentDate.getDate() + 1);
         }
 
+        // Update progress - updating remaining hours
+        duplicationProgress[id].state = 'mise à jour des heures restantes dans la base de données';
+        duplicationProgress[id].percentageLayer = 100;
+        duplicationProgress[id].percentageTotal = Math.min(95, 20 + ((layerIndex + 1) / totalLayers) * 75);
+
         // Update the course pool with individual group remaining hours
         for (const [ueId, groupHours] of Object.entries(RemainingHours)) {
             for (const [groupId, hours] of Object.entries(groupHours)) {
@@ -481,8 +566,20 @@ router.post('/duplicate/:id', async (req, res) => {
             }
         }
     } // finito
+    
+    // Final progress update
+    duplicationProgress[id].state = 'finalisation';
+    duplicationProgress[id].currentLayer = null;
+    duplicationProgress[id].percentageTotal = 100;
+    
     console.log(chalk.red("Sending start date : ", startDate));
     console.log(chalk.red("Total courses created : ", totcourses));
+    
+    // Clear progress tracking data after a short delay (let client fetch the final 100%)
+    setTimeout(() => {
+        delete duplicationProgress[id];
+    }, 10000);
+    
     res.json(startDate); // On renvoie la date de début pour pouvoir bouger directement dessus dans le client
 });
 
