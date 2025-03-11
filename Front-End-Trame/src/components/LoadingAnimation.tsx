@@ -2,17 +2,13 @@ import React, { useState, useEffect } from 'react'
 
 interface LoadingAnimationProps {
   colors: string[]
-  texte: string
+  texte: string,
+  percentage: number | undefined
 }
 
-function LoadingAnimation({ colors, texte }: LoadingAnimationProps) {
+function LoadingAnimation({ colors, texte, percentage }: LoadingAnimationProps) {
   // Initialize state for 4 dots, using first colors from prop array
-  const [dotColors, setDotColors] = useState<string[]>([
-    colors[0] || '#ff0066',
-    colors[1] || '#66ff00',
-    colors[2] || '#0066ff',
-    colors[3] || '#ffcc00'
-  ])
+  const [dotColors, setDotColors] = useState<string[]>(colors)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -48,10 +44,25 @@ function LoadingAnimation({ colors, texte }: LoadingAnimationProps) {
           className="absolute w-5 h-5 rounded-full animate-[move4_2s_ease-in-out_infinite] transition-colors duration-300"
         ></div>
       </div>
-      <div className=" text-xl drop-shadow-md"
-      style={{color: dotColors[0]}}>
+      <div
+        className="text-xl drop-shadow-md text-gray-800 mb-4"
+        >
         {texte}
       </div>
+
+      {/* Progress bar - only show when percentage is provided */}
+      {percentage !== undefined && (
+        <div className="w-64 bg-gray-200 rounded-full h-2.5 mb-4 overflow-hidden border border-gray-800">
+          <div
+            className="h-2.5 rounded-full transition-all duration-300 progress-bar-animated"
+            style={{
+              width: `${percentage}%`,
+              backgroundColor: dotColors[0],
+              position: 'relative',
+            }}
+          ></div>
+        </div>
+      )}
       <style>{`
         @keyframes move1 {
           0% { top: 0; left: 0; }
@@ -72,6 +83,26 @@ function LoadingAnimation({ colors, texte }: LoadingAnimationProps) {
           0% { bottom: 0; right: 0; }
           50% { bottom: 80%; right: 80%; }
           100% { bottom: 0; right: 0; }
+        }
+        
+        .progress-bar-animated {
+          box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+        }
+        
+        .progress-bar-animated::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          left: 0;
+          background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.6), transparent);
+          transform: translateX(-100%);
+          animation: shimmer-wave 1.5s infinite ease-in-out;
+        }
+        
+        @keyframes shimmer-wave {
+          100% { transform: translateX(100%); }
         }
       `}</style>
     </div>
