@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import ST_SetupHeader from './ST_SetupHeader'
-import ST_SetupNameStage from './ST_SetupNameStage'
-import ST_LayerStage from './ST_LayerStage'
-import ST_GroupStage from './ST_GroupStage'
-import ST_UeStage from './ST_UeStage'
-import ST_DateStage from './ST_DateStage'
+import ST_SetupHeader from '../components/ST_SetupHeader'
+import ST_SetupNameStage from '../components/ST_SetupNameStage'
+import ST_LayerStage from '../components/ST_LayerStage'
+import ST_GroupStage from '../components/ST_GroupStage'
+import ST_UeStage from '../components/ST_UeStage'
+import ST_DateStage from '../components/ST_DateStage'
 
 function SetupPage() {
   const navigate = useNavigate()
