@@ -411,19 +411,6 @@ function CalendarPageContent() {
     return classes;
   }
 
-  async function fetchClassesForPeriod(startMonday: Date, endMonday: Date) {
-    const weeks = [];
-    const currentMonday = new Date(startMonday);
-
-    while (currentMonday <= endMonday) {
-      const weekClasses = await fetchClassesForWeek(currentMonday);
-      weeks.push(weekClasses);
-      currentMonday.setDate(currentMonday.getDate() + 7);
-    }
-
-    return weeks;
-  }
-
   const handleExportWeeks = async () => {
     if (!trammeData) {
       alert('No tramme data found.');
@@ -434,11 +421,23 @@ function CalendarPageContent() {
     const duplicateStart = new Date(trammeData.StartDate);
     const duplicateEnd = new Date(trammeData.EndDate);
     if (duplicateStart && duplicateEnd) {
-      const weeks = await fetchClassesForPeriod(getMonday(new Date(duplicateStart)), getMonday(new Date(duplicateEnd)));
-      generateExcel(weeks);
+      try {
+        // Call the new server endpoint to get the weeks data
+        const weeks = await api.post('/trammes/export-excel', {
+          trammeId,
+          layerId: currentLayerId,
+          startDate: duplicateStart.toISOString(),
+          endDate: duplicateEnd.toISOString()
+        });
+        
+        generateExcel(weeks);
+      } catch (error) {
+        console.error('Error exporting to Excel:', error);
+        alert('Failed to export data');
+        setIsLoading(null);
+      }
     } else {
       setIsLoading(null);
-
       alert('Please select both start and end weeks.');
     }
   };

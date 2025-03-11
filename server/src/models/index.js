@@ -307,6 +307,8 @@ const CoursePool = sequelize.define('CoursePool', {
 
 // UE relationships
 UE.belongsToMany(Prof, { as: 'Responsibles', through: 'UE_Responsibles', foreignKey: 'UEId' });
+UE.hasMany(Course, { foreignKey: 'UEId' });  // Add this line
+Course.belongsTo(UE, { foreignKey: 'UEId' }); // Add this line
 
 // Course relationships
 Course.belongsToMany(Prof, { as: 'Teachers', through: 'Course_Teachers', foreignKey: 'CourseId' });
