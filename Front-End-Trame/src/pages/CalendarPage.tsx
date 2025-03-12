@@ -7,8 +7,7 @@ import { useLocation, useSearchParams } from 'react-router-dom'; // <-- added us
 import CalendarLayerSelection from '../components/CalendarLayerSelection.js';
 import { api } from '../public/api/api.js'; // <-- added api import
 import CalendarPoolSelection from '../components/CalendarPoolSelection.js';
-import * as XLSX from 'xlsx';
-import { Input } from 'react-select/animated';
+import ExcelJS from 'exceljs';
 import LoadingAnimation from '../components/LoadingAnimation.js';
 import {
   useTramme,
@@ -444,8 +443,14 @@ function CalendarPageContent() {
 
   const generateExcel = (weeks: any[]) => {
     const duplicateStart = new Date(trammeData.StartDate);
-    const duplicateEnd = new Date(trammeData.EndDate);
-    const workbook = XLSX.utils.book_new();
+    
+    // Create a new ExcelJS workbook
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Trames App';
+    workbook.lastModifiedBy = 'Trames App';
+    workbook.created = new Date();
+    workbook.modified = new Date();
+    
     console.log("uesdata : ", ues);
     // Create a sheet for each UE
     const ueSheets: { [key: string]: any } = {};
@@ -489,30 +494,83 @@ function CalendarPageContent() {
 
     Object.keys(ueSheets).forEach(ueName => {
       const ue = Object.values(ues).flat().find((ue: UE) => ue.Name === ueName);
+      
+      // Create a new worksheet for each UE
+      const worksheet = workbook.addWorksheet(ueName);
+      
+      // Define some styles
+      const headerStyle = {
+        font: { bold: true },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD3D3D3' } },
+        border: {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        }
+      };
+      
+      const borderStyle = {
+        border: {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        }
+      };
+      
+      const boldStyle = { font: { bold: true } };
+      
       const worksheetData = [
-        ["Mention", layers.find(layer => layer.Id === currentLayerId)?.Name],
-        ["Parcours", trammeData.Name || ""],
+        ["Mention", layers.find(layer => layer.Id === currentLayerId)?.Name,"","","","","","","","","Volume horaire total"],
+        ["Parcours", trammeData.Name || "","","","","","","","","","","","","","","CM","TD","TP","TERRAIN","COMMENTAIRES"],
+        ["Code UE", ueName,"","","","","","","","","CHARGES issues d'APOGEE :", "", "", "", "", ue?.TotalHourVolume_CM || 0, ue?.TotalHourVolume_TD || 0, ue?.TotalHourVolume_TP || 0, 0],
+        ["","","","","","","","","","","Nombre de groupes à planifier :"],
+        ["","","","","","","","","","","Multiples de 1h30 : "],
+        ["","","","","","","","","","","Multiples de 3h :"],
+        ["","","","","","","","","","","Rappel Effectif : "],
+        [],
+        ["UE mutualisée :","NON","Si OUI indiquer les parcours :","","A renseigner dans cette case"],
         ["Responsable", ue?.ResponsibleName || ""],
-        ["Code UE", ueName],
         [],
-        ["Volume horaire total"],
-        ["CM", ue?.TotalHourVolume_CM || 0],
-        ["TD", ue?.TotalHourVolume_TD || 0],
-        ["TP", ue?.TotalHourVolume_TP || 0],
+        ["Intervenants :","Initales ","Nom Prénom","","Statut (à choisir dans menu déroulant)","","","","Indiquer les créneaux par X si une salle est à réserver par planning + initiales enseignant.e.s si différent à chaque séance"],
+        ["","","","","","","","","Indiquer les créneaux par un A si salle hors FDS, préciser la salle à indiquer en \"notes\" + initiales enseignant.e.s si différent à chaque séance"],
+        ["","","","","","","","","Indiquer les créneaux par un I si salle informatisée + initiales enseignant.e.s si différent à chaque séance"],
         [],
-        ["Cours Magistraux (CM)"],
-        ["Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle", ...weeks.map((_, index) => {
+        [],
+        [],
+        [],
+        [],
+        [],
+        ["CM","","","","","","",...weeks.map((_, index) => {
           const weekStartDate = new Date(duplicateStart);
           weekStartDate.setDate(weekStartDate.getDate() + (index * 7));
           return `S${36 + index} ${weekStartDate.toLocaleDateString('fr-FR')}`;
-        })]
+        })],
+        ["Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle"]
       ];
+      
+      // Add rows to worksheet
+      worksheetData.forEach(row => {
+        const newRow = worksheet.addRow(row);
+        row.forEach((cell, index) => {
+          if (typeof cell === 'string' && [
+            "Mention", "Parcours", "Code UE", "UE mutualisée :", "Responsable", "Intervenants :", 
+            "Si OUI indiquer les parcours :", "Initales ", "Nom Prénom", "Statut (à choisir dans menu déroulant)", 
+            "CHARGES issues d'APOGEE :", "Nombre de groupes à planifier :", "Rappel Effectif :", 
+            "CM", "TD", "TP", "TERRAIN", "COMMENTAIRES", "Jour", "Créneau", "Créneau non classique", 
+            "Enseignant", "Groupe/série", "Effectif", "Salle"
+          ].includes(cell)) {
+            newRow.getCell(index + 1).font = boldStyle.font;
+          }
+        });
+      });
 
-      // CM section remains unchanged
+      // CM section
       Object.keys(ueSheets[ueName].CM).forEach(timeSlot => {
         Object.keys(ueSheets[ueName].CM[timeSlot]).forEach(dayIndex => {
           ueSheets[ueName].CM[timeSlot][dayIndex].forEach((info: any) => {
-            const row = [
+            const rowData = [
               daysInFrench[dayIndex],
               timeSlot,
               '',
@@ -522,24 +580,30 @@ function CalendarPageContent() {
               '',
               ...info.weeks.map((week: boolean) => (week ? 'X' : ''))
             ];
-            worksheetData.push(row);
+            worksheet.addRow(rowData);
           });
         });
       });
 
-      worksheetData.push([]);
-      worksheetData.push(["Travaux Dirigés (TD)"]);
-      worksheetData.push(["Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle", ...weeks.map((_, index) => {
+      // Add spacing row
+      worksheet.addRow([]);
+      
+      // TD Section header - Add the row and store its index
+      const tdHeaderRowIndex = worksheet.rowCount + 1;
+      const tdHeaderRow = worksheet.addRow(["TD","","","","","","",...weeks.map((_, index) => {
         const weekStartDate = new Date(duplicateStart);
         weekStartDate.setDate(weekStartDate.getDate() + (index * 7));
         return `S${36 + index} ${weekStartDate.toLocaleDateString('fr-FR')}`;
       })]);
+      
+      // TD Column headers
+      worksheet.addRow(["Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle"]);
 
-      // Modified TD section to check TD_NeedInformaticRoom
+      // TD data
       Object.keys(ueSheets[ueName].TD).forEach(timeSlot => {
         Object.keys(ueSheets[ueName].TD[timeSlot]).forEach(dayIndex => {
           ueSheets[ueName].TD[timeSlot][dayIndex].forEach((info: any) => {
-            const row = [
+            const rowData = [
               daysInFrench[dayIndex],
               timeSlot,
               '',
@@ -549,24 +613,30 @@ function CalendarPageContent() {
               '',
               ...info.weeks.map((week: boolean) => (week ? (ue?.TD_NeedInformaticRoom ? 'I' : 'X') : ''))
             ];
-            worksheetData.push(row);
+            worksheet.addRow(rowData);
           });
         });
       });
 
-      worksheetData.push([]);
-      worksheetData.push(["Travaux Pratiques (TP)"]);
-      worksheetData.push(["Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle", ...weeks.map((_, index) => {
+      // Add spacing row
+      worksheet.addRow([]);
+      
+      // TP Section header - Add the row and store its index
+      const tpHeaderRowIndex = worksheet.rowCount + 1;
+      const tpHeaderRow = worksheet.addRow(["TP","","","","","","",...weeks.map((_, index) => {
         const weekStartDate = new Date(duplicateStart);
         weekStartDate.setDate(weekStartDate.getDate() + (index * 7));
         return `S${36 + index} ${weekStartDate.toLocaleDateString('fr-FR')}`;
       })]);
+      
+      // TP Column headers
+      worksheet.addRow(["Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle"]);
 
-      // Modified TP section to check TP_NeedInformaticRoom
+      // TP data
       Object.keys(ueSheets[ueName].TP).forEach(timeSlot => {
         Object.keys(ueSheets[ueName].TP[timeSlot]).forEach(dayIndex => {
           ueSheets[ueName].TP[timeSlot][dayIndex].forEach((info: any) => {
-            const row = [
+            const rowData = [
               daysInFrench[dayIndex],
               timeSlot,
               '',
@@ -576,17 +646,129 @@ function CalendarPageContent() {
               '',
               ...info.weeks.map((week: boolean) => (week ? (ue?.TP_NeedInformaticRoom ? 'I' : 'X') : ''))
             ];
-            worksheetData.push(row);
+            worksheet.addRow(rowData);
           });
         });
       });
 
-      const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-      XLSX.utils.book_append_sheet(workbook, worksheet, ueName);
+      // Apply cell merges after all data has been added
+      // Header section merges
+      worksheet.mergeCells('B1:J1');   // Mention row
+      worksheet.mergeCells('K1:X1');   // Volume horaire total
+      worksheet.mergeCells('B2:J2');   // Parcours row
+      worksheet.mergeCells('K2:O2');   // Empty space
+      worksheet.mergeCells('B3:J3');   // Code UE row
+      worksheet.mergeCells('K3:O3');   // CHARGES issues d'APOGEE
+      
+      // Row 4-7 merges
+      worksheet.mergeCells('K4:O4');   // Nombre de groupes
+      worksheet.mergeCells('K5:O5');   // Multiples de 1h30
+      worksheet.mergeCells('K6:O6');   // Multiples de 3h
+      worksheet.mergeCells('K7:O7');   // Rappel Effectif
+      worksheet.mergeCells('P7:X7');   // Effectif values
+      
+      // UE mutualisée row
+      worksheet.mergeCells('C9:D9');   // NON
+      worksheet.mergeCells('E9:W9');   // Si OUI indiquer
+      
+      // Responsable row
+      worksheet.mergeCells('B10:W10'); // Responsable value
+      
+      // Intervenant rows
+      worksheet.mergeCells('C12:D12'); // Initiales column
+      worksheet.mergeCells('E12:H12'); // Nom Prénom column
+      worksheet.mergeCells('I12:X12'); // Indiquer les créneaux text
+      
+      worksheet.mergeCells('C13:D13'); // Blank row
+      worksheet.mergeCells('E13:H13');
+      worksheet.mergeCells('I13:X13'); // Indiquer les créneaux A
+      
+      worksheet.mergeCells('C14:D14'); // Blank row
+      worksheet.mergeCells('E14:H14');
+      worksheet.mergeCells('I14:X14'); // Indiquer les créneaux I
+      
+      worksheet.mergeCells('C15:D15'); // Blank row
+      worksheet.mergeCells('E15:H15');
+      
+      worksheet.mergeCells('C16:D16'); // Blank row
+      worksheet.mergeCells('E16:H16');
+      
+      worksheet.mergeCells('C17:D17'); // Blank row
+      worksheet.mergeCells('E17:H17');
+      
+      worksheet.mergeCells('C18:D18'); // Blank row
+      worksheet.mergeCells('E18:H18');
+      
+      // CM/TD/TP section headers - Now we know the exact rows
+      worksheet.mergeCells('A21:G21'); // CM header row
+      worksheet.mergeCells(`A${tdHeaderRowIndex}:G${tdHeaderRowIndex}`); // TD header row
+      worksheet.mergeCells(`A${tpHeaderRowIndex}:G${tpHeaderRowIndex}`); // TP header row
+      
+      // Apply borders to merged cells in header
+      for (let row = 1; row <= 7; row++) {
+        for (let col = 11; col <= 24; col++) {
+          const cell = worksheet.getCell(row, col);
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+        }
+      }
+      
+      // Apply styling to section headers (CM, TD, TP) with yellow background
+      // Apply yellow background to CM header
+      const cmHeaderRow = worksheet.getRow(21);
+      cmHeaderRow.getCell(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFFFCC00' } // Yellow color
+      };
+      
+      // Apply yellow background to TD header - use the stored row index
+      const tdHeaderRowObj = worksheet.getRow(tdHeaderRowIndex);
+      tdHeaderRowObj.getCell(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFFFCC00' } // Yellow color
+      };
+      
+      // Apply yellow background to TP header - use the stored row index
+      const tpHeaderRowObj = worksheet.getRow(tpHeaderRowIndex);
+      tpHeaderRowObj.getCell(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFFFCC00' } // Yellow color
+      };
+      
+      // Format column widths for better readability
+      worksheet.columns.forEach((column, index) => {
+        let maxLength = 0;
+        worksheet.eachRow({ includeEmpty: true }, (row) => {
+          const cell = row.getCell(index + 1);
+          if (cell && cell.value) {
+            const cellLength = cell.value.toString().length;
+            if (cellLength > maxLength) {
+              maxLength = cellLength;
+            }
+          }
+        });
+        column.width = Math.min(maxLength, 15);
+      });
     });
 
-    // Generate Excel file
-    XLSX.writeFile(workbook, trammeData.Name + "-" + layers.find(layer => layer.Id === currentLayerId)?.Name + '.xlsx');
+    // Save the Excel file
+    workbook.xlsx.writeBuffer().then((buffer) => {
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${trammeData.Name}-${layers.find(layer => layer.Id === currentLayerId)?.Name}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    });
+    
     setIsLoading(null);
   };
 
