@@ -82,12 +82,14 @@ router.get('/search/:searchQuery', async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 });
-router.get('/get/me', async (req, res) => {
-    const [userError, user] = await authorize(req, "USER");
-    if (userError) {
+
+router.get('/me', async (req, res) => {
+    const [authorized, user] = await authorize(req, "USER");
+    if (!authorized) {
         res.status(401).send('Unauthorized');
         return;
     }
+    User.findOne({ where: { Id: user.UserId } });
     const payload = {
         UserId: user.UserId,
         Email: user.Email,

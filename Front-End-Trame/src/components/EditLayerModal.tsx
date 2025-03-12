@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Layer } from '../types/types'
+import {api} from '../public/api/api.js' // Import the api module
 
 interface EditLayerModalProps {
     layer: Layer
@@ -13,14 +14,18 @@ const EditLayerModal: React.FC<EditLayerModalProps> = ({ layer, onClose, onUpdat
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        const response = await fetch(`http://localhost:3000/api/layers/${layer.Id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ Name: name, Color: color })
-        })
-        if (response.ok) {
+        try {
+            // Replace fetch with api.put
+            await api.put(`/layers/${layer.Id}`, {
+                Name: name,
+                Color: color
+            });
+
             const updatedLayer = { ...layer, Name: name, Color: color }
             onUpdate(updatedLayer)
+
+        } catch (error) {
+            console.error('Failed to update layer:', error);
         }
     }
 

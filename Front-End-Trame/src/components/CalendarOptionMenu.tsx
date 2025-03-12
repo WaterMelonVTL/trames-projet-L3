@@ -61,14 +61,11 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
             ...(newStart !== undefined && { StartHour: newStart })
         };
         try {
-            const response = await fetch(`http://localhost:3000/api/cours/${props.cours.Id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ course: updatedCourse })
+            // Replace fetch with api.put
+            const response = await api.put(`/cours/${props.cours.Id}`, {
+                course: updatedCourse
             });
-            if (!response.ok) throw new Error('Update failed');
-            const data = await response.json();
-            props.setCours(data);
+            props.setCours(response);
             console.log(`Modified course ${props.cours.Id}: new length ${newLength ?? props.cours.length}, new start ${newStart ?? props.cours.StartHour}`);
         } catch (error) {
             console.error(error);

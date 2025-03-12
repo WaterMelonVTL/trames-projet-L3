@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-
+import {api} from '../public/api/api';
 interface EditUeModalProps {
   ue: any;
   onClose: () => void;
@@ -18,23 +18,35 @@ const EditUeModal: React.FC<EditUeModalProps> = ({ ue, onClose, onUpdate }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const response = await fetch(`http://localhost:3000/api/ues/${ue.Id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ue:{
-        Name: name,
-        Color: color,
-        ResponsibleName: responsible,
-        TotalHourVolume_CM: totalVolumeCM,
-        TotalHourVolume_TD: totalVolumeTD,
-        TotalHourVolume_TP: totalVolumeTP,
-        TDNeedInformatized: tdInformatized,
-        TPNeedInformatized: tpInformatized
-      }})
-    });
-    if (response.ok) {
-      const updatedUE = { ...ue, Name: name, Color: color, ResponsibleName: responsible, TotalHourVolume_CM: totalVolumeCM, TotalHourVolume_TD: totalVolumeTD, TotalHourVolume_TP: totalVolumeTP, TDNeedInformatized: tdInformatized, TPNeedInformatized: tpInformatized };
-      onUpdate(updatedUE);
+    try {
+        // Replace fetch with api.put
+        await api.put(`/ues/${ue.Id}`, {
+            ue: {
+                Name: name,
+                Color: color,
+                ResponsibleName: responsible,
+                TotalHourVolume_CM: totalVolumeCM,
+                TotalHourVolume_TD: totalVolumeTD,
+                TotalHourVolume_TP: totalVolumeTP,
+                TDNeedInformatized: tdInformatized,
+                TPNeedInformatized: tpInformatized
+            }
+        });
+
+        const updatedUE = { 
+            ...ue, 
+            Name: name, 
+            Color: color, 
+            ResponsibleName: responsible, 
+            TotalHourVolume_CM: totalVolumeCM, 
+            TotalHourVolume_TD: totalVolumeTD, 
+            TotalHourVolume_TP: totalVolumeTP, 
+            TDNeedInformatized: tdInformatized, 
+            TPNeedInformatized: tpInformatized 
+        };
+        onUpdate(updatedUE);
+    } catch (error) {
+        console.error('Failed to update UE:', error);
     }
   };
 
