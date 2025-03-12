@@ -482,6 +482,7 @@ function CalendarPageContent() {
       };
       
       const boldStyle = { font: { bold: true } };
+      const boldRedStyle = { font: { bold: true, color: { argb: 'FFFF0000' } } };
       
       const worksheetData = [
         ["Mention", layers.find(layer => layer.Id === currentLayerId)?.Name,"","","","","","","","","Volume horaire total"],
@@ -514,18 +515,7 @@ function CalendarPageContent() {
       
       // Add rows to worksheet
       worksheetData.forEach(row => {
-        const newRow = worksheet.addRow(row);
-        row.forEach((cell, index) => {
-          if (typeof cell === 'string' && [
-            "Mention", "Parcours", "Code UE", "UE mutualisée :", "Responsable", "Intervenants :", 
-            "Si OUI indiquer les parcours :", "Initales ", "Nom Prénom", "Statut (à choisir dans menu déroulant)", 
-            "CHARGES issues d'APOGEE :", "Nombre de groupes à planifier :", "Rappel Effectif :", 
-            "CM", "TD", "TP", "TERRAIN", "COMMENTAIRES", "Jour", "Créneau", "Créneau non classique", 
-            "Enseignant", "Groupe/série", "Effectif", "Salle"
-          ].includes(cell)) {
-            newRow.getCell(index + 1).font = boldStyle.font;
-          }
-        });
+        worksheet.addRow(row);
       });
 
       // CM section
@@ -703,6 +693,8 @@ function CalendarPageContent() {
         pattern: 'solid',
         fgColor: { argb: 'FFFFCC00' } // Yellow color
       };
+
+
       
       // Format column widths for better readability
       worksheet.columns.forEach((column, index) => {
@@ -717,6 +709,131 @@ function CalendarPageContent() {
           }
         });
         column.width = Math.min(maxLength, 15);
+      });
+
+      // Apply bold style to specified cells at the end
+      worksheet.eachRow({ includeEmpty: true }, (row) => {
+        row.eachCell((cell) => {
+          if (typeof cell.value === 'string' && [
+            "Mention", "Parcours", "Code UE", "UE mutualisée :", "Responsable", "Intervenants :", 
+            "Si OUI indiquer les parcours :", "Initales ", "Nom Prénom", "Statut (à choisir dans menu déroulant)", 
+            "CHARGES issues d'APOGEE :", "Nombre de groupes à planifier :", "Rappel Effectif :", 
+            "CM", "TD", "TP", "TERRAIN", "COMMENTAIRES", "Jour", "Créneau", "Créneau non classique", 
+            "Enseignant", "Groupe/série", "Effectif", "Salle"
+          ].includes(cell.value)) {
+            cell.font = boldStyle.font;
+          }
+        });
+      });
+
+      // Apply yellow background to week headers
+      worksheet.getRow(21).eachCell((cell) => {
+        cell.font = boldStyle.font;
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFFFC04' } // Yellow color
+        };
+      });
+      worksheet.getRow(tdHeaderRowIndex).eachCell((cell) => {
+        cell.font = boldStyle.font;
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFFFC04' } // Yellow color
+        };
+      });
+      worksheet.getRow(tpHeaderRowIndex).eachCell((cell) => {
+        cell.font = boldStyle.font;
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFFFC04' } // Yellow color
+        };
+      });
+
+      // Apply yellow background to headers "Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle"
+      const headerRowIndex = worksheet.getRow(22).number;
+      worksheet.getRow(headerRowIndex).eachCell((cell) => {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFFFC04' } // Yellow color
+        };
+      });
+
+      // Apply yellow background to headers "Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle"
+      worksheet.getRow(tdHeaderRowIndex+1).eachCell((cell) => {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFFFC04' } // Yellow color
+        };
+      });
+
+      // Apply yellow background to headers "Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle"
+      worksheet.getRow(tpHeaderRowIndex+1).eachCell((cell) => {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFFFC04' } // Yellow color
+        };
+      });
+
+      // Apply green background legend ("Indiquer les créneaux par X etc...")
+      for(let i=0;i<3;i++){
+        worksheet.getCell(12+i, 9).fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: '98CC54' } // Yellow color
+          };
+      }
+      // Apply borders to a range of cells
+      const applyBordersToRange = (startRow,startCol,endRow,endCol ) => {
+        for (let row = startRow; row <= endRow; row++) {
+          for (let col = startCol; col <= endCol; col++) {
+            worksheet.getCell(row, col).border = {
+              top: { style: 'thin' },
+              left: { style: 'thin' },
+              bottom: { style: 'thin' },
+              right: { style: 'thin' }
+            };
+          }
+        }
+      };
+
+      // Apply borders to CM table
+      applyBordersToRange(21,1, tdHeaderRowIndex-2,weeks.length+7);
+      applyBordersToRange(tdHeaderRowIndex,1, tpHeaderRowIndex-2,weeks.length+7);
+      applyBordersToRange(tpHeaderRowIndex,1, worksheet.rowCount,weeks.length+7);
+      applyBordersToRange(12,2,18,8);
+
+      // Apply bold and red style to specific text portions
+      const specificTextCells = [
+        { row: 12, col: 9, text: "Indiquer les créneaux par X" },
+        { row: 13, col: 9, text: "Indiquer les créneaux par un A" },
+        { row: 14, col: 9, text: "Indiquer les créneaux par un I" },
+        { row: 3, col: 11, text: "CHARGES issues d'APOGEE :" },
+        { row: 4, col: 11, text: "Nombre de groupes à planifier :" },
+        { row: 7, col: 11, text: "Rappel Effectif : " },
+        { row: 1, col: 2, text: layers.find(layer => layer.Id === currentLayerId)?.Name},
+        { row: 2, col: 2, text: trammeData.Name },
+        { row: 3, col: 2, text: ueName},
+        { row: 10, col: 2, text: ue?.ResponsibleName },
+        { row: 9, col: 2, text: "NON" },
+        { row: 9, col: 5, text: "A renseigner dans cette case" }
+      ];
+
+      specificTextCells.forEach(({ row, col, text }) => {
+        const cell = worksheet.getCell(row, col);
+        const parts = cell.value.split(text);
+        cell.value = {
+          richText: [
+            { text: parts[0] },
+            { text: text, font: boldRedStyle.font },
+            { text: parts[1] }
+          ]
+        };
       });
     });
 
