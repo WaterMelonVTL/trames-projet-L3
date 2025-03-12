@@ -372,44 +372,6 @@ function CalendarPageContent() {
     return <LoadingAnimation texte={isLoading || "Chargement..."} colors={layerColors} percentage={loadingPercentage}/>;
   }
 
-
-
-  function calculateEndTime(startHour: string, length: number): string {
-    const [hours, minutes] = startHour.split(':').map(Number);
-    const endDate = new Date();
-    endDate.setHours(hours);
-    endDate.setMinutes(minutes + length * 60);
-    endDate.setSeconds(0); // Reset seconds to 0 (maybe i don't understand correctly length)
-    return endDate.toTimeString().split(' ')[0];
-  }
-
-
-  async function fetchClassesForWeek(monday: Date) {
-    const classes = [];
-    for (let i = -1; i < 6; i++) {
-      const date = new Date(monday);
-      date.setDate(monday.getDate() + i);
-      const dayClasses = await api.get(`/cours/date/${trammeId}/${currentLayerId}/${date.toISOString().split('T')[0]}`);
-
-      // Fetch additional information for each class
-      const formattedClasses = await Promise.all(dayClasses.map(async (course: any) => {
-        const ueData = await api.get(`/ues/${course.UEId}`);
-        const profData = course.ProfId ? await api.get(`/profs/${course.ProfId}`) : null;
-        const endTime = calculateEndTime(course.StartHour, course.length);
-
-        return {
-          ...course,
-          UEName: ueData.Name,
-          ProfFullName: profData ? profData.FullName : null,
-          EndHour: endTime
-        };
-      }));
-
-      classes.push(formattedClasses);
-    }
-    return classes;
-  }
-
   const handleExportWeeks = async () => {
     if (!trammeData) {
       alert('No tramme data found.');
