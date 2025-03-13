@@ -32,6 +32,20 @@ router.post('/bulk', async (req, res) => {
 // Create a new UE
 router.post('/', async (req, res) => {
     const { ue, user } = req.body;
+    
+    // Log the received data to debug boolean fields
+    console.log('Received UE data:', JSON.stringify(ue, null, 2));
+    
+    // Ensure boolean fields are properly parsed
+    if (ue.TD_NeedInformaticRoom !== undefined) {
+        ue.TD_NeedInformaticRoom = Boolean(ue.TD_NeedInformaticRoom);
+    }
+    
+    if (ue.TP_NeedInformaticRoom !== undefined) {
+        ue.TP_NeedInformaticRoom = Boolean(ue.TP_NeedInformaticRoom);
+    }
+    
+    console.log('Processed UE data:', JSON.stringify(ue, null, 2));
 
     const [ueError, ueData] = await catchError(UE.create(ue));
     if (ueError) {
@@ -40,8 +54,7 @@ router.post('/', async (req, res) => {
         return;
     }
 
-
-    console.log(chalk.red(JSON.stringify(ue)));
+    console.log('Created UE:', JSON.stringify(ueData, null, 2));
     return res.json(ueData);
 });
 

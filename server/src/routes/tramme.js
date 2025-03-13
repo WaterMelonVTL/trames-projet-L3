@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { catchError } from '../utils/HandleErrors.js';
-import { Tramme, Sequelize, Layer, Course, Group, UE, DesignatedDays, CoursePool } from '../models/index.js';
+import { Tramme, Sequelize, Layer, Course, Group, UE, DesignatedDays, CoursePool, Prof } from '../models/index.js';
 import chalk from 'chalk';
 import { json } from 'sequelize';
 
@@ -676,10 +676,107 @@ router.delete('/:id', async (req, res) => {
     return res.json(trammeData);
 });
 
+// Calculate end time from start time and duration
+function calculateEndTime(startHour, length) {
+    const [hours, minutes] = startHour.split(':').map(Number);
+    const endDate = new Date();
+    endDate.setHours(hours);
+    endDate.setMinutes(minutes + length * 60);
+    endDate.setSeconds(0);
+    return endDate.toTimeString().split(' ')[0];
+}
 
-// // Delete designated days
-// router.delete('/deleteDesignatedDays', async (req, res) =>{
+// Get Monday from a date
+function getMonday(date) {
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
+    const monday = new Date(date);
+    monday.setDate(diff);
+    return monday;
+}
 
-// });
+// New endpoint to export Excel data for a tramme
+router.post('/export-excel', async (req, res) => {
+    const { trammeId, layerId, startDate, endDate } = req.body;
+    
+    if (!trammeId || !layerId || !startDate || !endDate) {
+        return res.status(400).json({ error: 'Missing required parameters' });
+    }
+    
+    try {
+        const startMonday = getMonday(new Date(startDate));
+        const endMonday = getMonday(new Date(endDate));
+        const weeks = [];
+        
+        let currentMonday = new Date(startMonday);
+        while (currentMonday <= endMonday) {
+            const weekClasses = [];
+            
+            // Fetch classes for each day of the week (-1 is Sunday, 0-5 are Monday-Saturday)
+            for (let i = -1; i < 6; i++) {
+                const date = new Date(currentMonday);
+                date.setDate(currentMonday.getDate() + i);
+                const formattedDate = date.toISOString().split('T')[0];
+                
+                // Get courses for this day - modified query to use the proper association
+                const [dayCoursesErr, dayCourses] = await catchError(Course.findAll({
+                    include: [
+                        {
+                            model: UE,
+                            required: true,
+                            where: { LayerId: layerId }
+                        },
+                        {
+                            model: Group,
+                            through: { attributes: [] }
+                        },
+                        {
+                            model: Prof,
+                            as: 'Teachers',
+                            required: false,
+                            through: { attributes: [] }
+                        }
+                    ],
+                    where: {
+                        Date: formattedDate
+                    }
+                }));
+                
+                if (dayCoursesErr) {
+                    console.error("Error fetching courses for Excel export:", dayCoursesErr);
+                    return res.status(500).json({ error: "Error fetching courses" });
+                }
+                
+                // Format the results
+                const formattedCourses = dayCourses.map(course => {
+                    const courseObj = course.get({ plain: true });
+                    const ueData = courseObj.UE;
+                    const endTime = calculateEndTime(course.StartHour, course.length);
+                    
+                    return {
+                        ...courseObj,
+                        UEName: ueData.Name,
+                        ProfFullName: courseObj.Teachers && courseObj.Teachers.length > 0 
+                            ? courseObj.Teachers[0].FullName 
+                            : (course.ProfId ? 'Enseignant ID: ' + course.ProfId : null),
+                        EndHour: endTime
+                    };
+                });
+                
+                weekClasses.push(formattedCourses);
+            }
+            
+            weeks.push(weekClasses);
+            
+            // Move to next week
+            currentMonday.setDate(currentMonday.getDate() + 7);
+        }
+        
+        return res.json(weeks);
+    } catch (error) {
+        console.error("Error in Excel export:", error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+});
 
 export default router;
