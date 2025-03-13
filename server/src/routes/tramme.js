@@ -218,6 +218,57 @@ router.get('/duplicate-progress/:trammeId', async (req, res) => {
     }
 });
 
+/**
+ * Clear courses from a tramme that are after January 2001
+ * @param {string} trammeId - The ID of the tramme to clear courses from
+ * @returns {Promise<number>} The count of deleted courses
+ */
+async function clearCoursesFromTramme(trammeId) {
+    if (!trammeId) {
+        throw new Error('Tramme Id is required');
+    }
+
+    // Retrieve layers linked to the tramme
+    const [layerError, layers] = await catchError(Layer.findAll({ where: { TrammeId: trammeId } }));
+    if (layerError) {
+        console.error(layerError);
+        throw new Error('Failed to find layers');
+    }
+    if (!layers || layers.length === 0) {
+        throw new Error('No layers found for the tramme');
+    }
+    const layerIds = layers.map(l => l.Id);
+
+    // Retrieve UEs associated with these layers
+    const [ueError, ues] = await catchError(UE.findAll({ where: { LayerId: { [Sequelize.Op.in]: layerIds } } }));
+    if (ueError) {
+        console.error(ueError);
+        throw new Error('Failed to find UEs');
+    }
+    if (!ues || ues.length === 0) {
+        throw new Error('No UEs found for the tramme layers');
+    }
+    const ueIds = ues.map(ue => ue.Id);
+
+    // Define cutoff date: courses after January 2001 (i.e., from February 1, 2001)
+    const cutoffDate = new Date('2001-02-01');
+
+    // Delete courses for these UEs with Date on or after the cutoff
+    const [delError, count] = await catchError(Course.destroy({
+        where: {
+            UEId: { [Sequelize.Op.in]: ueIds },
+            Date: { [Sequelize.Op.gte]: cutoffDate }
+        }
+    }));
+    if (delError) {
+        console.error(delError);
+        throw new Error('Failed to delete courses');
+    }
+
+    return count;
+}
+
+// Update the duplicate route to call the clearCoursesFromTramme function
 router.post('/duplicate/:id', async (req, res) => {
 
     
@@ -243,6 +294,16 @@ router.post('/duplicate/:id', async (req, res) => {
         return;
     }
 
+    // Clear existing courses before duplication
+    duplicationProgress[id].state = 'suppression des cours...';
+    try {
+        await clearCoursesFromTramme(id);
+    } catch (error) {
+        duplicationProgress[id].state = 'erreur';
+        console.error('Error clearing courses:', error);
+        res.status(500).send('Error clearing courses');
+        return;
+    }
 
     const [trammeError, trammeData] = await catchError(Tramme.findByPk(id)); // On récupère la tramme à étendre
     
@@ -583,57 +644,16 @@ router.post('/duplicate/:id', async (req, res) => {
     res.json(startDate); // On renvoie la date de début pour pouvoir bouger directement dessus dans le client
 });
 
-// Clear courses from a tramme that are after January 2001
+// Update the clear-courses route to use the extracted function
 router.delete('/clear-courses/:id', async (req, res) => {
     const id = req.params.id;
-    if (!id) {
-        res.status(400).send('Tramme Id is required');
-        return;
+    try {
+        const count = await clearCoursesFromTramme(id);
+        res.json({ message: `Deleted ${count} courses` });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send(error.message || 'Internal Server Error');
     }
-
-    // Retrieve layers linked to the tramme
-    const [layerError, layers] = await catchError(Layer.findAll({ where: { TrammeId: id } }));
-    if (layerError) {
-        console.error(layerError);
-        res.status(500).send('Internal Server Error');
-        return;
-    }
-    if (!layers || layers.length === 0) {
-        res.status(404).send('No layers found for the tramme');
-        return;
-    }
-    const layerIds = layers.map(l => l.Id);
-
-    // Retrieve UEs associated with these layers
-    const [ueError, ues] = await catchError(UE.findAll({ where: { LayerId: { [Sequelize.Op.in]: layerIds } } }));
-    if (ueError) {
-        console.error(ueError);
-        res.status(500).send('Internal Server Error');
-        return;
-    }
-    if (!ues || ues.length === 0) {
-        res.status(404).send('No UEs found for the tramme layers');
-        return;
-    }
-    const ueIds = ues.map(ue => ue.Id);
-
-    // Define cutoff date: courses after January 2001 (i.e., from February 1, 2001)
-    const cutoffDate = new Date('2001-02-01');
-
-    // Delete courses for these UEs with Date on or after the cutoff
-    const [delError, count] = await catchError(Course.destroy({
-        where: {
-            UEId: { [Sequelize.Op.in]: ueIds },
-            Date: { [Sequelize.Op.gte]: cutoffDate }
-        }
-    }));
-    if (delError) {
-        console.error(delError);
-        res.status(500).send('Internal Server Error');
-        return;
-    }
-
-    res.json({ message: `Deleted ${count} courses` });
 });
 
 // Delete a tramme by ID
