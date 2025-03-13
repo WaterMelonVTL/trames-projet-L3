@@ -403,6 +403,29 @@ function CalendarPageContent() {
     }
   };
 
+  // Helper function to format time from "8:00" to "8h00"
+  const formatTimeToFrench = (timeString: string): string => {
+    if (!timeString) return '';
+    
+    // If the time is already in the correct format, return it
+    // But first make sure it doesn't contain seconds
+    if (timeString.includes('h')) {
+      // Remove any seconds if present (e.g. "8h00:00" becomes "8h00")
+      const parts = timeString.split(':');
+      return parts[0]; // Take only the part before any colon
+    }
+    
+    // Handle "HH:MM:SS" format by removing seconds
+    const timeParts = timeString.split(':');
+    if (timeParts.length > 2) {
+      // We have seconds, only keep hours and minutes
+      timeString = `${timeParts[0]}:${timeParts[1]}`;
+    }
+    
+    // Convert "HH:MM" to "HHhMM"
+    return timeString.replace(':', 'h');
+  };
+
   const generateExcel = (weeks: any[]) => {
     const duplicateStart = new Date(trammeData.StartDate);
     
@@ -427,7 +450,9 @@ function CalendarPageContent() {
               TP: {}
             };
           }
-          const timeSlot = `${course.StartHour}-${course.EndHour}`;
+          const formattedStartHour = formatTimeToFrench(course.StartHour);
+          const formattedEndHour = formatTimeToFrench(course.EndHour);
+          const timeSlot = `${formattedStartHour}-${formattedEndHour}`;
           const groups = course.Groups.map((group: any) => group.Name).join(', ');
           if (!ueSheets[course.UEName][course.Type][timeSlot]) {
             ueSheets[course.UEName][course.Type][timeSlot] = {};
@@ -483,9 +508,10 @@ function CalendarPageContent() {
       
       const boldStyle = { font: { bold: true } };
       const boldRedStyle = { font: { bold: true, color: { argb: 'FFFF0000' } } };
+      const boldWhiteStyle = { font: { bold: true, color: { argb: 'FFFFFF' } } };
       
       const worksheetData = [
-        ["Mention", layers.find(layer => layer.Id === currentLayerId)?.Name,"","","","","","","","","Volume horaire total"],
+        ["Mention", layers.find(layer => layer.Id === currentLayerId)?.Name,"","","","","","","","","TABLEAU A NE PAS MODIFIER"],
         ["Parcours", trammeData.Name || "","","","","","","","","","","","","","","CM","TD","TP","TERRAIN","COMMENTAIRES"],
         ["Code UE", ueName,"","","","","","","","","CHARGES issues d'APOGEE :", "", "", "", "", ue?.TotalHourVolume_CM || 0, ue?.TotalHourVolume_TD || 0, ue?.TotalHourVolume_TP || 0, 0],
         ["","","","","","","","","","","Nombre de groupes à planifier :"],
@@ -508,7 +534,11 @@ function CalendarPageContent() {
         ["CM","","","","","","",...weeks.map((_, index) => {
           const weekStartDate = new Date(duplicateStart);
           weekStartDate.setDate(weekStartDate.getDate() + (index * 7));
-          return `S${36 + index} ${weekStartDate.toLocaleDateString('fr-FR')}`;
+          // Format as S36\n04/09
+          const weekNum = 36 + index;
+          const day = String(weekStartDate.getDate()).padStart(2, '0');
+          const month = String(weekStartDate.getMonth() + 1).padStart(2, '0');
+          return `S${weekNum}\n${day}/${month}`;
         })],
         ["Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle"]
       ];
@@ -545,7 +575,11 @@ function CalendarPageContent() {
       const tdHeaderRow = worksheet.addRow(["TD","","","","","","",...weeks.map((_, index) => {
         const weekStartDate = new Date(duplicateStart);
         weekStartDate.setDate(weekStartDate.getDate() + (index * 7));
-        return `S${36 + index} ${weekStartDate.toLocaleDateString('fr-FR')}`;
+        // Format as S36\n04/09
+        const weekNum = 36 + index;
+        const day = String(weekStartDate.getDate()).padStart(2, '0');
+        const month = String(weekStartDate.getMonth() + 1).padStart(2, '0');
+        return `S${weekNum}\n${day}/${month}`;
       })]);
       
       // TD Column headers
@@ -578,7 +612,11 @@ function CalendarPageContent() {
       const tpHeaderRow = worksheet.addRow(["TP","","","","","","",...weeks.map((_, index) => {
         const weekStartDate = new Date(duplicateStart);
         weekStartDate.setDate(weekStartDate.getDate() + (index * 7));
-        return `S${36 + index} ${weekStartDate.toLocaleDateString('fr-FR')}`;
+        // Format as S36\n04/09
+        const weekNum = 36 + index;
+        const day = String(weekStartDate.getDate()).padStart(2, '0');
+        const month = String(weekStartDate.getMonth() + 1).padStart(2, '0');
+        return `S${weekNum}\n${day}/${month}`;
       })]);
       
       // TP Column headers
@@ -609,13 +647,18 @@ function CalendarPageContent() {
       worksheet.mergeCells('K1:X1');   // Volume horaire total
       worksheet.mergeCells('B2:J2');   // Parcours row
       worksheet.mergeCells('K2:O2');   // Empty space
+      worksheet.mergeCells('T2:X2');   // Commentaires
       worksheet.mergeCells('B3:J3');   // Code UE row
       worksheet.mergeCells('K3:O3');   // CHARGES issues d'APOGEE
+      worksheet.mergeCells('T3:X3');   // Commentaires
       
       // Row 4-7 merges
       worksheet.mergeCells('K4:O4');   // Nombre de groupes
+      worksheet.mergeCells('T4:X4');   // Commentaires
       worksheet.mergeCells('K5:O5');   // Multiples de 1h30
+      worksheet.mergeCells('T5:X5');   // Commentaires
       worksheet.mergeCells('K6:O6');   // Multiples de 3h
+      worksheet.mergeCells('T6:X6');   // Commentaires
       worksheet.mergeCells('K7:O7');   // Rappel Effectif
       worksheet.mergeCells('P7:X7');   // Effectif values
       
@@ -668,34 +711,7 @@ function CalendarPageContent() {
           };
         }
       }
-      
-      // Apply styling to section headers (CM, TD, TP) with yellow background
-      // Apply yellow background to CM header
-      const cmHeaderRow = worksheet.getRow(21);
-      cmHeaderRow.getCell(1).fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FFFFCC00' } // Yellow color
-      };
-      
-      // Apply yellow background to TD header - use the stored row index
-      const tdHeaderRowObj = worksheet.getRow(tdHeaderRowIndex);
-      tdHeaderRowObj.getCell(1).fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FFFFCC00' } // Yellow color
-      };
-      
-      // Apply yellow background to TP header - use the stored row index
-      const tpHeaderRowObj = worksheet.getRow(tpHeaderRowIndex);
-      tpHeaderRowObj.getCell(1).fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FFFFCC00' } // Yellow color
-      };
 
-
-      
       // Format column widths for better readability
       worksheet.columns.forEach((column, index) => {
         let maxLength = 0;
@@ -727,29 +743,58 @@ function CalendarPageContent() {
       });
 
       // Apply yellow background to week headers
-      worksheet.getRow(21).eachCell((cell) => {
+      worksheet.getRow(21).eachCell((cell, colIndex) => {
         cell.font = boldStyle.font;
         cell.fill = {
           type: 'pattern',
           pattern: 'solid',
           fgColor: { argb: 'FFFFC04' } // Yellow color
         };
+        
+        // Enable text wrapping for week headers (starting from column 8)
+        if (colIndex >= 8) {
+          cell.alignment = {
+            vertical: 'middle',
+            horizontal: 'center',
+            wrapText: true
+          };
+        }
       });
-      worksheet.getRow(tdHeaderRowIndex).eachCell((cell) => {
+      
+      worksheet.getRow(tdHeaderRowIndex).eachCell((cell, colIndex) => {
         cell.font = boldStyle.font;
         cell.fill = {
           type: 'pattern',
           pattern: 'solid',
           fgColor: { argb: 'FFFFC04' } // Yellow color
         };
+        
+        // Enable text wrapping for week headers (starting from column 8)
+        if (colIndex >= 8) {
+          cell.alignment = {
+            vertical: 'middle',
+            horizontal: 'center',
+            wrapText: true
+          };
+        }
       });
-      worksheet.getRow(tpHeaderRowIndex).eachCell((cell) => {
+      
+      worksheet.getRow(tpHeaderRowIndex).eachCell((cell, colIndex) => {
         cell.font = boldStyle.font;
         cell.fill = {
           type: 'pattern',
           pattern: 'solid',
           fgColor: { argb: 'FFFFC04' } // Yellow color
         };
+        
+        // Enable text wrapping for week headers (starting from column 8)
+        if (colIndex >= 8) {
+          cell.alignment = {
+            vertical: 'middle',
+            horizontal: 'center',
+            wrapText: true
+          };
+        }
       });
 
       // Apply yellow background to headers "Jour", "Créneau", "Créneau non classique", "Enseignant", "Groupe/série", "Effectif", "Salle"
@@ -785,9 +830,17 @@ function CalendarPageContent() {
         worksheet.getCell(12+i, 9).fill = {
             type: 'pattern',
             pattern: 'solid',
-            fgColor: { argb: '98CC54' } // Yellow color
+            fgColor: { argb: '98CC54' } // Green color
           };
       }
+
+      // Apply red background tab ("TABLEAU A NE PAS MODIFIER")
+      worksheet.getCell(1, 11).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF0404' } // Yellow color
+      };
+
       // Apply borders to a range of cells
       const applyBordersToRange = (startRow,startCol,endRow,endCol ) => {
         for (let row = startRow; row <= endRow; row++) {
@@ -807,6 +860,68 @@ function CalendarPageContent() {
       applyBordersToRange(tdHeaderRowIndex,1, tpHeaderRowIndex-2,weeks.length+7);
       applyBordersToRange(tpHeaderRowIndex,1, worksheet.rowCount,weeks.length+7);
       applyBordersToRange(12,2,18,8);
+
+      worksheet.getCell(1, 11).font = boldWhiteStyle.font;
+
+      // Define which cells to exclude from center alignment - simplified to just row and col
+      const excludeFromCenterAlign = [
+        { row: 1, col: 1 }, // Mention
+        { row: 1, col: 2 }, // Layer name
+        { row: 2, col: 1 }, // Parcours
+        { row: 2, col: 2 }, // Tramme name
+        { row: 3, col: 1 }, // Code UE
+        { row: 3, col: 2 }, // UE name
+        { row: 9, col: 1 }, // UE mutualisée
+        { row: 9, col: 2 }, // NON
+        { row: 9, col: 3 }, // Si OUI indiquer
+        { row: 9, col: 5 }, // A renseigner
+        { row: 10, col: 1 }, // Responsable
+        { row: 10, col: 2 }, // Responsable name
+        { row: 12, col: 1 }  // Intervenants
+      ];
+
+      // Center all cell content except the excluded ones
+      worksheet.eachRow((row, rowNumber) => {
+        row.eachCell((cell, colNumber) => {
+          // Check if the current cell should be excluded from center alignment
+          const shouldExclude = excludeFromCenterAlign.some(
+            item => item.row === rowNumber && item.col === colNumber
+          );
+          
+          // Skip cells in week header rows that already have alignment set
+          const isWeekHeader = (rowNumber === 21 || rowNumber === tdHeaderRowIndex || 
+                              rowNumber === tpHeaderRowIndex) && colNumber >= 8;
+          
+          if (!shouldExclude && !isWeekHeader) {
+            // Apply center alignment for both horizontal and vertical
+            cell.alignment = {
+              horizontal: 'center',
+              vertical: 'middle'
+            };
+          }
+        });
+      });
+
+      // Fix alignment for merged cells that need to be left-aligned
+      const leftAlignedMergedCells = [
+        'B1',    // Layer name
+        'B2',    // Tramme name
+        'B3',    // UE name
+        'E9',    // "Si OUI indiquer les parcours"
+        'E9:W9', // The merged range
+        'B10',   // Responsable name
+        'B10:W10' // The merged range
+      ];
+
+      leftAlignedMergedCells.forEach(cellRef => {
+        const cell = worksheet.getCell(cellRef);
+        if (cell) {
+          cell.alignment = {
+            horizontal: 'left',
+            vertical: 'middle'
+          };
+        }
+      });
 
       // Apply bold and red style to specific text portions
       const specificTextCells = [
@@ -835,7 +950,11 @@ function CalendarPageContent() {
           ]
         };
       });
+
+        
+
     });
+
 
     // Save the Excel file
     workbook.xlsx.writeBuffer().then((buffer) => {
