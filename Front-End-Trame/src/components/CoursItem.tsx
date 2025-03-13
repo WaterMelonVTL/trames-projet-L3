@@ -25,6 +25,7 @@ function CoursItem(props: {
   cours: Course;
   onMouseDown: (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   créneau: { start: string, end: string }
+  trammeId: string | undefined;
 }): JSX.Element {
   // Use our centralized hooks
   const { data: ue, isLoading: isUeLoading } = useUE(props.cours.UEId);
@@ -175,6 +176,7 @@ function CoursItem(props: {
             cours={props.cours}
             close={() => setShowOption(false)}
             position={menuPosition}
+            trammeId={props.trammeId}
           />
         )
       }

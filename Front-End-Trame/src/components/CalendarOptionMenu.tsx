@@ -9,6 +9,7 @@ interface CalendarOptionMenuProps {
     setCours: React.Dispatch<React.SetStateAction<Course[]>>;
     close: () => void;
     position: { top: number, left: number };
+    trammeId: string | undefined;
 }
 
 export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
@@ -76,11 +77,19 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
     }
 
     // Handler for adding a professor (placeholder)
-    const addTeacher = () => {
+    const addTeacher = async () => {
         console.log(`Add teacher: ${teacherName} - ${teacherStatus}`);
-        // Reset fields
-        setTeacherName('');
-        setTeacherStatus('Permanent');
+        try {
+            await api.post('/profs', {
+                prof: {
+                    FullName: teacherName,
+                    Status: teacherStatus,
+                    TrammeId: props.trammeId
+                }
+            });
+        } catch (error) {
+            console.log(error);
+        }
     };
 
     const Separate = async (id: number) => {

@@ -54,6 +54,7 @@ app.use('/api/UEs', UERoutes);
 app.use('/api/cours', coursRoutes); 
 app.use('/api/groups', groupRoutes); // added new groups route
 
+
 // Function to print the number of requests every minute
 setInterval(() => {
     console.log(`Number of requests in the last minute: ${requestCount}`);
