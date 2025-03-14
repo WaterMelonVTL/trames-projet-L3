@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Course } from '../types/types';
+import { Course, Prof } from '../types/types';
 import Portal from './Portal';
 import {api} from '../public/api/api.js';
 import * as CalendarHooks from '../hooks/useCalendarData';
@@ -23,6 +23,13 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
     // Use the mutation hooks with the namespace
     const separateMutation = CalendarHooks.useSeparateCourse();
     const mergeMutation = CalendarHooks.useMergeCourse();
+
+    // pour le scenario du prof existant
+    const [isEditing, setIsEditing] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [existingProf, setExistingProf] = useState<Prof | null>(null);
+    const [profList, setProfList] = useState<Prof[]>([]);
+
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -78,19 +85,92 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
 
     // Handler for adding a professor (placeholder)
     const addTeacher = async () => {
-        console.log(`Add teacher: ${teacherName} - ${teacherStatus}`);
         try {
-            await api.post('/profs', {
-                prof: {
-                    FullName: teacherName,
-                    Status: teacherStatus,
-                    TrammeId: props.trammeId
-                }
-            });
+          const response = await api.post('/profs', {
+            prof: {
+              FullName: teacherName,
+              Status: teacherStatus,
+              TrammeId: props.trammeId,
+            },
+          });
+          console.log('Full response:', response);
+        console.log('Teacher added', response);
+          // Set the newly created teacher as the existing professor
+          setExistingProf(response);
+          // Optionally clear the dropdown list if needed:
+          setProfList([]);
         } catch (error) {
-            console.log(error);
+          console.error('Error adding teacher:', error);
         }
-    };
+      };
+      
+
+    // Update teacher
+    const updateTeacher = async () => {
+        if (!existingProf) return;
+        try {
+          // Call the PUT endpoint using the selected teacher's id
+          await api.put(`/profs/${existingProf.Id}`, {
+            prof: {
+              FullName: teacherName,
+              Status: teacherStatus,
+              TrammeId: props.trammeId,
+            },
+          });
+          console.log('Teacher updated successfully');
+          // Optionally update local state after successful update
+          setIsEditing(false);
+        } catch (error) {
+          console.error('Error updating teacher:', error);
+        }
+      };
+      
+
+    // const fetchProfs = async () => {
+    //     try {
+    //         // Use teacherName as the search query, defaulting to '%all%' if it's empty
+    //         const response = await api.get(
+    //             `/profs/search/${props.trammeId}/${teacherName || 'all'}`
+    //         );
+    //         const existingProfs = response.data;
+    //         if (existingProfs.length > 0) {
+    //             console.log('Prof already exists:', existingProfs[0]);
+    //             // Handle the case where the prof exists (e.g., display a message, update state, etc.)
+    //         } else {
+    //             // Proceed with creating the prof if none exists
+    //             await addTeacher();
+    //         }
+    //     } catch (error) {
+    //         console.error('Error fetching prof:', error);
+    //     }
+    // };
+    
+    useEffect(() => {
+        const fetchProfs = async () => {
+            try {
+                const response = await api.get(
+                    `/profs/search/${props.trammeId}/${searchQuery || 'all'}`
+                );
+                setProfList(response);
+                // Check for an exact match
+                const match = response.find(
+                    (prof: Prof) => prof.FullName.trim().toLowerCase() === teacherName.trim().toLowerCase()
+                );
+                if (match) {
+                    setExistingProf(match);
+                } else {
+                    setExistingProf(null);
+                }
+            } catch (error) {
+                console.error('Error fetching profs:', error);
+            }
+        };
+        console.log(profList);
+    
+        fetchProfs();
+    }, [searchQuery, props.trammeId, teacherName]);
+    
+    
 
     const Separate = async (id: number) => {
         try {
@@ -181,33 +261,77 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
                     </div>
 
                     {/* Professeur Section */}
-                    <div className="flex flex-col border p-3 rounded-md w-1/3">
-                        <h2 className="text-lg font-semibold text-gray-700 text-center mb-2">Professeur</h2>
+                    <div className="relative flex flex-col border p-3 rounded-md w-1/3">
+                    <h2 className="text-lg font-semibold text-gray-700 text-center mb-2">Professeur</h2>
+                    {existingProf && !isEditing ? (
+                        // Display mode: show existing professor's info with a "Modifier" button
                         <div className="flex flex-col gap-2">
-                            <input
-                                type="text"
-                                placeholder="Nom du professeur"
-                                value={teacherName}
-                                onChange={(e) => setTeacherName(e.target.value)}
-                                className="border p-1 rounded-md"
-                            />
-                            <select
-                                value={teacherStatus}
-                                onChange={(e) => setTeacherStatus(e.target.value)}
-                                className="border p-1 rounded-md"
-                            >
-                                <option value="Permanent">Permanent</option>
-                                <option value="Temporaire">Temporaire</option>
-                                <option value="doctorant">doctorant</option>
-                            </select>
-                            <button
-                                className="w-full py-1 rounded-md bg-indigo-500 text-white hover:bg-indigo-600 transition"
-                                onClick={addTeacher}
-                            >
-                                Ajouter
-                            </button>
+                        <p>Nom: {existingProf.FullName}</p>
+                        <p>Status: {existingProf.Status}</p>
+                        <button
+                            className="w-full py-1 rounded-md bg-indigo-500 text-white hover:bg-indigo-600 transition"
+                            onClick={() => setIsEditing(true)}
+                        >
+                            Modifier
+                        </button>
                         </div>
+                    ) : (
+                        // Edit/Add mode: show input fields and add/update button
+                        <div className="flex flex-col gap-2">
+                        <input
+                            type="text"
+                            placeholder="Nom du professeur"
+                            value={teacherName}
+                            onChange={(e) => {
+                                setTeacherName(e.target.value);
+                                setSearchQuery(e.target.value);
+                                // setExistingProf(null); // Reset the selected prof while typing
+                                setIsEditing(false);
+                            }}
+                            
+                            className="border p-1 rounded-md"
+                        />
+                        <select
+                            value={teacherStatus}
+                            onChange={(e) => setTeacherStatus(e.target.value)}
+                            className="border p-1 rounded-md"
+                        >
+                            <option value="Permanent">Permanent</option>
+                            <option value="Temporaire">Temporaire</option>
+                            <option value="doctorant">doctorant</option>
+                        </select>
+                        <button
+                            className="w-full py-1 rounded-md bg-indigo-500 text-white hover:bg-indigo-600 transition"
+                            onClick={existingProf ? updateTeacher : addTeacher}
+                        >
+                            {existingProf ? 'Modifier' : 'Ajouter'}
+                        </button>
+                        </div>
+                    )}
+
+                    {/* Dropdown list for search results */}
+                    {profList && profList.length > 0 && (
+                        <ul className="absolute z-10 bg-white border rounded-md w-full max-h-60 overflow-y-auto mt-1">
+                        {profList.map((prof) => (
+                            <li
+                            key={prof.Id}
+                            className="p-2 hover:bg-gray-100 cursor-pointer"
+                            onClick={() => {
+                                setTeacherName(prof.FullName);
+                                setTeacherStatus(prof.Status);
+                                setExistingProf(prof);
+                                setSearchQuery(''); // Clear the search query so the dropdown disappears and input isn't filled with the query text
+                                setProfList([]);
+                            }}
+                            
+                            >
+                            {prof.FullName} - {prof.Status}
+                            </li>
+                        ))}
+                        </ul>
+                    )}
                     </div>
+
 
                     {/* Avancé Section */}
                     <div className="flex flex-col border p-3 rounded-md w-1/3">
