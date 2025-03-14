@@ -27,6 +27,7 @@ function CoursItem(props: {
   créneau: { start: string, end: string }
   trammeId: string | undefined;
 }): JSX.Element {
+  
   // Use our centralized hooks
   const { data: ue, isLoading: isUeLoading } = useUE(props.cours.UEId);
   
@@ -159,7 +160,7 @@ function CoursItem(props: {
       
       <h1 className="text-xl font-bold">{ue.Name}</h1>
       <h1 className="text-base">{props.cours.Type}</h1>
-      <h1 className="text-xl">{props.cours.ProfFullName}</h1>
+      {/* <h1 className="text-xl">{props.cours.ProfFullName}</h1> */}
       <div className="flex space-x-2">
         {groupsToDisplay.map((group, index) => (
           <h1 key={index} className="text-base">
@@ -167,19 +168,19 @@ function CoursItem(props: {
           </h1>
         ))}
       </div>
-      {
-        showOption && (
-          <CalendarOptionMenu
-            setCours={props.setCours}
-            ue={ue}
-            setUe={() => {}} // No need for this now as we use the hook
-            cours={props.cours}
-            close={() => setShowOption(false)}
-            position={menuPosition}
-            trammeId={props.trammeId}
-          />
-        )
-      }
+      {showOption && (
+        <CalendarOptionMenu
+        key={`${props.cours.Id}-${props.cours.ProfId || 'none'}-${showOption}`}
+          isOpen={showOption}
+          cours={props.cours}
+          setCours={props.setCours}
+          close={() => setShowOption(false)}
+          position={menuPosition}
+          trammeId={props.trammeId}
+        />
+      )}
+
+
     </div>
   )
 }

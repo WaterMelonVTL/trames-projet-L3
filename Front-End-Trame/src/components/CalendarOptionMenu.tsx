@@ -1,4 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
+
 import { Course, Prof } from '../types/types';
 import Portal from './Portal';
 import {api} from '../public/api/api.js';
@@ -10,6 +13,7 @@ interface CalendarOptionMenuProps {
     close: () => void;
     position: { top: number, left: number };
     trammeId: string | undefined;
+    isOpen: boolean;
 }
 
 export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
@@ -30,6 +34,7 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
     const [existingProf, setExistingProf] = useState<Prof | null>(null);
     const [profList, setProfList] = useState<Prof[]>([]);
 
+    const queryClient = useQueryClient();
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -85,31 +90,58 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
 
     // Handler for adding a professor (placeholder)
     const addTeacher = async () => {
-        try {
-          const response = await api.post('/profs', {
-            prof: {
-              FullName: teacherName,
-              Status: teacherStatus,
-              TrammeId: props.trammeId,
-            },
+      try {
+        // Search for an existing professor with the same full name in the given tramme.
+        const searchResults = await api.get(
+          `/profs/search/${props.trammeId}/${teacherName}`
+        );
+        // Assume searchResults is an array of professors.
+        const existing = searchResults.find(
+          (p: Prof) => p.FullName.trim().toLowerCase() === teacherName.trim().toLowerCase()
+        );
+        if (existing) {
+          console.log("Professor already exists:", existing);
+          setExistingProf(existing);
+          // Update the course with the existing professor's Id.
+          const courseResponse = await api.put(`/cours/${props.cours.Id}`, {
+            course: { ProfId: existing.Id },
           });
-          console.log('Full response:', response);
-        console.log('Teacher added', response);
-          // Set the newly created teacher as the existing professor
-          setExistingProf(response);
-          // Optionally clear the dropdown list if needed:
-          setProfList([]);
-        } catch (error) {
-          console.error('Error adding teacher:', error);
+          console.log("Course updated with existing ProfId:", courseResponse);
+          return;
         }
-      };
+        
+        // If no existing professor is found, create a new one.
+        const response = await api.post("/profs", {
+          prof: {
+            FullName: teacherName,
+            Status: teacherStatus,
+            TrammeId: props.trammeId,
+          },
+        });
+        const newProf = response; // API returns the new professor object.
+        console.log("Teacher added", newProf);
+        setExistingProf(newProf);
+        setProfList([]);
+        
+        // Now update the course with the new professor's Id.
+        const courseResponse = await api.put(`/cours/${props.cours.Id}`, {
+          course: { ProfId: newProf.Id },
+        });
+        console.log("Course updated with new ProfId:", courseResponse);
+      } catch (error) {
+        console.error("Error adding teacher and updating course:", error);
+      }
+    };
+    
+      
+      
       
 
     // Update teacher
     const updateTeacher = async () => {
         if (!existingProf) return;
         try {
-          // Call the PUT endpoint using the selected teacher's id
+          // Update the existing professor
           await api.put(`/profs/${existingProf.Id}`, {
             prof: {
               FullName: teacherName,
@@ -117,58 +149,123 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
               TrammeId: props.trammeId,
             },
           });
-          console.log('Teacher updated successfully');
-          // Optionally update local state after successful update
+          console.log("Teacher updated successfully");
+      
+          const updatedProf = { ...existingProf, FullName: teacherName, Status: teacherStatus };
+      
+          // Update the course with the new professor info
+          await api.put(`/cours/${props.cours.Id}`, {
+            course: {
+              ProfId: updatedProf.Id,
+              ProfFullName: updatedProf.FullName,
+            },
+          });
+          console.log("Course updated with new professor:", updatedProf);
+      
+          // Update global state
+          props.setCours((prevCourses) =>
+            prevCourses.map(course =>
+              course.Id === props.cours.Id
+                ? { ...course, ProfId: updatedProf.Id, ProfFullName: updatedProf.FullName }
+                : course
+            )
+          );
+      
+          // Invalidate the cached professor data after updating,
+          // and trigger an immediate refetch.
+          if (props.cours.ProfId != null) {
+            await queryClient.invalidateQueries({ queryKey: ['prof', props.cours.ProfId] });
+            await queryClient.refetchQueries({ queryKey: ['prof', props.cours.ProfId] });
+          }
+      
+          // Update local state and exit edit mode
+          setExistingProf(updatedProf);
           setIsEditing(false);
         } catch (error) {
-          console.error('Error updating teacher:', error);
+          console.error("Error updating teacher and course:", error);
         }
       };
       
+      useEffect(() => {
+        console.log("CalendarOptionMenu - existingProf updated:", existingProf);
+      }, [existingProf]);
+      
+      
+      
+      
 
-    // const fetchProfs = async () => {
-    //     try {
-    //         // Use teacherName as the search query, defaulting to '%all%' if it's empty
-    //         const response = await api.get(
-    //             `/profs/search/${props.trammeId}/${teacherName || 'all'}`
-    //         );
-    //         const existingProfs = response.data;
-    //         if (existingProfs.length > 0) {
-    //             console.log('Prof already exists:', existingProfs[0]);
-    //             // Handle the case where the prof exists (e.g., display a message, update state, etc.)
-    //         } else {
-    //             // Proceed with creating the prof if none exists
-    //             await addTeacher();
-    //         }
-    //     } catch (error) {
-    //         console.error('Error fetching prof:', error);
-    //     }
-    // };
-    
-    useEffect(() => {
-        const fetchProfs = async () => {
+      useEffect(() => {
+        async function fetchCourseProf() {
+          if (props.cours.ProfId) {
             try {
-                const response = await api.get(
-                    `/profs/search/${props.trammeId}/${searchQuery || 'all'}`
-                );
-                setProfList(response);
-                // Check for an exact match
-                const match = response.find(
-                    (prof: Prof) => prof.FullName.trim().toLowerCase() === teacherName.trim().toLowerCase()
-                );
-                if (match) {
-                    setExistingProf(match);
-                } else {
-                    setExistingProf(null);
-                }
+              // Append a cache buster to force a fresh fetch
+              const prof = await api.get(
+                `/profs/${props.cours.ProfId}?cacheBuster=${Date.now()}`
+              );
+              console.log("Re-fetched professor:", prof);
+              setExistingProf(prof);
+              setTeacherName(prof.FullName);
+              setTeacherStatus(prof.Status);
             } catch (error) {
-                console.error('Error fetching profs:', error);
+              console.error("Error re-fetching professor for course:", error);
             }
+          } else {
+            setExistingProf(null);
+            setTeacherName("");
+            setTeacherStatus("Permanent");
+          }
+        }
+        if (props.isOpen) {
+          fetchCourseProf();
+        }
+      }, [props.isOpen, props.cours.ProfId, props.cours.ProfFullName]);
+      
+      
+
+      useEffect(() => {
+        console.log("CalendarOptionMenu mounted");
+        console.log(props.isOpen);
+
+        return () => {
+          console.log("CalendarOptionMenu unmounted");
+          console.log(props.isOpen);
         };
-        console.log(profList);
-    
+      }, []);
+
+      
+
+      useEffect(() => {
+        // Only trigger the search if searchQuery is not empty
+        if (!searchQuery.trim()) {
+          return;
+        }
+      
+        const fetchProfs = async () => {
+          try {
+            const response = await api.get(
+              `/profs/search/${props.trammeId}/${searchQuery}`
+            );
+            // Assuming response is the array of professors:
+            setProfList(response);
+            // Look for an exact match with teacherName (case-insensitive)
+            const match = response.find(
+              (prof: Prof) =>
+                prof.FullName.trim().toLowerCase() === teacherName.trim().toLowerCase()
+            );
+            if (match) {
+              setExistingProf(match);
+            } else {
+              // Only clear existingProf if the user is actively searching
+              setExistingProf(null);
+            }
+          } catch (error) {
+            console.error("Error fetching profs:", error);
+          }
+        };
+      
         fetchProfs();
-    }, [searchQuery, props.trammeId, teacherName]);
+      }, [searchQuery, props.trammeId, teacherName]);
+      
     
     
 
@@ -204,6 +301,10 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
         }
     };
 
+    useEffect(() => {
+        console.log("Updated existingProf:", existingProf);
+      }, [existingProf]);
+      
 
 
     return (
@@ -269,7 +370,7 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
                         <p>Nom: {existingProf.FullName}</p>
                         <p>Status: {existingProf.Status}</p>
                         <button
-                            className="w-full py-1 rounded-md bg-indigo-500 text-white hover:bg-indigo-600 transition"
+                            className="w-full py-1 rounded-md bg-green-500 text-white hover:bg-indigo-600 transition"
                             onClick={() => setIsEditing(true)}
                         >
                             Modifier
@@ -277,19 +378,18 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
                         </div>
                     ) : (
                         // Edit/Add mode: show input fields and add/update button
-                        <div className="flex flex-col gap-2">
+                        <div className="relative">
                         <input
                             type="text"
                             placeholder="Nom du professeur"
                             value={teacherName}
                             onChange={(e) => {
-                                setTeacherName(e.target.value);
-                                setSearchQuery(e.target.value);
-                                // setExistingProf(null); // Reset the selected prof while typing
-                                setIsEditing(false);
+                            setTeacherName(e.target.value);
+                            setSearchQuery(e.target.value);
+                            setExistingProf(null); // Reset selection on typing
+                            setIsEditing(false);
                             }}
-                            
-                            className="border p-1 rounded-md"
+                            className="border p-1 rounded-md w-full"
                         />
                         <select
                             value={teacherStatus}
@@ -304,33 +404,58 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
                             className="w-full py-1 rounded-md bg-indigo-500 text-white hover:bg-indigo-600 transition"
                             onClick={existingProf ? updateTeacher : addTeacher}
                         >
-                            {existingProf ? 'Modifier' : 'Ajouter'}
+                            {'Ajouter'}
                         </button>
-                        </div>
-                    )}
-
-                    {/* Dropdown list for search results */}
+                        {/* Dropdown list for search results */}
                     {profList && profList.length > 0 && (
-                        <ul className="absolute z-10 bg-white border rounded-md w-full max-h-60 overflow-y-auto mt-1">
-                        {profList.map((prof) => (
-                            <li
+                      <ul className="absolute top-full left-0 z-10 bg-white border rounded-md w-full max-h-60 overflow-y-auto mt-1">                        
+                      {profList.map((prof) => (
+                        <li
                             key={prof.Id}
                             className="p-2 hover:bg-gray-100 cursor-pointer"
-                            onClick={() => {
-                                setTeacherName(prof.FullName);
-                                setTeacherStatus(prof.Status);
+                            onClick={async () => {
+                            // Update local state
+                            setTeacherName(prof.FullName);
+                            setTeacherStatus(prof.Status);
+                            setExistingProf(prof);
+                            setSearchQuery(''); // Clear search so input shows selected teacher
+                            setProfList([]);    // Clear dropdown list
+
+                            // Update the Course with the selected professor
+                            try {
+                                const response = await api.put(`/cours/${props.cours.Id}`, {
+                                course: {
+                                    ProfId: prof.Id,
+                                    ProfFullName: prof.FullName,
+                                },
+                                });
                                 setExistingProf(prof);
-                                setSearchQuery(''); // Clear the search query so the dropdown disappears and input isn't filled with the query text
-                                setProfList([]);
+                                console.log(response);
+
+                                // Update global state so the course display updates
+                                props.setCours((prevCourses) => {
+                                    const updatedCourses = prevCourses.map(course =>
+                                      course.Id === props.cours.Id
+                                        ? { ...course, ProfId: existingProf.Id, ProfFullName: teacherName }
+                                        : course
+                                    );
+                                    console.log("Updated courses:", updatedCourses);
+                                    return updatedCourses;
+                                  });
+                            } catch (error) {
+                                console.error('Error updating course with new professor:', error);
+                            }
                             }}
-                            
-                            >
+                        >
                             {prof.FullName} - {prof.Status}
-                            </li>
+                        </li>
                         ))}
-                        </ul>
+                    </ul>
+                    )}
+                        </div>
                     )}
                     </div>
+
 
 
                     {/* Avancé Section */}
