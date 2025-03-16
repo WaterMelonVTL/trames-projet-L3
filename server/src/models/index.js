@@ -271,6 +271,39 @@ const DesignatedDays = sequelize.define('DesignatedDays', {
     }
 });
 
+//Define the Events model
+const Events = sequelize.define('Events', {
+    Id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+    },
+    Name: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    Date: {
+        type: DataTypes.DATE,
+        allowNull: false
+    },
+    StartHour: {
+        type: DataTypes.TIME,
+        allowNull: false
+    },
+    EndHour: {
+        type: DataTypes.TIME,
+        allowNull: false
+    },
+    TrammeId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Tramme,
+            key: 'Id'
+        }
+    }
+});
+
 // Updated CoursePool model definition
 const CoursePool = sequelize.define('CoursePool', {
 	UEId: {
@@ -307,8 +340,8 @@ const CoursePool = sequelize.define('CoursePool', {
 
 // UE relationships
 UE.belongsToMany(Prof, { as: 'Responsibles', through: 'UE_Responsibles', foreignKey: 'UEId' });
-UE.hasMany(Course, { foreignKey: 'UEId' });  // Add this line
-Course.belongsTo(UE, { foreignKey: 'UEId' }); // Add this line
+UE.hasMany(Course, { foreignKey: 'UEId', onDelete: 'CASCADE' });  // Added onDelete: 'CASCADE'
+Course.belongsTo(UE, { foreignKey: 'UEId' }); 
 
 // Course relationships
 Course.belongsToMany(Prof, { as: 'Teachers', through: 'Course_Teachers', foreignKey: 'CourseId' });
@@ -374,5 +407,6 @@ export {
     Tokens,
     Group,
     DesignatedDays,
-    CoursePool
+    CoursePool,
+    Events
 };

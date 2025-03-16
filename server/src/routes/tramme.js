@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { catchError } from '../utils/HandleErrors.js';
-import { Tramme, Sequelize, Layer, Course, Group, UE, DesignatedDays, CoursePool, Prof } from '../models/index.js';
+import { Tramme, Sequelize, Layer, Course, Group, UE, DesignatedDays, CoursePool, Prof, Events } from '../models/index.js';
 import chalk from 'chalk';
 import { json } from 'sequelize';
 
@@ -58,18 +58,18 @@ router.put('/addDesignatedDays', async (req, res) => {
 // Get designated days by trammeId
 router.get('/:trammeId/designatedDays', async (req, res) => {
     try {
-      const { trammeId } = req.params;
+        const { trammeId } = req.params;
 
-      const designatedDays = await DesignatedDays.findAll({
-        where: { TrammeId: trammeId }
-      });
-      return res.json(designatedDays);
+        const designatedDays = await DesignatedDays.findAll({
+            where: { TrammeId: trammeId }
+        });
+        return res.json(designatedDays);
     } catch (error) {
-      console.error("Error fetching designated days:", error);
-      res.status(500).json({ error: "Internal Server Error" });
+        console.error("Error fetching designated days:", error);
+        res.status(500).json({ error: "Internal Server Error" });
     }
-  });
-  
+});
+
 
 // Get all trammes
 router.get('/', async (req, res) => {
@@ -204,13 +204,13 @@ router.get('/is-dts/:trammeId/:date', async (req, res) => {
 // Add new endpoint to get duplication progress
 router.get('/duplicate-progress/:trammeId', async (req, res) => {
     const trammeId = req.params.trammeId;
-    
+
     if (duplicationProgress[trammeId]) {
         res.json(duplicationProgress[trammeId]);
     } else {
-        res.json({ 
+        res.json({
             state: 'idle',
-            percentage: 0, 
+            percentage: 0,
             currentLayer: null,
             percentageLayer: 0,
             percentageTotal: 0
@@ -271,12 +271,16 @@ async function clearCoursesFromTramme(trammeId) {
 // Update the duplicate route to call the clearCoursesFromTramme function
 router.post('/duplicate/:id', async (req, res) => {
 
-    
-    const designatedDaysRecords = await DesignatedDays.findAll({ where: { TrammeId: req.params.id } });
-    let daysToSkip = designatedDaysRecords.map(record => record.Day);
+
+
 
     // Initialize progress tracking
     const id = req.params.id;
+    if (!id) {
+        res.status(400).send('Id is required');
+        return;
+    }
+
     duplicationProgress[id] = {
         state: 'initialisation',
         percentage: 0,
@@ -285,14 +289,20 @@ router.post('/duplicate/:id', async (req, res) => {
         percentageTotal: 5 // Start at 5% for initialization
     };
 
+    const designatedDaysRecords = await DesignatedDays.findAll({ where: { TrammeId: id } });
+    let daysToSkip = designatedDaysRecords.map(record => record.Day);
+
+    let totalEvents = await Events.findAll({ where: { TrammeId: id } });
+    if (!totalEvents ) {
+        console.log("Total events found : ", totalEvents.length);
+        totalEvents = [];
+    }
+
     if (!daysToSkip) {
         daysToSkip = []; // au cas ou
     }
-    
-    if (!id) {
-        res.status(400).send('Id is required');
-        return;
-    }
+
+
 
     // Clear existing courses before duplication
     duplicationProgress[id].state = 'suppression des cours...';
@@ -306,11 +316,11 @@ router.post('/duplicate/:id', async (req, res) => {
     }
 
     const [trammeError, trammeData] = await catchError(Tramme.findByPk(id)); // On récupère la tramme à étendre
-    
+
     // Update progress state
     duplicationProgress[id].state = 'chargement des données';
     duplicationProgress[id].percentageTotal = 10;
-    
+
     let startDate = trammeData.StartDate;
     let endDate = trammeData.EndDate;
     if (!startDate || !endDate) {
@@ -320,10 +330,10 @@ router.post('/duplicate/:id', async (req, res) => {
     }
     startDate = new Date(startDate);
     endDate = new Date(endDate);
-    
+
     // Calculate the total duration for percentage calculations
     const totalDateDuration = endDate.getTime() - startDate.getTime();
-    
+
     if (trammeError) {
         duplicationProgress[id].state = 'erreur';
         console.error(trammeError);
@@ -375,22 +385,22 @@ router.post('/duplicate/:id', async (req, res) => {
         res.status(404).send('Layers not found');
         return;
     }
-    
+
     // Update progress - starting generation
     duplicationProgress[id].state = 'préparation de la génération';
     duplicationProgress[id].percentageTotal = 20;
-    
+
     let totcourses = 0;
     const totalLayers = layers.length;
 
     for (let layerIndex = 0; layerIndex < layers.length; layerIndex++) {
         const layer = layers[layerIndex];
-        
+
         // Update progress for this layer
         duplicationProgress[id].currentLayer = layer.Name || `Couche ${layerIndex + 1}`;
         duplicationProgress[id].state = 'génération des jours';
         duplicationProgress[id].percentageLayer = 0;
-        
+
         // ...existing code...
         console.log(chalk.red(" Duplicating layer : ", JSON.stringify(layer.dataValues.Name)));
         const dedupedCourses = new Map();
@@ -407,7 +417,7 @@ router.post('/duplicate/:id', async (req, res) => {
 
         // Update progress - loading UEs
         duplicationProgress[id].state = 'chargement des UEs';
-        
+
         const [ueError, ues] = await catchError(UE.findAll({ // On récupère les UEs associées à ce layer pour pouvoir initialiser les heures restantes
             where: {
                 LayerId: layer.Id
@@ -429,9 +439,9 @@ router.post('/duplicate/:id', async (req, res) => {
 
         // Filter out special groups
         const regularGroups = layer.Groups.filter(group => !group.isSpecial);
-        
+
         // Initialize remaining hours per UE and regular group
-        let RemainingHours = {}; 
+        let RemainingHours = {};
         ues.forEach(ue => {
             RemainingHours[ue.Id] = {};
             regularGroups.forEach(group => {
@@ -463,10 +473,10 @@ router.post('/duplicate/:id', async (req, res) => {
                 }
             }
         }
-        
+
         // Update progress - generating days
         duplicationProgress[id].state = 'génération des jours';
-        
+
         // l'idée c'est d'avoir un tableau avec les cours de chaque jour de la semaine, 
         // pour pouvoir à partir d'une date savoir quels cours il y a ce jour là 
         // (en récupérant son jour de la semaine)
@@ -474,7 +484,7 @@ router.post('/duplicate/:id', async (req, res) => {
         console.log(chalk.red("Current date : ", currentDate));
         console.log(chalk.red("End date : ", endDate));
         console.log(chalk.red("Cours de la semaine : ", JSON.stringify(weekCourses)));
-        
+
         // Calculate total normal groups in the current layer
         let totalNormalGroupsInLayer = layer.Groups.filter(g => !g.isSpecial).length;
         if (totalNormalGroupsInLayer === 0) totalNormalGroupsInLayer = layer.Groups.length;
@@ -491,12 +501,17 @@ router.post('/duplicate/:id', async (req, res) => {
             // Update layer percentage based on date progress
             const elapsedTime = currentDate.getTime() - startDate.getTime();
             duplicationProgress[id].percentageLayer = Math.min(100, Math.round((elapsedTime / totalDateDuration) * 100));
-            
+
+            const eventsOnDate = totalEvents.filter(event => {
+                const eventDate = new Date(event.Date);
+                return eventDate.toDateString() === currentDate.toDateString();
+            });
+
             // Calculate total percentage considering layers
             // 85% of the process is generating the days, 15% is other tasks (init, finalization)
             const layerContribution = (layerIndex + duplicationProgress[id].percentageLayer / 100) / totalLayers;
             duplicationProgress[id].percentageTotal = Math.min(95, Math.round(20 + layerContribution * 75));
-            
+
             // Check designated days using local date format
             if (daysToSkip && daysToSkip.includes(formatLocalDate(currentDate))) {
                 currentDate.setDate(currentDate.getDate() + 1);
@@ -505,32 +520,52 @@ router.post('/duplicate/:id', async (req, res) => {
             let currentDay = currentDate.getDay();
             const courseofDay = weekCourses[currentDay];
             console.log(chalk.red("Current day : ", currentDay, " ", currentDate));
-            
+
             // ...existing course creation code...
             for (const course of courseofDay) {
                 // Get all groups associated with this course
                 const allGroupsAssociated = course.Groups;
-                
+
                 // Filter out special groups
                 const groupsAssociated = allGroupsAssociated.filter(group => !group.isSpecial);
-                
+
                 // Skip if no regular groups are associated with this course
                 if (groupsAssociated.length === 0) {
                     continue;
                 }
-                
+
                 // Find groups that have enough remaining hours
                 const eligibleGroups = groupsAssociated.filter(group => {
-                    return RemainingHours[course.UEId] && 
-                           RemainingHours[course.UEId][group.Id] && 
-                           RemainingHours[course.UEId][group.Id][course.Type] >= course.length;
+                    return RemainingHours[course.UEId] &&
+                        RemainingHours[course.UEId][group.Id] &&
+                        RemainingHours[course.UEId][group.Id][course.Type] >= course.length;
                 });
-                
+
                 // Skip if no groups have enough remaining hours
                 if (eligibleGroups.length === 0) {
                     continue;
                 }
-                
+
+                if (eventsOnDate && eventsOnDate.length > 0 && eventsOnDate.some(event => {
+                    // Convert times to comparable values (minutes since midnight)
+                    const eventStart = timeToMinutes(event.StartHour);
+                    const eventEnd = timeToMinutes(event.EndHour);
+                    const courseStart = timeToMinutes(course.StartHour);
+                    const courseEnd = courseStart + (course.length * 60); // length is in hours, convert to minutes
+
+                    // Check for any overlap scenario
+                    return (
+                        // Event starts during course
+                        (eventStart >= courseStart && eventStart < courseEnd) ||
+                        // Event ends during course
+                        (eventEnd > courseStart && eventEnd <= courseEnd) ||
+                        // Event completely contains course
+                        (eventStart <= courseStart && eventEnd >= courseEnd)
+                    );
+                })) {
+                    continue;
+                }
+
                 // Create the course
                 const [courseError, newCourse] = await catchError(Course.create({
                     UEId: course.UEId,
@@ -540,18 +575,18 @@ router.post('/duplicate/:id', async (req, res) => {
                     StartHour: course.StartHour,
                     ProfId: course.ProfId,
                 }));
-                
+
                 if (courseError) {
                     console.error(courseError);
                     res.status(500).send('Internal Server Error');
                     return;
                 }
                 totcourses++;
-                
+
                 // Add all eligible groups to the course
                 const eligibleGroupIds = eligibleGroups.map(group => group.Id);
                 const [courseGroupError, courseGroup] = await catchError(newCourse.setGroups(eligibleGroupIds));
-                
+
                 if (courseGroupError) {
                     console.log(chalk.red("Error setting groups :"));
                     console.error(courseGroupError);
@@ -559,7 +594,7 @@ router.post('/duplicate/:id', async (req, res) => {
                     res.status(500).send('Internal Server Error');
                     return;
                 }
-                
+
                 // Deduct hours from each eligible group
                 eligibleGroups.forEach(group => {
                     if (RemainingHours[course.UEId] && RemainingHours[course.UEId][group.Id]) {
@@ -582,11 +617,11 @@ router.post('/duplicate/:id', async (req, res) => {
             for (const [groupId, hours] of Object.entries(groupHours)) {
                 // Update the course pool for CM
                 const [coursePoolCMError, coursePoolCM] = await catchError(
-                    CoursePool.upsert({ 
-                        UEId: ueId, 
-                        GroupId: groupId, 
-                        Type: "CM", 
-                        Volume: hours.CM 
+                    CoursePool.upsert({
+                        UEId: ueId,
+                        GroupId: groupId,
+                        Type: "CM",
+                        Volume: hours.CM
                     })
                 );
                 if (coursePoolCMError) {
@@ -594,14 +629,14 @@ router.post('/duplicate/:id', async (req, res) => {
                     res.status(500).send('Internal Server Error');
                     return;
                 }
-                
+
                 // Update the course pool for TD
                 const [coursePoolTDError, coursePoolTD] = await catchError(
-                    CoursePool.upsert({ 
-                        UEId: ueId, 
-                        GroupId: groupId, 
-                        Type: "TD", 
-                        Volume: hours.TD 
+                    CoursePool.upsert({
+                        UEId: ueId,
+                        GroupId: groupId,
+                        Type: "TD",
+                        Volume: hours.TD
                     })
                 );
                 if (coursePoolTDError) {
@@ -609,14 +644,14 @@ router.post('/duplicate/:id', async (req, res) => {
                     res.status(500).send('Internal Server Error');
                     return;
                 }
-                
+
                 // Update the course pool for TP
                 const [coursePoolTPError, coursePoolTP] = await catchError(
-                    CoursePool.upsert({ 
-                        UEId: ueId, 
-                        GroupId: groupId, 
-                        Type: "TP", 
-                        Volume: hours.TP 
+                    CoursePool.upsert({
+                        UEId: ueId,
+                        GroupId: groupId,
+                        Type: "TP",
+                        Volume: hours.TP
                     })
                 );
                 if (coursePoolTPError) {
@@ -627,20 +662,22 @@ router.post('/duplicate/:id', async (req, res) => {
             }
         }
     } // finito
-    
+
     // Final progress update
     duplicationProgress[id].state = 'finalisation';
     duplicationProgress[id].currentLayer = null;
     duplicationProgress[id].percentageTotal = 100;
-    
+
     console.log(chalk.red("Sending start date : ", startDate));
     console.log(chalk.red("Total courses created : ", totcourses));
-    
+
     // Clear progress tracking data after a short delay (let client fetch the final 100%)
     setTimeout(() => {
         delete duplicationProgress[id];
     }, 10000);
-    
+
+    console.log(chalk.red("totalEvents : ", JSON.stringify(totalEvents)));
+
     res.json(startDate); // On renvoie la date de début pour pouvoir bouger directement dessus dans le client
 });
 
@@ -698,26 +735,26 @@ function getMonday(date) {
 // New endpoint to export Excel data for a tramme
 router.post('/export-excel', async (req, res) => {
     const { trammeId, layerId, startDate, endDate } = req.body;
-    
+
     if (!trammeId || !layerId || !startDate || !endDate) {
         return res.status(400).json({ error: 'Missing required parameters' });
     }
-    
+
     try {
         const startMonday = getMonday(new Date(startDate));
         const endMonday = getMonday(new Date(endDate));
         const weeks = [];
-        
+
         let currentMonday = new Date(startMonday);
         while (currentMonday <= endMonday) {
             const weekClasses = [];
-            
+
             // Fetch classes for each day of the week (-1 is Sunday, 0-5 are Monday-Saturday)
             for (let i = -1; i < 6; i++) {
                 const date = new Date(currentMonday);
                 date.setDate(currentMonday.getDate() + i);
                 const formattedDate = date.toISOString().split('T')[0];
-                
+
                 // Get courses for this day - modified query to use the proper association
                 const [dayCoursesErr, dayCourses] = await catchError(Course.findAll({
                     include: [
@@ -741,42 +778,48 @@ router.post('/export-excel', async (req, res) => {
                         Date: formattedDate
                     }
                 }));
-                
+
                 if (dayCoursesErr) {
                     console.error("Error fetching courses for Excel export:", dayCoursesErr);
                     return res.status(500).json({ error: "Error fetching courses" });
                 }
-                
+
                 // Format the results
                 const formattedCourses = dayCourses.map(course => {
                     const courseObj = course.get({ plain: true });
                     const ueData = courseObj.UE;
                     const endTime = calculateEndTime(course.StartHour, course.length);
-                    
+
                     return {
                         ...courseObj,
                         UEName: ueData.Name,
-                        ProfFullName: courseObj.Teachers && courseObj.Teachers.length > 0 
-                            ? courseObj.Teachers[0].FullName 
+                        ProfFullName: courseObj.Teachers && courseObj.Teachers.length > 0
+                            ? courseObj.Teachers[0].FullName
                             : (course.ProfId ? 'Enseignant ID: ' + course.ProfId : null),
                         EndHour: endTime
                     };
                 });
-                
+
                 weekClasses.push(formattedCourses);
             }
-            
+
             weeks.push(weekClasses);
-            
+
             // Move to next week
             currentMonday.setDate(currentMonday.getDate() + 7);
         }
-        
+
         return res.json(weeks);
     } catch (error) {
         console.error("Error in Excel export:", error);
         return res.status(500).json({ error: "Internal server error" });
     }
 });
+
+// Helper function to convert time string (HH:MM) to minutes since midnight
+function timeToMinutes(timeStr) {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return (hours * 60) + minutes;
+}
 
 export default router;
