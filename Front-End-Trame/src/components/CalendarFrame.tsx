@@ -199,7 +199,7 @@ function CalendarFrame({
                                                         key={cours.Id.toString()}
                                                         cours={cours}
                                                         setCours={setCours}
-
+                                                        trammeId={trammeId}
                                                         créneau={crenaux[colIndex]}
                                                         onMouseDown={(e) => {
                                                             if (e.button === 0) {
