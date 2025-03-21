@@ -88,3 +88,11 @@ export type CoursePool = {
     UE: UE;
 }
 
+export type Event = {
+    Id: number;
+    Name: string;
+    Date: string;
+    StartHour: string;
+    EndHour: string;
+    TrammeId: number;
+};

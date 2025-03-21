@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import CoursItem from './CoursItem';
 import { Course } from '../types/types';
-import {api} from '../public/api/api.js'; // ensure your api module is imported
+import { api } from '../public/api/api.js'; // ensure your api module is imported
 
 interface CalendarFrameProps {
     date: Date;
@@ -29,15 +29,20 @@ function CalendarFrame({
     onDeleteCourse
 }: CalendarFrameProps) {
     const [designatedDays, setDesignatedDays] = useState<{ [key: string]: boolean }>({});
+    const [events, setEvents] = useState<any[]>([]);
     const daysOfWeek = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi']; // Add samedi if you want to display it
     const rows = Array.from({ length: 7 }, (_, i) => i + 1);
-    const crenaux = [{ 'start': '8h', 'end': '9h30' }, { 'start': '9h45', 'end': '11h15' }, { 'start': '11h30', 'end': '13h' }, { 'start': '13h15', 'end': '14h45' }, { 'start': '15h00', 'end': '16h30' }, { 'start': '16h45', 'end': '18h15' }, { 'start': '18h30', 'end': '20h00' }];
+    const crenaux = [{ 'start': '8h00', 'end': '9h30' }, { 'start': '9h45', 'end': '11h15' }, { 'start': '11h30', 'end': '13h00' }, { 'start': '13h15', 'end': '14h45' }, { 'start': '15h00', 'end': '16h30' }, { 'start': '16h45', 'end': '18h15' }, { 'start': '18h30', 'end': '20h00' }];
     const creneauHeight = 6;
     const breakHeight = creneauHeight * 15 / 90;
 
     const defaultDate = date;
 
     useEffect(() => {
+        // Reset events and designated days when date or trammeId changes
+        setEvents([]);
+        setDesignatedDays({});
+        
         // On date or trammeId change, check designated days for each displayed day
         if (!trammeId) return;
         daysOfWeek.forEach((_, index) => {
@@ -47,6 +52,14 @@ function CalendarFrame({
                 .then(() => {
                     console.log("dateKey", dateKey);
                     setDesignatedDays(prev => ({ ...prev, [dateKey]: true }));
+                })
+                .catch(() => {
+                    // Do nothing on error
+                });
+            api.get(`/events/date/${trammeId}/${dateKey}`)
+                .then((eventsForDay: Event[]) => {
+                    console.log("eventsForDay", eventsForDay);
+                    setEvents(prev => [...prev, ...eventsForDay]);
                 })
                 .catch(() => {
                     // Do nothing on error
@@ -67,12 +80,40 @@ function CalendarFrame({
         return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
     }
 
+    function normalizeTimeFormat(time: string): string {
+        // Check if the time is already in HH:MM or HH:MM:SS format
+        if (time.includes(':')) {
+            // Ensure it has seconds
+            return time.includes(':', 3) ? time : `${time}:00`;
+        }
+        // Otherwise, it's in the hourh00 format, so use formatTime
+        return formatTime(time);
+    }
+
     function isTimeInCreneau(time: string, start: string, end: string): boolean {
 
         const timeDate = new Date(`1970-01-01T${time}`);
         const startDate = new Date(`1970-01-01T${formatTime(start)}`);
         const endDate = new Date(`1970-01-01T${formatTime(end)}`);
         return timeDate >= startDate && timeDate < endDate;
+    }
+
+    function isIncludedInTimeCreneau(eventStart: string, eventEnd: string, creneauStart: string, creneauEnd: string): boolean {
+        console.log("eventStart", eventStart);
+        console.log("eventEnd", eventEnd);
+        console.log("creneauStart", creneauStart);
+        console.log("creneauEnd", creneauEnd);
+        
+        const eventStartDate = new Date(`1970-01-01T${normalizeTimeFormat(eventStart)}`);
+        const eventEndDate = new Date(`1970-01-01T${normalizeTimeFormat(eventEnd)}`);
+        const creneauStartDate = new Date(`1970-01-01T${normalizeTimeFormat(creneauStart)}`);
+        const creneauEndDate = new Date(`1970-01-01T${normalizeTimeFormat(creneauEnd)}`);
+        
+        return (
+            (eventStartDate >= creneauStartDate && eventStartDate < creneauEndDate) || // Event starts during creneau
+            (eventEndDate > creneauStartDate && eventEndDate <= creneauEndDate) ||     // Event ends during creneau
+            (eventStartDate <= creneauStartDate && eventEndDate >= creneauEndDate)     // Event encompasses creneau
+        );
     }
 
     function sameDay(d1: Date, d2: Date): boolean {
@@ -85,9 +126,9 @@ function CalendarFrame({
         if (onDeleteCourse && id) {
             // Find the course in the fetched courses
             const course = fetchedCourse.find(c => String(c.Id) === String(id));
-            
+
             console.log(`Attempting to remove course ${id}, found in fetched courses: ${!!course}`);
-            
+
             if (course) {
                 // Success path - we found the course
                 console.log(`Removing course ${id} for ${forMoving ? 'moving' : 'deletion'}`);
@@ -95,10 +136,10 @@ function CalendarFrame({
             } else {
                 console.error(`Course ${id} not found in fetchedCourse array of length ${fetchedCourse.length}`);
                 console.log("Available course IDs:", fetchedCourse.map(c => `${c.Id} (${typeof c.Id})`).join(", "));
-                
+
                 // IMPROVED FALLBACK: Use current date from the UI calendar
                 let fallbackDate;
-                
+
                 // Try to get a sensible date from the current UI view
                 if (defaultDate) {
                     fallbackDate = defaultDate.toISOString().split('T')[0];
@@ -108,7 +149,7 @@ function CalendarFrame({
                     fallbackDate = new Date().toISOString().split('T')[0];
                     console.log(`Using today's date for fallback: ${fallbackDate}`);
                 }
-                
+
                 // Try deletion with the fallback date
                 onDeleteCourse(id, fallbackDate, forMoving);
             }
@@ -166,7 +207,7 @@ function CalendarFrame({
                                     <div
                                         key={colIndex}
                                         className=" border border-black hover:bg-gray-300 cursor-pointer relative bg-white flex"
-                                        style={{ 
+                                        style={{
                                             height: `${creneauHeight}rem`,
                                             background: isDesignated ? 'repeating-linear-gradient(45deg, #d3d3d3, #d3d3d3 10px, #fff 10px, #fff 20px)' : 'white'
                                         }}
@@ -199,22 +240,22 @@ function CalendarFrame({
                                                         key={cours.Id.toString()}
                                                         cours={cours}
                                                         setCours={setCours}
-
+                                                        trammeId={trammeId}
                                                         créneau={crenaux[colIndex]}
                                                         onMouseDown={(e) => {
                                                             if (e.button === 0) {
                                                                 console.log("Dragging course:", cours);
-                                                                
+
                                                                 // Ensure course ID is treated consistently
                                                                 const courseId = cours.Id;
                                                                 if (!courseId) {
                                                                     console.error("Attempted to move/delete course with undefined ID");
                                                                     return;
                                                                 }
-                                                                
+
                                                                 // Set the current course first before deletion
-                                                                setCurrentCours({...cours});
-                                                                
+                                                                setCurrentCours({ ...cours });
+
                                                                 // Small delay to ensure the current course is set before deletion
                                                                 setTimeout(() => {
                                                                     RemoveCours(courseId, true);
@@ -237,6 +278,35 @@ function CalendarFrame({
                                                 );
                                             }
                                         })}
+                                        {
+                                            events.map((event) => {
+                                                const eventDate = new Date(event.Date);
+
+                                        
+                                                const eventStartTime = event.StartHour;
+                                                const eventEndTime = event.EndHour;
+                                                if (!sameDay(eventDate, currentDate)) {
+                                                    return null;
+                                                }
+                                                else if (
+                                                    isIncludedInTimeCreneau(eventStartTime, eventEndTime, crenaux[colIndex].start, crenaux[colIndex].end)  
+                                                ) {
+                                                    console.log("Event Date : ", eventDate);
+                                                    console.log("Current Date : ", currentDate);
+                                                    return (
+                                                        <div
+                                                            key={event.Id+JSON.stringify(colIndex)}
+                                                            className="absolute top-0 left-0 right-0 bottom-0 bg-gray-300 bg-opacity-50"
+                                                        >
+                                                            <div className="flex flex-col justify-center items-center h-full">
+                                                                <div>{event.Name}</div>
+                                                                <div>{event.StartHour} - {event.EndHour}</div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                }
+                                            })
+                                        }
                                     </div>
                                     <div style={{ height: `${breakHeight}rem` }}></div>
                                 </>

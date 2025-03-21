@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-
+import React, { useState, useEffect, useRef } from 'react'
+import bgMusic from '../assets/lingan-guli-don-pollo.mp3'
 interface LoadingAnimationProps {
   colors: string[]
   texte: string,
@@ -9,7 +9,7 @@ interface LoadingAnimationProps {
 function LoadingAnimation({ colors, texte, percentage }: LoadingAnimationProps) {
   // Initialize state for 4 dots, using first colors from prop array
   const [dotColors, setDotColors] = useState<string[]>(colors)
-
+  const bgMusicRef = useRef<HTMLAudioElement | null>(null)
   useEffect(() => {
     const interval = setInterval(() => {
       setDotColors(prev =>
@@ -24,8 +24,25 @@ function LoadingAnimation({ colors, texte, percentage }: LoadingAnimationProps) 
     return () => clearInterval(interval)
   }, [colors])
 
+    // Initialize audio on component mount
+    useEffect(() => {
+      // Create audio element for background music
+      bgMusicRef.current = new Audio(bgMusic)
+      bgMusicRef.current.loop = true
+      bgMusicRef.current.volume = 0.3
+      bgMusicRef.current.play().catch(err => console.log('Auto-play prevented:', err))
+      
+      // Clean up audio on component unmount
+      return () => {
+        bgMusicRef.current?.pause()
+      }
+    }, [])
+
   return (
     <div className="flex flex-col items-center justify-center h-screen">
+
+      <img src="https://tenor.com/view/lingang-guli-guli-catfish-meme-gif-18405001805509666562.gif" alt="loading" className='mb-8'/>
+      {/* Dots animation */}
       <div className="relative w-24 h-24 mb-5">
         <div
           style={{ backgroundColor: dotColors[0] }}
@@ -46,7 +63,7 @@ function LoadingAnimation({ colors, texte, percentage }: LoadingAnimationProps) 
       </div>
       <div
         className="text-xl drop-shadow-md text-gray-800 mb-4"
-        >
+      >
         {texte}
       </div>
 

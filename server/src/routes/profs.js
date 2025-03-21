@@ -9,7 +9,7 @@ const router = express.Router();
 
 // Create a new prof
 router.post('/', async (req, res) => {
-    const { prof, user } = req.body;
+    const { prof } = req.body;
     console.log(prof);
     const [profError, profData] = await catchError(Prof.create(prof));
     if (profError) {
@@ -32,20 +32,19 @@ router.get('/', async (req, res) => {
 });
 
 // Search for profs
-router.get('/search/:Context/:searchQuery', async (req, res) => {
+router.get('/search/:trammeId/:searchQuery', async (req, res) => {
     console.log(chalk.blue("searching for profs"));
-    const searchQuery = req.params.searchQuery;
-    const Context = req.params.Context;
+    const { trammeId, searchQuery } = req.params;
     let profs;
     let profError;
     if (searchQuery === '%all%') {
         [profError, profs] = await catchError(Prof.findAll({
-            where: { ContextId: Context }
+            where: { TrammeId: trammeId }
         }));
     } else {
         [profError, profs] = await catchError(Prof.findAll({
             where: {
-                ContextId: Context,
+                TrammeId: trammeId,
                 [Sequelize.Op.or]: [
                     { FullName: { [Sequelize.Op.like]: `%${searchQuery}%` } }
                 ]

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { DateRange } from 'react-date-range';
 import DatePicker, {DateObject} from "react-multi-date-picker";
 import 'react-date-range/dist/styles.css'; // main style file
 import 'react-date-range/dist/theme/default.css'; // theme css
-import { enGB } from 'date-fns/locale';
 import { api } from '../public/api/api.js'
 import Icon from 'react-multi-date-picker/components/icon';
+import MyCalendar from './MyCalendar.js';
+
+
+
 
 interface DateStageProps {
     trammeId: string;
@@ -15,15 +17,10 @@ interface DateStageProps {
 }
 
 const ST_DateStage: React.FC<DateStageProps> = ({ trammeId }) => {
-
-  const [dateRange, setDateRange] = useState({
-  startDate: new Date(),
-  endDate: new Date(),
-  key: 'selection'
-  });
-
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date());
   const [designatedDays, setDesignatedDays] = useState<Date[]>([]);  
-
+  const [showCalendar, setShowCalendar] = useState(false);
   // API pour mettre à jour les dates lors de chaque modification
   const updateDateRange = async (newStartDate: Date, newEndDate: Date) => {
     try {
@@ -37,12 +34,45 @@ const ST_DateStage: React.FC<DateStageProps> = ({ trammeId }) => {
     }
   };
 
-  // Handler pour le changement des dates
-  const handleUpdateDateRange = (ranges: any) => {
-    const {startDate, endDate} = ranges.selection;
-    setDateRange({...dateRange, startDate, endDate});
-    updateDateRange(startDate, endDate);
+   // Handler for the date input changes
+   const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newStart = new Date(e.target.value);
+    setStartDate(newStart);
+    updateDateRange(newStart, endDate);
   };
+
+  const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEnd = new Date(e.target.value);
+    setEndDate(newEnd);
+    updateDateRange(startDate, newEnd);
+  };
+
+  const fetchDates = async () => {
+    try {
+      const tramme = await api.get(`/trammes/${trammeId}`);
+      console.log('Raw API dates:', tramme.StartDate, tramme.EndDate);
+      const newStartDate = new Date(tramme.StartDate);
+      const newEndDate = new Date(tramme.EndDate);
+  
+      if (isNaN(newStartDate.getTime()) || newStartDate.getTime() === 0) {
+        console.warn("Invalid or default start date from API, using today's date");
+        setStartDate(new Date());
+      } else {
+        setStartDate(newStartDate);
+      }
+  
+      if (isNaN(newEndDate.getTime()) || newEndDate.getTime() === 0) {
+        console.warn("Invalid or default end date from API, using today's date");
+        setEndDate(new Date());
+      } else {
+        setEndDate(newEndDate);
+      }
+    } catch (error) {
+      console.error('Error fetching tramme date data:', error);
+    }
+  };
+  
+
 
   // Fonction helper pour générer les jours banalisés dans une intervalle lorsque l'option de "range" est utilisée
   function expandDates(start: Date, end: Date): Date[] {
@@ -119,20 +149,6 @@ const ST_DateStage: React.FC<DateStageProps> = ({ trammeId }) => {
       updateDesignatedDays(finalDates);
     }
 
-    const fetchDates = async () => {
-      try {
-        const tramme = await api.get(`/trammes/${trammeId}`);
-        setDateRange({
-          startDate: new Date(tramme.StartDate),
-          endDate: new Date(tramme.EndDate),
-          key: 'selection'
-        });
-
-      } catch (error) {
-        console.error('Error fetching tramme date data:', error);
-      }
-    };
-
     async function fetchDesignatedDays() {
       try {
         const dDaysResponse = await api.get(`/trammes/${trammeId}/designatedDays`);
@@ -148,15 +164,6 @@ const ST_DateStage: React.FC<DateStageProps> = ({ trammeId }) => {
       fetchDesignatedDays();
     }, [trammeId]);
 
-    // First, group designated days by month/year:
-    const groupedDays = designatedDays.reduce((groups, date) => {
-      // Create a key like "February 2025"
-      const key = date.toLocaleString("default", { month: "long", year: "numeric" });
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(date);
-      return groups;
-    }, {} as Record<string, Date[]>);
-
     // Function to clear designated days
     const clearDesignatedDays = async () => {
       try {
@@ -171,15 +178,30 @@ const ST_DateStage: React.FC<DateStageProps> = ({ trammeId }) => {
 
   return (
     <div className="flex flex-col items-center gap-6 mb-8">
-        {/* Calendrier pour dates de début et de fin */}
+    {/* Date inputs for start and end */}
+    <div className="flex flex-col items-center gap-4">
+      <h2 className="text-lg font-semibold">Sélectionnez la date de début et la date de fin</h2>
+      <div className="flex gap-4">
         <div>
-            <h2 className="text-lg font-semibold mb-2">Veuillez sélectionner les dates de début et de fin</h2>
-            <DateRange
-                ranges={[dateRange]}
-                onChange={(handleUpdateDateRange)}
-                locale={enGB}
-            />
+          <label className="block mb-1">Date de début:</label>
+          <input
+            type="date"
+            value={startDate.toISOString().split('T')[0]}
+            onChange={handleStartDateChange}
+            className="border p-2 rounded"
+          />
         </div>
+        <div>
+          <label className="block mb-1">Date de fin:</label>
+          <input
+            type="date"
+            value={endDate.toISOString().split('T')[0]}
+            onChange={handleEndDateChange}
+            className="border p-2 rounded"
+          />
+        </div>
+      </div>
+    </div>
 
         {/* Calendrier des jours banalisés */}
 
@@ -192,34 +214,34 @@ const ST_DateStage: React.FC<DateStageProps> = ({ trammeId }) => {
                 sort
                 render={<Icon/>}
                 weekStartDayIndex={1}
-                
             />
+
+
         </div>
 
-        <div className="w-full">
-        <p className="font-medium mb-2">Votre sélection :</p>
-        <div className="flex flex-row gap-6 overflow-x-auto justify-center">
-          {Object.entries(groupedDays).map(([month, days]) => (
-            <div key={month} className="flex flex-col items-center">
-              <h3 className="font-bold text-lg">{month}</h3>
-              <ul className="list-none">
-                {days
-                  .sort((a, b) => a.getTime() - b.getTime())
-                  .map((d, idx) => (
-                    <li key={idx} className="py-1">{d.toLocaleDateString()}</li>
-                  ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </div>
+
+      {/* New calendar view to display the selected days */}
       <button
+        onClick={() => setShowCalendar(!showCalendar)}
+        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+      >
+        {showCalendar ? 'Masquer le calendrier' : 'Afficher le calendrier'}
+      </button>
+      {showCalendar && (
+        <div className="mt-4">
+          <MyCalendar designatedDays={designatedDays} />
+          <button
         onClick={clearDesignatedDays}
-        className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+        className="mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
         >
           Tout supprimer
         </button>
 
+        </div>
+        
+      )}
+
+      
     </div>
 );
 
