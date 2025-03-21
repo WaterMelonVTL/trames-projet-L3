@@ -741,27 +741,66 @@ router.post('/export-excel', async (req, res) => {
     }
 
     try {
+        console.log(`Export Excel request - trammeId: ${trammeId}, layerId: ${layerId}`);
+        console.log(`Date range: ${startDate} to ${endDate}`);
+        
         const startMonday = getMonday(new Date(startDate));
         const endMonday = getMonday(new Date(endDate));
+        console.log(`Start Monday: ${startMonday.toISOString()}, End Monday: ${endMonday.toISOString()}`);
+        
         const weeks = [];
+
+        // Verify the layer exists
+        const [layerErr, layer] = await catchError(Layer.findByPk(layerId));
+        if (layerErr || !layer) {
+            console.error("Layer not found:", layerErr);
+            return res.status(404).json({ error: "Layer not found" });
+        }
+        
+        // Get UEs for the layer to verify we have data
+        const [uesErr, ues] = await catchError(UE.findAll({ where: { LayerId: layerId } }));
+        if (uesErr) {
+            console.error("Error fetching UEs:", uesErr);
+            return res.status(500).json({ error: "Error fetching UEs" });
+        }
+        
+        console.log(`Found ${ues.length} UEs for layer ${layerId}`);
+        if (ues.length === 0) {
+            return res.status(404).json({ error: "No UEs found for this layer" });
+        }
+        
+        const ueIds = ues.map(ue => ue.Id);
+        console.log(`UE IDs: ${ueIds.join(', ')}`);
 
         let currentMonday = new Date(startMonday);
         while (currentMonday <= endMonday) {
+            console.log(`Processing week starting: ${currentMonday.toISOString()}`);
             const weekClasses = [];
 
             // Fetch classes for each day of the week (-1 is Sunday, 0-5 are Monday-Saturday)
             for (let i = -1; i < 6; i++) {
                 const date = new Date(currentMonday);
                 date.setDate(currentMonday.getDate() + i);
+                
+                // Create start and end of day for range query
+                const startOfDay = new Date(date);
+                startOfDay.setHours(0, 0, 0, 0);
+                
+                const endOfDay = new Date(date);
+                endOfDay.setHours(23, 59, 59, 999);
+                
                 const formattedDate = date.toISOString().split('T')[0];
+                console.log(`Fetching courses for day: ${formattedDate}`);
 
-                // Get courses for this day - modified query to use the proper association
+                // Get courses for this day - use date range instead of exact match
                 const [dayCoursesErr, dayCourses] = await catchError(Course.findAll({
                     include: [
                         {
                             model: UE,
                             required: true,
-                            where: { LayerId: layerId }
+                            where: { 
+                                Id: { [Sequelize.Op.in]: ueIds }
+                            }
                         },
                         {
                             model: Group,
@@ -775,7 +814,9 @@ router.post('/export-excel', async (req, res) => {
                         }
                     ],
                     where: {
-                        Date: formattedDate
+                        Date: {
+                            [Sequelize.Op.between]: [startOfDay, endOfDay]
+                        }
                     }
                 }));
 
@@ -784,35 +825,49 @@ router.post('/export-excel', async (req, res) => {
                     return res.status(500).json({ error: "Error fetching courses" });
                 }
 
+                console.log(`Found ${dayCourses.length} courses for ${formattedDate}`);
+
                 // Format the results
-                const formattedCourses = dayCourses.map(course => {
+                const formattedCourses = dayCourses.map(async course => {
                     const courseObj = course.get({ plain: true });
                     const ueData = courseObj.UE;
                     const endTime = calculateEndTime(course.StartHour, course.length);
 
+                    // Check if we need to fetch professor info
+                    let profFullName = null;
+                    if (courseObj.Teachers && courseObj.Teachers.length > 0) {
+                        profFullName = courseObj.Teachers[0].FullName;
+                    } else if (course.ProfId) {
+                        // Fetch the professor info if we have an ID but no Teachers association
+                        const [profErr, professor] = await catchError(Prof.findByPk(course.ProfId));
+                        profFullName = profErr ? `Unknown (ID: ${course.ProfId})` : professor.FullName;
+                    }
+
                     return {
                         ...courseObj,
                         UEName: ueData.Name,
-                        ProfFullName: courseObj.Teachers && courseObj.Teachers.length > 0
-                            ? courseObj.Teachers[0].FullName
-                            : (course.ProfId ? 'Enseignant ID: ' + course.ProfId : null),
+                        ProfFullName: profFullName,
                         EndHour: endTime
                     };
                 });
 
-                weekClasses.push(formattedCourses);
+                // Since we're using async/await in the map function, we need to wait for all promises to resolve
+                const resolvedCourses = await Promise.all(formattedCourses);
+                weekClasses.push(resolvedCourses);
             }
 
             weeks.push(weekClasses);
+            console.log(`Week completed with ${weekClasses.flat().length} total courses`);
 
             // Move to next week
             currentMonday.setDate(currentMonday.getDate() + 7);
         }
 
+        console.log(`Export completed with ${weeks.length} weeks of data`);
         return res.json(weeks);
     } catch (error) {
         console.error("Error in Excel export:", error);
-        return res.status(500).json({ error: "Internal server error" });
+        return res.status(500).json({ error: "Internal server error", details: error.message });
     }
 });
 
