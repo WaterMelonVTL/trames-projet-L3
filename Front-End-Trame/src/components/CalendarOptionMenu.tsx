@@ -12,7 +12,7 @@ interface CalendarOptionMenuProps {
     setCours: React.Dispatch<React.SetStateAction<Course[]>>;
     close: () => void;
     position: { top: number, left: number };
-    trammeId: string | undefined;
+    trameId: string | undefined;
     isOpen: boolean;
 }
 
@@ -91,9 +91,9 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
     // Handler for adding a professor (placeholder)
     const addTeacher = async () => {
       try {
-        // Search for an existing professor with the same full name in the given tramme.
+        // Search for an existing professor with the same full name in the given trame.
         const searchResults = await api.get(
-          `/profs/search/${props.trammeId}/${teacherName}`
+          `/profs/search/${props.trameId}/${teacherName}`
         );
         // Assume searchResults is an array of professors.
         const existing = searchResults.find(
@@ -115,7 +115,7 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
           prof: {
             FullName: teacherName,
             Status: teacherStatus,
-            TrammeId: props.trammeId,
+            TrameId: props.trameId,
           },
         });
         const newProf = response; // API returns the new professor object.
@@ -146,7 +146,7 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
             prof: {
               FullName: teacherName,
               Status: teacherStatus,
-              TrammeId: props.trammeId,
+              TrameId: props.trameId,
             },
           });
           console.log("Teacher updated successfully");
@@ -243,7 +243,7 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
         const fetchProfs = async () => {
           try {
             const response = await api.get(
-              `/profs/search/${props.trammeId}/${searchQuery}`
+              `/profs/search/${props.trameId}/${searchQuery}`
             );
             // Assuming response is the array of professors:
             setProfList(response);
@@ -264,7 +264,7 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
         };
       
         fetchProfs();
-      }, [searchQuery, props.trammeId, teacherName]);
+      }, [searchQuery, props.trameId, teacherName]);
       
     
     
@@ -274,7 +274,7 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
             // Use the mutation hook instead of direct API call
             await separateMutation.mutateAsync({
                 courseId: id,
-                trammeId: props.cours.TrammeId,
+                trameId: props.cours.TrameId,
                 layerId: props.cours.LayerId
             });
             
@@ -290,7 +290,7 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
             // Use the mutation hook instead of direct API call
             await mergeMutation.mutateAsync({
                 courseId: id,
-                trammeId: props.cours.TrammeId,
+                trameId: props.cours.TrameId,
                 layerId: props.cours.LayerId
             });
             

@@ -426,21 +426,21 @@ router.get('/search/layer/:Layer/:searchQuery', async (req, res) => {
     }
 });
 
-// Search for courses by Tramme ID and search query
-router.get('/search/tramme/:id/:searchQuery', async (req, res) => {
+// Search for courses by Trame ID and search query
+router.get('/search/trame/:id/:searchQuery', async (req, res) => {
     const searchQuery = req.params.searchQuery;
     const id = req.params.id;
     let courses, courseError;
     if (searchQuery === 'all') {
         [courseError, courses] = await catchError(Course.findAll({
             where: {
-                TrammeId: id
+                TrameId: id
             }
         }));
     } else {
         [courseError, courses] = await catchError(Course.findAll({
             where: {
-                TrammeId: id,
+                TrameId: id,
                 [Sequelize.Op.or]: [
                     { Name: { [Sequelize.Op.like]: `%${searchQuery}%` } }
                 ]
@@ -482,10 +482,10 @@ router.get('/layer/:id', async (req, res) => {
     }
 });
 
-// Get all Courses of a specific Tramme
-router.get('/tramme/:id', async (req, res) => {
+// Get all Courses of a specific Trame
+router.get('/trame/:id', async (req, res) => {
     const id = req.params.id;
-    const [courseError, courses] = await catchError(Course.findAll({ where: { TrammeId: id } }));
+    const [courseError, courses] = await catchError(Course.findAll({ where: { TrameId: id } }));
     if (courseError) {
         console.error(courseError);
         res.status(500).send('Internal Server Error');
@@ -526,8 +526,8 @@ router.get('/UE/:id', async (req, res) => {
 });
 
 // Modified: get all Courses by date (apply group filtering based on LayerId using belongsToMany relation)
-router.get('/date/:TrammeId/:LayerId/:date', async (req, res) => {
-    const { TrammeId, LayerId, date } = req.params;
+router.get('/date/:TrameId/:LayerId/:date', async (req, res) => {
+    const { TrameId, LayerId, date } = req.params;
 
     /* EVENTUELLEMENT OPTIMISER AVEC : 
         SELECT c.*
@@ -542,7 +542,7 @@ router.get('/date/:TrammeId/:LayerId/:date', async (req, res) => {
         let groupIds = [];
 
         if (LayerId === 'all') {
-            const layers = await Layer.findAll({ where: { TrammeId } });
+            const layers = await Layer.findAll({ where: { TrameId } });
             if (!layers || layers.length === 0) return res.json([]);
             for (const layer of layers) {
                 const groups = await layer.getGroups();

@@ -4,11 +4,11 @@ import * as XLSX from 'xlsx'  // make sure to install xlsx package
 import EditUeModal from './EditUeModal';
 
 interface UeStageProps {
-  trammeId: string;
+  trameId: string;
   index: number;
 }
 
-const ST_UeStage: React.FC<UeStageProps> = ({ trammeId, index }) => {
+const ST_UeStage: React.FC<UeStageProps> = ({ trameId, index }) => {
   // New state for current layer selection
   const [layers, setLayers] = useState<any[]>([])
   const [currentLayerId, setCurrentLayerId] = useState<string>('')
@@ -25,7 +25,7 @@ const ST_UeStage: React.FC<UeStageProps> = ({ trammeId, index }) => {
   const [ueColor, setUeColor] = useState<string>('#FFFFFF')
   const [ueProfResponsable, setUeProfResponsable] = useState<string>('')
   const [ues, setUes] = useState<any[]>([])
-  const [tramme, setTramme] = useState<any | null>(null)
+  const [trame, setTrame] = useState<any | null>(null)
   const [editingUE, setEditingUE] = useState<any | null>(null);
 
   // New states for manual UE creation inputs
@@ -44,7 +44,7 @@ const ST_UeStage: React.FC<UeStageProps> = ({ trammeId, index }) => {
   // Fetch layers and set current layer from index (similar to group stage)
   useEffect(() => {
     const fetchLayers = async () => {
-      const response = await fetch(`http://localhost:3000/api/layers/tramme/${trammeId}?withGroups=true`)
+      const response = await fetch(`http://localhost:3000/api/layers/trame/${trameId}?withGroups=true`)
       if (response.ok) {
         const data = await response.json()
         setLayers(data)
@@ -55,7 +55,7 @@ const ST_UeStage: React.FC<UeStageProps> = ({ trammeId, index }) => {
       }
     }
     fetchLayers()
-  }, [trammeId, index])
+  }, [trameId, index])
 
   // Fetch UEs for the current layer
   const fetchUes = async (layerId: string) => {
@@ -68,21 +68,21 @@ const ST_UeStage: React.FC<UeStageProps> = ({ trammeId, index }) => {
     }
   }
 
-  const fetchTramme = async () => {
+  const fetchTrame = async () => {
     try {
-      const response = await fetch(`http://localhost:3000/api/trammes/${trammeId}`)
+      const response = await fetch(`http://localhost:3000/api/trames/${trameId}`)
       if (response.ok) {
-        const fTramme = await response.json();
-        setTramme(fTramme);
+        const fTrame = await response.json();
+        setTrame(fTrame);
       }
     } catch (error) {
-      console.error('Error fetching tramme name:', error)
+      console.error('Error fetching trame name:', error)
     }
   }
 
   useEffect(() => {
-    fetchTramme()
-  }, [trammeId])
+    fetchTrame()
+  }, [trameId])
 
   useEffect(() => {
     if (currentLayerId) {

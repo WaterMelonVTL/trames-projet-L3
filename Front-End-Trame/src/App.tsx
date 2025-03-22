@@ -5,7 +5,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import CalendarPage from './pages/CalendarPage';
 //import Snowfall from 'react-snowfall'
-import SetupTramme from './pages/SetupTramme';
+import SetupTrame from './pages/SetupTrame';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Create a client
@@ -29,7 +29,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path='/calendar/:id' element={<CalendarPage />} />
             <Route path="/edit">
-              <Route path="tramme/:id" element={<SetupTramme />} />
+              <Route path="trame/:id" element={<SetupTrame />} />
             </Route>
           </Routes>
         </Router>

@@ -16,7 +16,7 @@ export type User = {
 
 // Removed obsolete Context type & Room type
 
-export type Tramme = {
+export type Trame = {
     Id: number;
     Name: string;
     Owner: number;
@@ -27,7 +27,7 @@ export type Tramme = {
 export type Layer = {
     Id: number;
     Name: string;
-    TrammeId: number;
+    TrameId: number;
     Color: string;
 };
 
@@ -35,7 +35,7 @@ export type Prof = {
     Id: number;
     FullName: string;
     Status: string;
-    TrammeId: number;
+    TrameId: number;
 };
 
 export type UE = {
@@ -58,7 +58,7 @@ export interface Course {
   Date: string | Date;
   StartHour: string;
   length: number;
-  TrammeId: number;
+  TrameId: number;
   LayerId: number;
   ProfId?: number | null;
   Groups?: Group[];
@@ -94,5 +94,5 @@ export type Event = {
     Date: string;
     StartHour: string;
     EndHour: string;
-    TrammeId: number;
+    TrameId: number;
 };

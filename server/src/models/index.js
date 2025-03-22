@@ -38,8 +38,8 @@ const User = sequelize.define('User', {
     },
 });
 
-// Define Tramme model
-const Tramme = sequelize.define('Tramme', {
+// Define Trame model
+const Trame = sequelize.define('Trame', {
     Id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -78,11 +78,11 @@ const Layer = sequelize.define('Layer', {
         type: DataTypes.STRING,
         allowNull: false
     },
-    TrammeId: {
+    TrameId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: Tramme,
+            model: Trame,
             key: 'Id'
         }
     },
@@ -126,11 +126,11 @@ const Prof = sequelize.define('Prof', {
         allowNull: false,
         defaultValue: 'Enseignant Titulaire'
     },
-    TrammeId: {
+    TrameId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: Tramme,
+            model: Trame,
             key: 'Id'
         }
     }
@@ -261,11 +261,11 @@ const DesignatedDays = sequelize.define('DesignatedDays', {
         type: DataTypes.DATEONLY,
         allowNull: false,
     },
-    TrammeId: {
+    TrameId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: Tramme,
+            model: Trame,
             key: 'Id'
         }
     }
@@ -294,11 +294,11 @@ const Events = sequelize.define('Events', {
         type: DataTypes.TIME,
         allowNull: false
     },
-    TrammeId: {
+    TrameId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: Tramme,
+            model: Trame,
             key: 'Id'
         }
     }
@@ -347,14 +347,14 @@ Course.belongsTo(UE, { foreignKey: 'UEId' });
 Course.belongsToMany(Prof, { as: 'Teachers', through: 'Course_Teachers', foreignKey: 'CourseId' });
 Prof.belongsToMany(Course, { as: 'Courses', through: 'Course_Teachers', foreignKey: 'ProfId' });
 
-// Tramme relationships
-Tramme.hasMany(Layer, { foreignKey: 'TrammeId' });
-Layer.belongsTo(Tramme, { foreignKey: 'TrammeId' });
-Tramme.hasMany(Prof, { foreignKey: 'TrammeId' });
-Prof.belongsTo(Tramme, { foreignKey: 'TrammeId' });
+// Trame relationships
+Trame.hasMany(Layer, { foreignKey: 'TrameId' });
+Layer.belongsTo(Trame, { foreignKey: 'TrameId' });
+Trame.hasMany(Prof, { foreignKey: 'TrameId' });
+Prof.belongsTo(Trame, { foreignKey: 'TrameId' });
 
-User.hasMany(Tramme, { foreignKey: 'Owner' });
-Tramme.belongsTo(User, { foreignKey: 'Owner' });
+User.hasMany(Trame, { foreignKey: 'Owner' });
+Trame.belongsTo(User, { foreignKey: 'Owner' });
 
 // group relationships
 Group.belongsToMany(Layer, { through: 'Layer_Groups', foreignKey: 'GroupId' });
@@ -363,7 +363,7 @@ Course.belongsToMany(Group, { through: 'Course_Groups', foreignKey: 'CourseId' }
 Group.belongsToMany(Course, { through: 'Course_Groups', foreignKey: 'GroupId' });
 
 // // DesignatedDays relationships
-Tramme.hasMany(DesignatedDays, { foreignKey: 'TrammeId' });
+Trame.hasMany(DesignatedDays, { foreignKey: 'TrameId' });
 
 
 /* Note :  (Group, Layer) = N-N can use those : 
@@ -399,7 +399,7 @@ export {
     Sequelize,
     sequelize,
     User,
-    Tramme,
+    Trame,
     Layer,
     Prof,
     UE,

@@ -9,7 +9,7 @@ interface CalendarFrameProps {
     currentCours: Course | null;
     setCours: (ecu: Course[] | null) => void;
     setCurrentCours: (ecu: Course | null) => void;
-    trammeId: string | undefined;
+    trameId: string | undefined;
     AddCours: (cours: Course, date: string, time: string) => void;
     color: string;
     setPoolRefreshCounter: React.Dispatch<React.SetStateAction<number>>;
@@ -22,7 +22,7 @@ function CalendarFrame({
     currentCours,
     setCours,
     setCurrentCours,
-    trammeId,
+    trameId,
     AddCours,
     color,
     setPoolRefreshCounter,
@@ -39,16 +39,16 @@ function CalendarFrame({
     const defaultDate = date;
 
     useEffect(() => {
-        // Reset events and designated days when date or trammeId changes
+        // Reset events and designated days when date or trameId changes
         setEvents([]);
         setDesignatedDays({});
         
-        // On date or trammeId change, check designated days for each displayed day
-        if (!trammeId) return;
+        // On date or trameId change, check designated days for each displayed day
+        if (!trameId) return;
         daysOfWeek.forEach((_, index) => {
             const currentDate = getDateForDay(index);
             const dateKey = currentDate.toISOString().split('T')[0];
-            api.get(`/trammes/is-dts/${trammeId}/${dateKey}`)
+            api.get(`/trames/is-dts/${trameId}/${dateKey}`)
                 .then(() => {
                     console.log("dateKey", dateKey);
                     setDesignatedDays(prev => ({ ...prev, [dateKey]: true }));
@@ -56,7 +56,7 @@ function CalendarFrame({
                 .catch(() => {
                     // Do nothing on error
                 });
-            api.get(`/events/date/${trammeId}/${dateKey}`)
+            api.get(`/events/date/${trameId}/${dateKey}`)
                 .then((eventsForDay: Event[]) => {
                     console.log("eventsForDay", eventsForDay);
                     setEvents(prev => [...prev, ...eventsForDay]);
@@ -67,7 +67,7 @@ function CalendarFrame({
         });
         console.log("designatedDays", designatedDays);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [date, trammeId]);
+    }, [date, trameId]);
 
     function getDateForDay(jour: number): Date {
         const date = new Date(defaultDate);
@@ -240,7 +240,7 @@ function CalendarFrame({
                                                         key={cours.Id.toString()}
                                                         cours={cours}
                                                         setCours={setCours}
-                                                        trammeId={trammeId}
+                                                        trameId={trameId}
                                                         créneau={crenaux[colIndex]}
                                                         onMouseDown={(e) => {
                                                             if (e.button === 0) {

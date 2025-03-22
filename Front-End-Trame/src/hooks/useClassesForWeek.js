@@ -3,11 +3,11 @@ import { api } from '../public/api/api';
 import { getMonday } from './useCalendarData';
 
 // Enhanced hook for fetching classes for a week with better caching
-export function useClassesForWeek(monday, trammeId, layerId) {
+export function useClassesForWeek(monday, trameId, layerId) {
   return useQuery({
-    queryKey: ['classes', 'week', trammeId, layerId, monday ? monday.toISOString().split('T')[0] : null],
+    queryKey: ['classes', 'week', trameId, layerId, monday ? monday.toISOString().split('T')[0] : null],
     queryFn: async () => {
-      if (!monday || !trammeId || !layerId) return [];
+      if (!monday || !trameId || !layerId) return [];
       
       console.log(`Fetching classes for week: ${monday.toISOString().split('T')[0]}`);
       
@@ -18,7 +18,7 @@ export function useClassesForWeek(monday, trammeId, layerId) {
         date.setDate(monday.getDate() + i);
         const dateStr = date.toISOString().split('T')[0];
         
-        classPromises.push(api.cache.getClassesForDate(trammeId, layerId, dateStr));
+        classPromises.push(api.cache.getClassesForDate(trameId, layerId, dateStr));
       }
       
       try {
@@ -41,7 +41,7 @@ export function useClassesForWeek(monday, trammeId, layerId) {
         return [];
       }
     },
-    enabled: !!trammeId && !!layerId && !!monday,
+    enabled: !!trameId && !!layerId && !!monday,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }

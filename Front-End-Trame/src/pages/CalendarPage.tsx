@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import CalendarFrame from '../components/CalendarFrame.js'
 import CalendarCoursSelection from '../components/CalendarCoursSelection.js'
 import EcuItem from '../components/EcuItem.js';
-import { Course, UE, Layer, Tramme } from '../types/types.js';
+import { Course, UE, Layer, Trame } from '../types/types.js';
 import { useLocation, useSearchParams } from 'react-router-dom'; // <-- added useSearchParams
 import CalendarLayerSelection from '../components/CalendarLayerSelection.js';
 import { api } from '../public/api/api.js'; // <-- added api import
@@ -10,7 +10,7 @@ import CalendarPoolSelection from '../components/CalendarPoolSelection.js';
 import ExcelJS from 'exceljs';
 import LoadingAnimation from '../components/LoadingAnimation.js';
 import {
-  useTramme,
+  useTrame,
   useLayers,
   useUEsByLayer,
   useGroupsByLayer,
@@ -47,7 +47,7 @@ function CalendarPageContent() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   const location = useLocation();
-  const trammeId = location.pathname.split('/').pop() || '';
+  const trameId = location.pathname.split('/').pop() || '';
 
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [selectedCourseType, setSelectedCourseType] = useState<string | null>(null);
@@ -57,8 +57,8 @@ function CalendarPageContent() {
   const [loadingPercentage, setLoadingPercentage] = useState<number | undefined>(undefined);
 
   // Use React Query hooks for data fetching
-  const { data: trammeData, isLoading: isTrammeLoading } = useTramme(trammeId);
-  const { data: layers = [], isLoading: isLayersLoading } = useLayers(trammeId);
+  const { data: trameData, isLoading: isTrameLoading } = useTrame(trameId);
+  const { data: layers = [], isLoading: isLayersLoading } = useLayers(trameId);
   const updateLayerMutation = useUpdateLayer();
 
   // Set initial layer ID when layers are loaded
@@ -88,7 +88,7 @@ function CalendarPageContent() {
   const {
     data: weekClasses = [],
     isLoading: isClassesLoading
-  } = useClassesForWeek(defaultDate, trammeId, currentLayerId);
+  } = useClassesForWeek(defaultDate, trameId, currentLayerId);
 
   // Filter courses by selected group and course type
   const filteredCours = React.useMemo(() => {
@@ -162,7 +162,7 @@ function CalendarPageContent() {
         },
         groups: selectedGroups,
         separate: (course.Type === 'TD' || course.Type === 'TP') && course.Id === -1,
-        trammeId,
+        trameId,
         layerId: currentLayerId,
         isMoving,
         originalId: course.originalId
@@ -189,7 +189,7 @@ function CalendarPageContent() {
 
       deleteCourseMutation.mutate({
         courseId,
-        trammeId,
+        trameId,
         layerId: currentLayerId,
         date,
         isMoving: forMoving,
@@ -238,21 +238,21 @@ function CalendarPageContent() {
   }
 
   const goToFirstWeek = () => {
-    if (trammeData) updateDate(getMonday(new Date(trammeData.StartDate)));
+    if (trameData) updateDate(getMonday(new Date(trameData.StartDate)));
   }
 
   const goToLastWeek = () => {
-    if (trammeData) updateDate(getMonday(new Date(trammeData.EndDate)));
+    if (trameData) updateDate(getMonday(new Date(trameData.EndDate)));
   }
 
   async function duplicate() {
-    setIsLoading("Tramme en cours de génération");
+    setIsLoading("Trame en cours de génération");
     setLoadingPercentage(0);
     
     // Start a polling interval to check progress
     const progressInterval = setInterval(async () => {
       try {
-        const progressData = await api.get(`/trammes/duplicate-progress/${trammeId}`);
+        const progressData = await api.get(`/trames/duplicate-progress/${trameId}`);
         if (progressData) {
           // Update percentage for progress bar
           setLoadingPercentage(progressData.percentageTotal || 0);
@@ -314,8 +314,8 @@ function CalendarPageContent() {
     }, 500); // Check every 500ms
     
     try {
-      await api.delete("/trammes/clear-courses/" + trammeId);
-      let newDate = await api.post(`/trammes/duplicate/${trammeId}`);
+      await api.delete("/trames/clear-courses/" + trameId);
+      let newDate = await api.post(`/trames/duplicate/${trameId}`);
       
       // Clear the interval once the main request completes
       clearInterval(progressInterval);
@@ -334,7 +334,7 @@ function CalendarPageContent() {
 
     } catch (error) {
       clearInterval(progressInterval);
-      console.error("Error duplicating tramme:", error);
+      console.error("Error duplicating trame:", error);
       setIsLoading("Erreur lors de la génération");
       setTimeout(() => setIsLoading(null), 3000);
     }
@@ -368,24 +368,24 @@ function CalendarPageContent() {
 
   // Display loading animation if data is loading
   const layerColors = layers.map((layer) => layer.Color);
-  if (isLoading || isTrammeLoading || isLayersLoading) {
+  if (isLoading || isTrameLoading || isLayersLoading) {
     return <LoadingAnimation texte={isLoading || "Chargement..."} colors={layerColors} percentage={loadingPercentage}/>;
   }
 
   const handleExportWeeks = async () => {
-    if (!trammeData) {
-      alert('No tramme data found.');
+    if (!trameData) {
+      alert('No trame data found.');
       return;
     }
     setIsLoading("Exportation en cours");
 
-    const duplicateStart = new Date(trammeData.StartDate);
-    const duplicateEnd = new Date(trammeData.EndDate);
+    const duplicateStart = new Date(trameData.StartDate);
+    const duplicateEnd = new Date(trameData.EndDate);
     if (duplicateStart && duplicateEnd) {
       try {
         // Call the new server endpoint to get the weeks data
-        const weeks = await api.post('/trammes/export-excel', {
-          trammeId,
+        const weeks = await api.post('/trames/export-excel', {
+          trameId,
           layerId: currentLayerId,
           startDate: duplicateStart.toISOString(),
           endDate: duplicateEnd.toISOString()
@@ -427,7 +427,7 @@ function CalendarPageContent() {
   };
 
   const generateExcel = (weeks: any[]) => {
-    const duplicateStart = new Date(trammeData.StartDate);
+    const duplicateStart = new Date(trameData.StartDate);
     
     // Create a new ExcelJS workbook
     const workbook = new ExcelJS.Workbook();
@@ -512,7 +512,7 @@ function CalendarPageContent() {
       
       const worksheetData = [
         ["Mention", layers.find(layer => layer.Id === currentLayerId)?.Name,"","","","","","","","","TABLEAU A NE PAS MODIFIER"],
-        ["Parcours", trammeData.Name || "","","","","","","","","","","","","","","CM","TD","TP","TERRAIN","COMMENTAIRES"],
+        ["Parcours", trameData.Name || "","","","","","","","","","","","","","","CM","TD","TP","TERRAIN","COMMENTAIRES"],
         ["Code UE", ueName,"","","","","","","","","CHARGES issues d'APOGEE :", "", "", "", "", ue?.TotalHourVolume_CM || 0, ue?.TotalHourVolume_TD || 0, ue?.TotalHourVolume_TP || 0, 0],
         ["","","","","","","","","","","Nombre de groupes à planifier :"],
         ["","","","","","","","","","","Multiples de 1h30 : "],
@@ -868,7 +868,7 @@ function CalendarPageContent() {
         { row: 1, col: 1 }, // Mention
         { row: 1, col: 2 }, // Layer name
         { row: 2, col: 1 }, // Parcours
-        { row: 2, col: 2 }, // Tramme name
+        { row: 2, col: 2 }, // Trame name
         { row: 3, col: 1 }, // Code UE
         { row: 3, col: 2 }, // UE name
         { row: 9, col: 1 }, // UE mutualisée
@@ -905,7 +905,7 @@ function CalendarPageContent() {
       // Fix alignment for merged cells that need to be left-aligned
       const leftAlignedMergedCells = [
         'B1',    // Layer name
-        'B2',    // Tramme name
+        'B2',    // Trame name
         'B3',    // UE name
         'E9',    // "Si OUI indiquer les parcours"
         'E9:W9', // The merged range
@@ -932,7 +932,7 @@ function CalendarPageContent() {
         { row: 4, col: 11, text: "Nombre de groupes à planifier :" },
         { row: 7, col: 11, text: "Rappel Effectif : " },
         { row: 1, col: 2, text: layers.find(layer => layer.Id === currentLayerId)?.Name},
-        { row: 2, col: 2, text: trammeData.Name },
+        { row: 2, col: 2, text: trameData.Name },
         { row: 3, col: 2, text: ueName},
         { row: 10, col: 2, text: ue?.ResponsibleName },
         { row: 9, col: 2, text: "NON" },
@@ -962,7 +962,7 @@ function CalendarPageContent() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${trammeData.Name}-${layers.find(layer => layer.Id === currentLayerId)?.Name}.xlsx`;
+      a.download = `${trameData.Name}-${layers.find(layer => layer.Id === currentLayerId)?.Name}.xlsx`;
       a.click();
       window.URL.revokeObjectURL(url);
     });
@@ -1026,7 +1026,7 @@ function CalendarPageContent() {
             AddCours={AddCours}
             fetchedCourse={filteredCours}
             setCours={() => { }} // We don't need to set course externally anymore
-            trammeId={trammeId}
+            trameId={trameId}
             date={defaultDate}
             color={currentLayerId ? layers.find(layer => layer.Id === currentLayerId)?.Color || "#ffffff" : "#ffffff"}
             onDeleteCourse={handleDeleteCourse}
@@ -1114,7 +1114,7 @@ function CalendarPageContent() {
               <button
                 className="py-2 px-6 rounded-lg transition-colors duration-200 bg-green-600 hover:bg-green-700 text-white shadow-lg"
                 onClick={handleExportWeeks}>
-                Exporter la tramme
+                Exporter la trame
               </button>
             </div>
           </div>

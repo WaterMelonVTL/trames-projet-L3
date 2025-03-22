@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { catchError } from '../utils/HandleErrors.js';
-import { Tramme, Sequelize, Layer, Course, Group, UE, DesignatedDays, CoursePool, Prof, Events } from '../models/index.js';
+import { Trame, Sequelize, Layer, Course, Group, UE, DesignatedDays, CoursePool, Prof, Events } from '../models/index.js';
 import chalk from 'chalk';
 import { json } from 'sequelize';
 
@@ -11,41 +11,41 @@ const router = express.Router();
 // In-memory store for tracking duplication progress
 const duplicationProgress = {};
 
-// Create a new tramme
+// Create a new trame
 router.post('/', async (req, res) => {
     const { data, user } = req.body; // user est à récupérer depuis le token pour sécuriser la création
-    const tramme = {
+    const trame = {
         Name: data.Name,
         ContextId: data.ContextId,
         Owner: user.Id,
     };
-    const [trammeError, trammeData] = await catchError(Tramme.create(tramme));
-    if (trammeError) {
-        console.error(trammeError);
+    const [trameError, trameData] = await catchError(Trame.create(trame));
+    if (trameError) {
+        console.error(trameError);
         res.status(500).send('Internal Server Error');
         return;
     }
-    return res.json(trammeData);
+    return res.json(trameData);
 });
 
 // Add designated days
 router.put('/addDesignatedDays', async (req, res) => {
     console.log("DesignatedDays route hit!");
-    const { trammeId, designatedDays } = req.body;
+    const { trameId, designatedDays } = req.body;
 
     try {
-        console.log(`MAJ jours banalisés pour trammeId: ${trammeId}`, designatedDays);
+        console.log(`MAJ jours banalisés pour trameId: ${trameId}`, designatedDays);
 
         // Nettoyer s'il y a des jours existants
-        const existingDays = await DesignatedDays.findAll({ where: { trammeId } });
+        const existingDays = await DesignatedDays.findAll({ where: { trameId } });
 
         if (existingDays.length > 0) {
-            await DesignatedDays.destroy({ where: { trammeId } });
+            await DesignatedDays.destroy({ where: { trameId } });
         }
 
         // Création des jours banalisés
         const newDesignatedDays = await DesignatedDays.bulkCreate(
-            designatedDays.map(day => ({ TrammeId: trammeId, Day: day }))
+            designatedDays.map(day => ({ TrameId: trameId, Day: day }))
         );
 
         res.status(200).json(newDesignatedDays);
@@ -55,13 +55,13 @@ router.put('/addDesignatedDays', async (req, res) => {
     }
 });
 
-// Get designated days by trammeId
-router.get('/:trammeId/designatedDays', async (req, res) => {
+// Get designated days by trameId
+router.get('/:trameId/designatedDays', async (req, res) => {
     try {
-        const { trammeId } = req.params;
+        const { trameId } = req.params;
 
         const designatedDays = await DesignatedDays.findAll({
-            where: { TrammeId: trammeId }
+            where: { TrameId: trameId }
         });
         return res.json(designatedDays);
     } catch (error) {
@@ -71,27 +71,27 @@ router.get('/:trammeId/designatedDays', async (req, res) => {
 });
 
 
-// Get all trammes
+// Get all trames
 router.get('/', async (req, res) => {
-    const [trammeError, trammeData] = await catchError(Tramme.findAll());
-    if (trammeError) {
-        console.error(trammeError);
+    const [trameError, trameData] = await catchError(Trame.findAll());
+    if (trameError) {
+        console.error(trameError);
         res.status(500).send('Internal Server Error');
         return;
     }
-    return res.json(trammeData);
+    return res.json(trameData);
 });
 
-// Search trammes by query
+// Search trames by query
 router.get('/search/:searchQuery', async (req, res) => {
     const searchQuery = req.params.searchQuery;
-    let trammes;
-    let trammeError;
+    let trames;
+    let trameError;
 
     if (searchQuery === 'all') {
-        [trammeError, trammes] = await catchError(Tramme.findAll());
+        [trameError, trames] = await catchError(Trame.findAll());
     } else {
-        [trammeError, trammes] = await catchError(Tramme.findAll({
+        [trameError, trames] = await catchError(Trame.findAll({
             where: {
                 [Sequelize.Op.or]: [
                     { Name: { [Sequelize.Op.like]: `%${searchQuery}%` } }
@@ -100,16 +100,16 @@ router.get('/search/:searchQuery', async (req, res) => {
         }));
     }
 
-    if (trammeError) {
-        console.error(trammeError);
+    if (trameError) {
+        console.error(trameError);
         res.status(500).send('Internal Server Error');
         return;
     }
 
-    res.json(trammes);
+    res.json(trames);
 });
 
-// Get trammes by user ID
+// Get trames by user ID
 router.get('/user/:id', async (req, res) => {
     const id = req.params.id;
 
@@ -118,16 +118,16 @@ router.get('/user/:id', async (req, res) => {
         return;
     }
 
-    const [trammeError, trammes] = await catchError(Tramme.findAll({ where: { Owner: id } }));
-    if (trammeError) {
-        console.error(trammeError);
+    const [trameError, trames] = await catchError(Trame.findAll({ where: { Owner: id } }));
+    if (trameError) {
+        console.error(trameError);
         res.status(500).send('Internal Server Error');
         return;
     }
-    return res.json(trammes);
+    return res.json(trames);
 });
 
-// Get a tramme by ID
+// Get a trame by ID
 router.get('/:id', async (req, res) => {
     const id = req.params.id;
 
@@ -136,18 +136,18 @@ router.get('/:id', async (req, res) => {
         return;
     }
 
-    const [trammeError, trammeData] = await catchError(Tramme.findByPk(id));
+    const [trameError, trameData] = await catchError(Trame.findByPk(id));
 
-    if (trammeError) {
-        console.error(trammeError);
+    if (trameError) {
+        console.error(trameError);
         res.status(500).send('Internal Server Error');
         return;
     }
 
-    return res.json(trammeData);
+    return res.json(trameData);
 });
 
-// Update a tramme by ID
+// Update a trame by ID
 router.put('/:id', async (req, res) => {
     const id = req.params.id;
     console.log("updating context with id: ", id);
@@ -157,21 +157,21 @@ router.put('/:id', async (req, res) => {
         return;
     }
 
-    const [trammeError, trammeData] = await catchError(Tramme.findByPk(id));
+    const [trameError, trameData] = await catchError(Trame.findByPk(id));
 
-    if (trammeError) {
-        console.error(trammeError);
+    if (trameError) {
+        console.error(trameError);
         res.status(500).send('Internal Server Error');
         return;
 
-    } if (!trammeData) {
+    } if (!trameData) {
         res.status(404).send('Context not found');
         return;
     }
 
     console.log("updating context with data: ", req.body);
 
-    const [updateError, updatedTramme] = await catchError(trammeData.update(req.body));
+    const [updateError, updatedTrame] = await catchError(trameData.update(req.body));
 
     if (updateError) {
         console.error(updateError);
@@ -179,16 +179,16 @@ router.put('/:id', async (req, res) => {
         return;
     }
 
-    console.log(updatedTramme);
-    return res.json(updatedTramme);
+    console.log(updatedTrame);
+    return res.json(updatedTrame);
 });
 
 
-// returns true if the date is a designated day for the tramme
-router.get('/is-dts/:trammeId/:date', async (req, res) => {
+// returns true if the date is a designated day for the trame
+router.get('/is-dts/:trameId/:date', async (req, res) => {
     const date = req.params.date;
-    const trammeId = req.params.trammeId;
-    const [dtsError, dts] = await catchError(DesignatedDays.findOne({ where: { TrammeId: trammeId, Day: date } }));
+    const trameId = req.params.trameId;
+    const [dtsError, dts] = await catchError(DesignatedDays.findOne({ where: { TrameId: trameId, Day: date } }));
     if (dtsError) {
         console.error(dtsError);
         res.status(500).send('Internal Server Error');
@@ -202,11 +202,11 @@ router.get('/is-dts/:trammeId/:date', async (req, res) => {
 });
 
 // Add new endpoint to get duplication progress
-router.get('/duplicate-progress/:trammeId', async (req, res) => {
-    const trammeId = req.params.trammeId;
+router.get('/duplicate-progress/:trameId', async (req, res) => {
+    const trameId = req.params.trameId;
 
-    if (duplicationProgress[trammeId]) {
-        res.json(duplicationProgress[trammeId]);
+    if (duplicationProgress[trameId]) {
+        res.json(duplicationProgress[trameId]);
     } else {
         res.json({
             state: 'idle',
@@ -219,23 +219,23 @@ router.get('/duplicate-progress/:trammeId', async (req, res) => {
 });
 
 /**
- * Clear courses from a tramme that are after January 2001
- * @param {string} trammeId - The ID of the tramme to clear courses from
+ * Clear courses from a trame that are after January 2001
+ * @param {string} trameId - The ID of the trame to clear courses from
  * @returns {Promise<number>} The count of deleted courses
  */
-async function clearCoursesFromTramme(trammeId) {
-    if (!trammeId) {
-        throw new Error('Tramme Id is required');
+async function clearCoursesFromTrame(trameId) {
+    if (!trameId) {
+        throw new Error('Trame Id is required');
     }
 
-    // Retrieve layers linked to the tramme
-    const [layerError, layers] = await catchError(Layer.findAll({ where: { TrammeId: trammeId } }));
+    // Retrieve layers linked to the trame
+    const [layerError, layers] = await catchError(Layer.findAll({ where: { TrameId: trameId } }));
     if (layerError) {
         console.error(layerError);
         throw new Error('Failed to find layers');
     }
     if (!layers || layers.length === 0) {
-        throw new Error('No layers found for the tramme');
+        throw new Error('No layers found for the trame');
     }
     const layerIds = layers.map(l => l.Id);
 
@@ -246,7 +246,7 @@ async function clearCoursesFromTramme(trammeId) {
         throw new Error('Failed to find UEs');
     }
     if (!ues || ues.length === 0) {
-        throw new Error('No UEs found for the tramme layers');
+        throw new Error('No UEs found for the trame layers');
     }
     const ueIds = ues.map(ue => ue.Id);
 
@@ -268,7 +268,7 @@ async function clearCoursesFromTramme(trammeId) {
     return count;
 }
 
-// Update the duplicate route to call the clearCoursesFromTramme function
+// Update the duplicate route to call the clearCoursesFromTrame function
 router.post('/duplicate/:id', async (req, res) => {
 
 
@@ -289,10 +289,10 @@ router.post('/duplicate/:id', async (req, res) => {
         percentageTotal: 5 // Start at 5% for initialization
     };
 
-    const designatedDaysRecords = await DesignatedDays.findAll({ where: { TrammeId: id } });
+    const designatedDaysRecords = await DesignatedDays.findAll({ where: { TrameId: id } });
     let daysToSkip = designatedDaysRecords.map(record => record.Day);
 
-    let totalEvents = await Events.findAll({ where: { TrammeId: id } });
+    let totalEvents = await Events.findAll({ where: { TrameId: id } });
     if (!totalEvents ) {
         console.log("Total events found : ", totalEvents.length);
         totalEvents = [];
@@ -307,7 +307,7 @@ router.post('/duplicate/:id', async (req, res) => {
     // Clear existing courses before duplication
     duplicationProgress[id].state = 'suppression des cours...';
     try {
-        await clearCoursesFromTramme(id);
+        await clearCoursesFromTrame(id);
     } catch (error) {
         duplicationProgress[id].state = 'erreur';
         console.error('Error clearing courses:', error);
@@ -315,14 +315,14 @@ router.post('/duplicate/:id', async (req, res) => {
         return;
     }
 
-    const [trammeError, trammeData] = await catchError(Tramme.findByPk(id)); // On récupère la tramme à étendre
+    const [trameError, trameData] = await catchError(Trame.findByPk(id)); // On récupère la trame à étendre
 
     // Update progress state
     duplicationProgress[id].state = 'chargement des données';
     duplicationProgress[id].percentageTotal = 10;
 
-    let startDate = trammeData.StartDate;
-    let endDate = trammeData.EndDate;
+    let startDate = trameData.StartDate;
+    let endDate = trameData.EndDate;
     if (!startDate || !endDate) {
         duplicationProgress[id].state = 'erreur';
         res.status(400).send('Start and end date are required to be defined to duplicate');
@@ -334,14 +334,14 @@ router.post('/duplicate/:id', async (req, res) => {
     // Calculate the total duration for percentage calculations
     const totalDateDuration = endDate.getTime() - startDate.getTime();
 
-    if (trammeError) {
+    if (trameError) {
         duplicationProgress[id].state = 'erreur';
-        console.error(trammeError);
+        console.error(trameError);
         res.status(500).send('Internal Server Error');
         return;
     }
 
-    if (!trammeData) {
+    if (!trameData) {
         duplicationProgress[id].state = 'erreur';
         res.status(404).send('Trame not found');
         return;
@@ -351,10 +351,10 @@ router.post('/duplicate/:id', async (req, res) => {
     duplicationProgress[id].state = 'chargement des couches';
     duplicationProgress[id].percentageTotal = 15;
 
-    const [layerError, layers] = await catchError(Layer.findAll( // On récupère les layers de la tramme pour pouvoir trouver les cours
+    const [layerError, layers] = await catchError(Layer.findAll( // On récupère les layers de la trame pour pouvoir trouver les cours
         {
             where:
-                { TrammeId: id },
+                { TrameId: id },
             include:
             {
                 model: Group,// on lui dit d'inclure les groupes liés à ces layers
@@ -685,7 +685,7 @@ router.post('/duplicate/:id', async (req, res) => {
 router.delete('/clear-courses/:id', async (req, res) => {
     const id = req.params.id;
     try {
-        const count = await clearCoursesFromTramme(id);
+        const count = await clearCoursesFromTrame(id);
         res.json({ message: `Deleted ${count} courses` });
     } catch (error) {
         console.error(error);
@@ -693,7 +693,7 @@ router.delete('/clear-courses/:id', async (req, res) => {
     }
 });
 
-// Delete a tramme by ID
+// Delete a trame by ID
 router.delete('/:id', async (req, res) => {
     const id = req.params.id;
 
@@ -702,15 +702,15 @@ router.delete('/:id', async (req, res) => {
         return;
     }
 
-    const [trammeError, trammeData] = await catchError(Tramme.findByPk(id));
+    const [trameError, trameData] = await catchError(Trame.findByPk(id));
 
-    if (trammeError) {
-        console.error(trammeError);
+    if (trameError) {
+        console.error(trameError);
         res.status(500).send('Internal Server Error');
         return;
     }
 
-    return res.json(trammeData);
+    return res.json(trameData);
 });
 
 // Calculate end time from start time and duration
@@ -732,16 +732,16 @@ function getMonday(date) {
     return monday;
 }
 
-// New endpoint to export Excel data for a tramme
+// New endpoint to export Excel data for a trame
 router.post('/export-excel', async (req, res) => {
-    const { trammeId, layerId, startDate, endDate } = req.body;
+    const { trameId, layerId, startDate, endDate } = req.body;
 
-    if (!trammeId || !layerId || !startDate || !endDate) {
+    if (!trameId || !layerId || !startDate || !endDate) {
         return res.status(400).json({ error: 'Missing required parameters' });
     }
 
     try {
-        console.log(`Export Excel request - trammeId: ${trammeId}, layerId: ${layerId}`);
+        console.log(`Export Excel request - trameId: ${trameId}, layerId: ${layerId}`);
         console.log(`Date range: ${startDate} to ${endDate}`);
         
         const startMonday = getMonday(new Date(startDate));

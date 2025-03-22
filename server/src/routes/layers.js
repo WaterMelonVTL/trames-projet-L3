@@ -30,20 +30,20 @@ router.get('/', async (req, res) => {
     return res.json(layerData);
 });
 
-// Search layers by Tramme and search query
-router.get('/search/:Tramme/:searchQuery', async (req, res) => {
+// Search layers by Trame and search query
+router.get('/search/:Trame/:searchQuery', async (req, res) => {
     const searchQuery = req.params.searchQuery;
-    const Tramme = req.params.Tramme;
+    const Trame = req.params.Trame;
     let layers, layerError;
 
     if (searchQuery === 'all') {
         [layerError, layers] = await catchError(Layer.findAll(
-            { where: { TrammeId: Tramme } }
+            { where: { TrameId: Trame } }
         ));
     } else {
         [layerError, layers] = await catchError(Layer.findAll({
             where: {
-                TrammeId: Tramme,
+                TrameId: Trame,
                 [Sequelize.Op.or]: [
                     { Name: { [Sequelize.Op.like]: `%${searchQuery}%` } }
                 ]
@@ -60,11 +60,11 @@ router.get('/search/:Tramme/:searchQuery', async (req, res) => {
     return res.json(layers);
 });
 
-// Get all layers of a specific Tramme
-router.get('/tramme/:id', async (req, res) => {
+// Get all layers of a specific Trame
+router.get('/trame/:id', async (req, res) => {
     const id = req.params.id;
     const withGroups = req.query.withGroups;
-    const [layerError, layers] = await catchError(Layer.findAll({ where: { TrammeId: id }, include: withGroups ? 'Groups' : null }));
+    const [layerError, layers] = await catchError(Layer.findAll({ where: { TrameId: id }, include: withGroups ? 'Groups' : null }));
     if (layerError) {
         console.error(layerError);
         res.status(500).send('Internal Server Error');

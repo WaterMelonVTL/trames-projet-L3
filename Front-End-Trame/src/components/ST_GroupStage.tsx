@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
 
 interface GroupStageProps {
-  trammeId: string;
+  trameId: string;
   index: number;
 }
 
-const ST_GroupStage: React.FC<GroupStageProps> = ({ trammeId, index }) => {
+const ST_GroupStage: React.FC<GroupStageProps> = ({ trameId, index }) => {
   const [groupName, setGroupName] = useState<string>('')
   const [layers, setLayers] = useState<any[]>([])
   const [currentLayerName, setCurrentLayerName] = useState<string>('')
@@ -16,7 +16,7 @@ const ST_GroupStage: React.FC<GroupStageProps> = ({ trammeId, index }) => {
 
   useEffect(() => {
     const fetchLayers = async () => {
-      const response = await fetch(`http://localhost:3000/api/layers/tramme/${trammeId}?withGroups=true`)
+      const response = await fetch(`http://localhost:3000/api/layers/trame/${trameId}?withGroups=true`)
       if(response.ok){
         const data = await response.json()
         console.log(data)
@@ -26,7 +26,7 @@ const ST_GroupStage: React.FC<GroupStageProps> = ({ trammeId, index }) => {
       }
     }
     fetchLayers()
-  }, [trammeId])
+  }, [trameId])
 
   // Removed the fetchGroups useEffect since groups come inside layers
 
