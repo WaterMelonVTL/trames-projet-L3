@@ -3,10 +3,10 @@ import { Event } from '../types/types'
 import EditEventModal from './EditEventModal'
 
 interface EventStageProps {
-  trammeId: string;
+  trameId: string;
 }
 
-const ST_EventStage: React.FC<EventStageProps> = ({ trammeId }) => {
+const ST_EventStage: React.FC<EventStageProps> = ({ trameId }) => {
   const [eventName, setEventName] = useState<string>('')
   const [eventDate, setEventDate] = useState<string>('')
   const [eventStartHour, setEventStartHour] = useState<string>('')
@@ -17,14 +17,14 @@ const ST_EventStage: React.FC<EventStageProps> = ({ trammeId }) => {
 
   useEffect(() => {
     const fetchEvents = async () => {
-      const response = await fetch(`http://localhost:3000/api/events/tramme/${trammeId}`)
+      const response = await fetch(`http://localhost:3000/api/events/trame/${trameId}`)
       if (response.ok) {
         const data = await response.json()
         setEvents(data)
       }
     }
     fetchEvents()
-  }, [trammeId])
+  }, [trameId])
 
   const addEvent = async () => {
     if (!eventName || !eventDate || !eventStartHour || !eventEndHour) return
@@ -38,7 +38,7 @@ const ST_EventStage: React.FC<EventStageProps> = ({ trammeId }) => {
         Date: eventDate,
         StartHour: eventStartHour,
         EndHour: eventEndHour,
-        TrammeId: trammeId
+        TrameId: trameId
 
       })
     })

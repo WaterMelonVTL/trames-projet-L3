@@ -10,13 +10,13 @@ import MyCalendar from './MyCalendar.js';
 
 
 interface DateStageProps {
-    trammeId: string;
+    trameId: string;
     startDate: Date;
     endDate: Date;
     designatedDays: Date[];
 }
 
-const ST_DateStage: React.FC<DateStageProps> = ({ trammeId }) => {
+const ST_DateStage: React.FC<DateStageProps> = ({ trameId }) => {
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [designatedDays, setDesignatedDays] = useState<Date[]>([]);  
@@ -24,7 +24,7 @@ const ST_DateStage: React.FC<DateStageProps> = ({ trammeId }) => {
   // API pour mettre à jour les dates lors de chaque modification
   const updateDateRange = async (newStartDate: Date, newEndDate: Date) => {
     try {
-        await api.put(`/trammes/${trammeId}`, {
+        await api.put(`/trames/${trameId}`, {
             StartDate: newStartDate,
             EndDate: newEndDate
         });
@@ -49,10 +49,10 @@ const ST_DateStage: React.FC<DateStageProps> = ({ trammeId }) => {
 
   const fetchDates = async () => {
     try {
-      const tramme = await api.get(`/trammes/${trammeId}`);
-      console.log('Raw API dates:', tramme.StartDate, tramme.EndDate);
-      const newStartDate = new Date(tramme.StartDate);
-      const newEndDate = new Date(tramme.EndDate);
+      const trame = await api.get(`/trames/${trameId}`);
+      console.log('Raw API dates:', trame.StartDate, trame.EndDate);
+      const newStartDate = new Date(trame.StartDate);
+      const newEndDate = new Date(trame.EndDate);
   
       if (isNaN(newStartDate.getTime()) || newStartDate.getTime() === 0) {
         console.warn("Invalid or default start date from API, using today's date");
@@ -68,7 +68,7 @@ const ST_DateStage: React.FC<DateStageProps> = ({ trammeId }) => {
         setEndDate(newEndDate);
       }
     } catch (error) {
-      console.error('Error fetching tramme date data:', error);
+      console.error('Error fetching trame date data:', error);
     }
   };
   
@@ -93,7 +93,7 @@ const ST_DateStage: React.FC<DateStageProps> = ({ trammeId }) => {
   // API pour mettre à jour les jours banalisés
     const updateDesignatedDays = async (newDesignatedDays: Date[]) => {
         try {
-            await api.put('/trammes/addDesignatedDays', { trammeId, designatedDays: newDesignatedDays });
+            await api.put('/trames/addDesignatedDays', { trameId, designatedDays: newDesignatedDays });
             console.log("MAJ jours banalisés :", newDesignatedDays);
         } catch (error) {
             console.error("Erreur MAJ jours banalisés :", error);
@@ -151,7 +151,7 @@ const ST_DateStage: React.FC<DateStageProps> = ({ trammeId }) => {
 
     async function fetchDesignatedDays() {
       try {
-        const dDaysResponse = await api.get(`/trammes/${trammeId}/designatedDays`);
+        const dDaysResponse = await api.get(`/trames/${trameId}/designatedDays`);
         const dDays = dDaysResponse.map((d: any) => new Date(d.Day));
         setDesignatedDays(dDays);
       } catch (error) {
@@ -162,12 +162,12 @@ const ST_DateStage: React.FC<DateStageProps> = ({ trammeId }) => {
     useEffect(() => {
       fetchDates();
       fetchDesignatedDays();
-    }, [trammeId]);
+    }, [trameId]);
 
     // Function to clear designated days
     const clearDesignatedDays = async () => {
       try {
-        await api.put('/trammes/addDesignatedDays', { trammeId, designatedDays: [] });
+        await api.put('/trames/addDesignatedDays', { trameId, designatedDays: [] });
         setDesignatedDays([]);
         console.log("All designated days cleared.");
       } catch (error) {

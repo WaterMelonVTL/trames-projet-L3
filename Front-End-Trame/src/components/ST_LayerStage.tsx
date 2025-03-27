@@ -3,11 +3,11 @@ import { Layer } from '../types/types'
 import EditLayerModal from './EditLayerModal'
 
 interface LayerStageProps {
-  trammeId: string;
+  trameId: string;
   setTotalLayers: React.Dispatch<React.SetStateAction<number>>;
 }
 
-const ST_LayerStage: React.FC<LayerStageProps> = ({ trammeId, setTotalLayers }) => {
+const ST_LayerStage: React.FC<LayerStageProps> = ({ trameId, setTotalLayers }) => {
   const [layerName, setLayerName] = useState<string>('')
   const [layerColor, setLayerColor] = useState<string>('')  
   const [layers, setLayers] = useState<Layer[]>([])
@@ -16,7 +16,7 @@ const ST_LayerStage: React.FC<LayerStageProps> = ({ trammeId, setTotalLayers }) 
 
   useEffect(() => {
     const fetchLayers = async () => {
-      const response = await fetch(`http://localhost:3000/api/layers/tramme/${trammeId}`)
+      const response = await fetch(`http://localhost:3000/api/layers/trame/${trameId}`)
       if(response.ok){
         const data = await response.json()
         setLayers(data)
@@ -24,7 +24,7 @@ const ST_LayerStage: React.FC<LayerStageProps> = ({ trammeId, setTotalLayers }) 
       }
     }
     fetchLayers()
-  }, [trammeId])
+  }, [trameId])
 
   const addLayer = async () => {
     if (!layerName) return
@@ -48,7 +48,7 @@ const ST_LayerStage: React.FC<LayerStageProps> = ({ trammeId, setTotalLayers }) 
       body: JSON.stringify({
       layer: {
         Name: layerName,
-        TrammeId: trammeId,
+        TrameId: trameId,
         Color: layerColor || randomColor
       },
       user: { Id: 1 }

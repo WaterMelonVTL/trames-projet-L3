@@ -246,15 +246,15 @@ api.cache = {
     return groups;
   },
 
-  async getClassesForDate(trammeId, layerId, date) {
+  async getClassesForDate(trameId, layerId, date) {
     const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
-    const cacheKey = `${trammeId}_${layerId}_${dateStr}`;
+    const cacheKey = `${trameId}_${layerId}_${dateStr}`;
     
     if (this._courseCache.has(cacheKey)) {
       return this._courseCache.get(cacheKey);
     }
     
-    const courses = await api.get(`/cours/date/${trammeId}/${layerId}/${dateStr}`);
+    const courses = await api.get(`/cours/date/${trameId}/${layerId}/${dateStr}`);
     
     // Cache the courses
     this._courseCache.set(cacheKey, courses);

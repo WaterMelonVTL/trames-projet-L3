@@ -1,55 +1,55 @@
 import React, { useState, useEffect } from 'react'
 
 interface SetupNameStageProps {
-  trammeId: string;
+  trameId: string;
 }
 
-const ST_SetupNameStage: React.FC<SetupNameStageProps> = ({ trammeId }) => {
-  const [trammeName, setTrammeName] = useState<string>('')
+const ST_SetupNameStage: React.FC<SetupNameStageProps> = ({ trameId }) => {
+  const [trameName, setTrameName] = useState<string>('')
 
-  const updateTrammeName = async (newName: string) => {
+  const updateTrameName = async (newName: string) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/trammes/${trammeId}`, {
+      const response = await fetch(`http://localhost:3000/api/trames/${trameId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ Name: newName })
       })
       if (response.ok) {
-        const updatedTramme = await response.json()
-        setTrammeName(updatedTramme.Name)
+        const updatedTrame = await response.json()
+        setTrameName(updatedTrame.Name)
       }
     } catch (error) {
-      console.error('Error updating tramme name:', error)
+      console.error('Error updating trame name:', error)
     }
   }
 
-  const fetchTrammeName = async () => {
+  const fetchTrameName = async () => {
     try {
-      const response = await fetch(`http://localhost:3000/api/trammes/${trammeId}`)
+      const response = await fetch(`http://localhost:3000/api/trames/${trameId}`)
       if (response.ok) {
-        const tramme = await response.json()
-        setTrammeName(tramme.Name)
+        const trame = await response.json()
+        setTrameName(trame.Name)
       }
     } catch (error) {
-      console.error('Error fetching tramme name:', error)
+      console.error('Error fetching trame name:', error)
     }
   }
 
   useEffect(() => {
-    fetchTrammeName()
+    fetchTrameName()
   }, [])
 
   return (
     <div className="flex flex-col items-center mb-8">
-      <label htmlFor="trammeNameInput" className="text-2xl font-semibold mb-4">
-        Nom de la tramme :
+      <label htmlFor="trameNameInput" className="text-2xl font-semibold mb-4">
+        Nom de la trame :
       </label>
       <input
         type="text"
-        id="trammeNameInput"
+        id="trameNameInput"
         className="w-full max-w-md border-b-2 border-gray-300 focus:border-blue-500 outline-none p-2 text-xl"
-        value={trammeName}
-        onChange={(e) => updateTrammeName(e.target.value)}
+        value={trameName}
+        onChange={(e) => updateTrameName(e.target.value)}
         placeholder="Entrez le nom..."
       />
     </div>

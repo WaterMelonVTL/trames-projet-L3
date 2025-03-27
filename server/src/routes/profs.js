@@ -32,19 +32,19 @@ router.get('/', async (req, res) => {
 });
 
 // Search for profs
-router.get('/search/:trammeId/:searchQuery', async (req, res) => {
+router.get('/search/:trameId/:searchQuery', async (req, res) => {
     console.log(chalk.blue("searching for profs"));
-    const { trammeId, searchQuery } = req.params;
+    const { trameId, searchQuery } = req.params;
     let profs;
     let profError;
     if (searchQuery === '%all%') {
         [profError, profs] = await catchError(Prof.findAll({
-            where: { TrammeId: trammeId }
+            where: { TrameId: trameId }
         }));
     } else {
         [profError, profs] = await catchError(Prof.findAll({
             where: {
-                TrammeId: trammeId,
+                TrameId: trameId,
                 [Sequelize.Op.or]: [
                     { FullName: { [Sequelize.Op.like]: `%${searchQuery}%` } }
                 ]

@@ -34,7 +34,7 @@ function PoolItem(props: {
       StartHour: '08:00',
       length: 1.5,
       Type: props.type,
-      TrammeId: -1,
+      TrameId: -1,
       LayerId: -1,
       Groups: props.poolItem.GroupIds.map(id => ({ Id: id })) // Include all group IDs
     });

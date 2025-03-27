@@ -40,12 +40,12 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// Get events by tramme ID
-router.get('/tramme/:trammeId', async (req, res) => {
-    const trammeId = req.params.trammeId;
+// Get events by trame ID
+router.get('/trame/:trameId', async (req, res) => {
+    const trameId = req.params.trameId;
     try {
         const events = await Events.findAll({
-            where: { TrammeId: trammeId }
+            where: { TrameId: trameId }
         });
         res.json(events);
     } catch (err) {
@@ -56,17 +56,17 @@ router.get('/tramme/:trammeId', async (req, res) => {
 
 
 
-// Get events by date and tramme ID
-router.get('/date/:trammeId/:date', async (req, res) => {
-    const { trammeId, date } = req.params;
-    console.log(trammeId, date);
+// Get events by date and trame ID
+router.get('/date/:trameId/:date', async (req, res) => {
+    const { trameId, date } = req.params;
+    console.log(trameId, date);
     const eventDate = new Date(date);
     try {
 
         
         const events = await Events.findAll({
             where: {
-                TrammeId: trammeId,
+                TrameId: trameId,
                 Date: eventDate
             }
         });

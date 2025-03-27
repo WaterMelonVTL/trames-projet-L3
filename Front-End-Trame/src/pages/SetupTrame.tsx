@@ -11,7 +11,7 @@ import ST_EventStage from '../components/ST_EventStage'
 function SetupPage() {
   const navigate = useNavigate()
   const [setupStage, setSetupStage] = useState<number>(1)
-  const trammeId = location.pathname.split('/').pop() || ''
+  const trameId = location.pathname.split('/').pop() || ''
   const [totalLayers, setTotalLayers] = useState<number>(0)
 
   // Steps:
@@ -29,17 +29,17 @@ function SetupPage() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6">
       <ST_SetupHeader setupStage={setupStage} totalLayers={totalLayers} />
       <div className="bg-white shadow-lg rounded-xl border border-gray-200 w-full max-w-4xl h-[30rem] overflow-auto p-8 relative">
-        {setupStage === 1 && <ST_SetupNameStage trammeId={trammeId} />}
-        {setupStage === 2 && <ST_DateStage trammeId={trammeId} />}
-        {setupStage === 3 && <ST_EventStage trammeId={trammeId} />}
-        {setupStage === 4 && <ST_LayerStage trammeId={trammeId} setTotalLayers={setTotalLayers} />}
+        {setupStage === 1 && <ST_SetupNameStage trameId={trameId} />}
+        {setupStage === 2 && <ST_DateStage trameId={trameId} />}
+        {setupStage === 3 && <ST_EventStage trameId={trameId} />}
+        {setupStage === 4 && <ST_LayerStage trameId={trameId} setTotalLayers={setTotalLayers} />}
         {setupStage > 4 && setupStage < (5 + totalLayers) && (
           // Group stage for layer index = setupStage - 3
-          <ST_GroupStage trammeId={trammeId} index={setupStage - 5} />
+          <ST_GroupStage trameId={trameId} index={setupStage - 5} />
         )}
         {setupStage >= (5 + totalLayers) && setupStage < finalStage && (
           // UE stage for layer index = setupStage - (3 + totalLayers)
-          <ST_UeStage trammeId={trammeId} index={setupStage - (5 + totalLayers)} />
+          <ST_UeStage trameId={trameId} index={setupStage - (5 + totalLayers)} />
         )}
         {setupStage === finalStage && (
           <div className="flex flex-col items-center justify-center h-full">
@@ -57,7 +57,7 @@ function SetupPage() {
         </button>
         {setupStage === finalStage ? (
           <button
-            onClick={() => navigate(`/calendar/${trammeId}`)}
+            onClick={() => navigate(`/calendar/${trameId}`)}
             className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
           >
             Terminer

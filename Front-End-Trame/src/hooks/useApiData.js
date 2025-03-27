@@ -139,16 +139,16 @@ export function useProf(id) {
 }
 
 // Classes related hooks - with week-based caching
-export function useClassesByWeek(monday, trammeId, layerId) {
+export function useClassesByWeek(monday, trameId, layerId) {
   const queryClient = useQueryClient();
   
   return useQuery({
-    queryKey: ['classes', 'week', trammeId, layerId, monday ? monday.toISOString().split('T')[0] : null],
+    queryKey: ['classes', 'week', trameId, layerId, monday ? monday.toISOString().split('T')[0] : null],
     queryFn: async () => {
       // Keep existing implementation from useCalendarData.js
       // ...
     },
-    enabled: !!trammeId && !!layerId && !!monday,
+    enabled: !!trameId && !!layerId && !!monday,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }

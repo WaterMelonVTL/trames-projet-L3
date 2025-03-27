@@ -10,17 +10,17 @@ import ST_DateStage from './ST_DateStage'
 function SetupPage() {
   const navigate = useNavigate()
   const [setupStage, setSetupStage] = useState<number>(1)
-  const trammeId = location.pathname.split('/').pop() || ''
+  const trameId = location.pathname.split('/').pop() || ''
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6">
       <ST_SetupHeader setupStage={setupStage} totalLayers={0} />
       <div className="bg-white shadow-lg rounded-xl border border-gray-200 w-full max-w-4xl h-[30rem] overflow-auto p-8 relative">
-        {setupStage === 1 && <ST_SetupNameStage trammeId={trammeId} />}
-        {setupStage === 2 && <ST_DateStage trammeId={trammeId} />}
-        {setupStage === 3 && <ST_LayerStage trammeId={trammeId} />}
-        {setupStage === 4 && <ST_GroupStage trammeId={trammeId} />}
-        {setupStage === 5 && <ST_UeStage trammeId={trammeId} />}
+        {setupStage === 1 && <ST_SetupNameStage trameId={trameId} />}
+        {setupStage === 2 && <ST_DateStage trameId={trameId} />}
+        {setupStage === 3 && <ST_LayerStage trameId={trameId} />}
+        {setupStage === 4 && <ST_GroupStage trameId={trameId} />}
+        {setupStage === 5 && <ST_UeStage trameId={trameId} />}
       </div>
       <div className="flex items-center justify-between w-80 mt-8">
         <button

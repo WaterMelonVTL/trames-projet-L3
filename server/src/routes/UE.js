@@ -94,10 +94,10 @@ router.get('/search/:searchQuery', async (req, res) => {
     return res.json(ues);
 });
 
-// Get UEs by tramme ID
-router.get('/tramme/:id', async (req, res) => {
+// Get UEs by trame ID
+router.get('/trame/:id', async (req, res) => {
     const id = req.params.id;
-    const [layersError, layers] = await catchError(Layer.findAll({ where: { TrammeId: id } }));
+    const [layersError, layers] = await catchError(Layer.findAll({ where: { TrameId: id } }));
     if (layersError) {
         console.error(layersError);
         res.status(500).send('Internal Server Error');

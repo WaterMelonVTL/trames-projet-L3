@@ -1,22 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../public/api/api';
 import { useState, useEffect } from 'react';
-// Get tramme data with its layers
-export function useTramme(trammeId) {
+// Get trame data with its layers
+export function useTrame(trameId) {
   return useQuery({
-    queryKey: ['tramme', trammeId],
-    queryFn: () => api.get(`/trammes/${trammeId}`),
-    enabled: !!trammeId,
+    queryKey: ['trame', trameId],
+    queryFn: () => api.get(`/trames/${trameId}`),
+    enabled: !!trameId,
     staleTime: 1000 * 60 * 30, // 30 minutes
   });
 }
 
-// Get layers for a tramme
-export function useLayers(trammeId) {
+// Get layers for a trame
+export function useLayers(trameId) {
   return useQuery({
-    queryKey: ['layers', trammeId],
-    queryFn: () => api.get(`/layers/tramme/${trammeId}`),
-    enabled: !!trammeId,
+    queryKey: ['layers', trameId],
+    queryFn: () => api.get(`/layers/trame/${trameId}`),
+    enabled: !!trameId,
     staleTime: 1000 * 60 * 30, // 30 minutes
   });
 }
@@ -36,14 +36,14 @@ export function useUpdateLayer() {
       });
       
       // Also update the layer in the cache directly for immediate UI update
-      const trammeId = variables.TrammeId;
-      if (trammeId) {
-        const previousLayers = queryClient.getQueryData(['layers', trammeId]);
+      const trameId = variables.TrameId;
+      if (trameId) {
+        const previousLayers = queryClient.getQueryData(['layers', trameId]);
         if (previousLayers) {
           const updatedLayers = previousLayers.map(layer => 
             layer.Id === variables.Id ? { ...layer, ...variables } : layer
           );
-          queryClient.setQueryData(['layers', trammeId], updatedLayers);
+          queryClient.setQueryData(['layers', trameId], updatedLayers);
         }
       }
     }
@@ -71,13 +71,13 @@ export function useGroupsByLayer(layerId, onlyDefault = false) {
 }
 
 // Get classes for a week
-export function useClassesForWeek(monday, trammeId, layerId) {
+export function useClassesForWeek(monday, trameId, layerId) {
   const queryClient = useQueryClient();
   
   return useQuery({
-    queryKey: ['classes', 'week', trammeId, layerId, monday ? monday.toISOString().split('T')[0] : null],
+    queryKey: ['classes', 'week', trameId, layerId, monday ? monday.toISOString().split('T')[0] : null],
     queryFn: async () => {
-      if (!monday || !trammeId || !layerId) return [];
+      if (!monday || !trameId || !layerId) return [];
       
       const classPromises = [];
       for (let i = -1; i < 6; i++) {
@@ -85,7 +85,7 @@ export function useClassesForWeek(monday, trammeId, layerId) {
         date.setDate(monday.getDate() + i);
         const dateStr = date.toISOString().split('T')[0];
         
-        classPromises.push(api.cache.getClassesForDate(trammeId, layerId, dateStr));
+        classPromises.push(api.cache.getClassesForDate(trameId, layerId, dateStr));
       }
       
       // Get all classes and enhance with UE and prof info
@@ -130,7 +130,7 @@ export function useClassesForWeek(monday, trammeId, layerId) {
         };
       }));
     },
-    enabled: !!trammeId && !!layerId && !!monday,
+    enabled: !!trameId && !!layerId && !!monday,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
@@ -166,7 +166,7 @@ export function useAddCourse() {
       return response;
     },
     // Add optimistic update
-    onMutate: async ({ course, groups, separate, trammeId, layerId }) => {
+    onMutate: async ({ course, groups, separate, trameId, layerId }) => {
       console.log("Starting optimistic update for add:", course);
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['classes'] });
@@ -176,7 +176,7 @@ export function useAddCourse() {
       const mondayStr = monday.toISOString().split('T')[0];
       
       // Use the proper query key
-      const queryKey = ['classes', 'week', trammeId, layerId, mondayStr];
+      const queryKey = ['classes', 'week', trameId, layerId, mondayStr];
       
       // Get current courses from cache
       const previousCourses = queryClient.getQueryData(queryKey) || [];
@@ -187,7 +187,7 @@ export function useAddCourse() {
         Id: `temp-${Date.now()}`,
         Groups: groups || [],
         LayerId: layerId,
-        TrammeId: trammeId,
+        TrameId: trameId,
         UEName: 'Loading...',
         ProfFullName: 'Loading...',
         EndHour: calculateEndTime(course.StartHour, course.length || 1),
@@ -207,7 +207,7 @@ export function useAddCourse() {
       }
       
       const { queryKey, optimisticCourse } = context;
-      const { trammeId, layerId } = variables;
+      const { trameId, layerId } = variables;
 
       try {
         // Prepare the updated course(s) with full data
@@ -227,7 +227,7 @@ export function useAddCourse() {
                 ProfFullName: profData?.FullName || null,
                 EndHour: endTime,
                 LayerId: layerId,
-                TrammeId: trammeId
+                TrameId: trameId
               };
             } catch (e) {
               console.error("Error enhancing course data:", e);
@@ -236,7 +236,7 @@ export function useAddCourse() {
                 UEName: "Unknown",
                 EndHour: calculateEndTime(newCourse.StartHour, newCourse.length),
                 LayerId: layerId,
-                TrammeId: trammeId
+                TrameId: trameId
               };
             }
           }));
@@ -253,7 +253,7 @@ export function useAddCourse() {
               ProfFullName: profData?.FullName || null,
               EndHour: endTime,
               LayerId: layerId,
-              TrammeId: trammeId
+              TrameId: trameId
             }];
           } catch (e) {
             console.error("Error enhancing course data:", e);
@@ -262,7 +262,7 @@ export function useAddCourse() {
               UEName: "Unknown",
               EndHour: calculateEndTime(data.StartHour, data.length),
               LayerId: layerId,
-              TrammeId: trammeId
+              TrameId: trameId
             }];
           }
         }
@@ -316,7 +316,7 @@ export function useDeleteCourse() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ courseId, trammeId, layerId, date, isMoving = false, setPoolRefreshCounter }) => {
+    mutationFn: async ({ courseId, trameId, layerId, date, isMoving = false, setPoolRefreshCounter }) => {
       // Convert ID to string for consistent comparison
       const strCourseId = String(courseId);
       
@@ -352,7 +352,7 @@ export function useDeleteCourse() {
       }
     },
     
-    onMutate: async ({ courseId, trammeId, layerId, date }) => {
+    onMutate: async ({ courseId, trameId, layerId, date }) => {
       console.log("Starting optimistic delete for:", courseId);
       
       // Convert ID to string for consistent comparison
@@ -364,7 +364,7 @@ export function useDeleteCourse() {
       // Determine the query key for the current week
       const mondayDate = getMonday(new Date(date));
       const mondayStr = mondayDate.toISOString().split('T')[0];
-      const queryKey = ['classes', 'week', trammeId, layerId, mondayStr];
+      const queryKey = ['classes', 'week', trameId, layerId, mondayStr];
       
       // Get current courses from cache
       const previousCourses = queryClient.getQueryData(queryKey) || [];
@@ -565,12 +565,12 @@ export function useSeparateCourse() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ courseId, trammeId, layerId }) => {
+    mutationFn: async ({ courseId, trameId, layerId }) => {
       console.log(`Separating course with ID: ${courseId}`);
       return api.post(`/cours/separate/${courseId}`);
     },
     
-    onMutate: async ({ courseId, trammeId, layerId }) => {
+    onMutate: async ({ courseId, trameId, layerId }) => {
       console.log("Starting optimistic update for separation:", courseId);
       
       // Cancel any outgoing refetches
@@ -691,12 +691,12 @@ function useMergeCourse() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ courseId, trammeId, layerId }) => {
+    mutationFn: async ({ courseId, trameId, layerId }) => {
       console.log(`Merging courses with reference ID: ${courseId}`);
       return api.post(`/cours/merge/${courseId}`);
     },
     
-    onMutate: async ({ courseId, trammeId, layerId }) => {
+    onMutate: async ({ courseId, trameId, layerId }) => {
       console.log("Starting optimistic update for merge:", courseId);
       
       // Cancel any outgoing refetches
