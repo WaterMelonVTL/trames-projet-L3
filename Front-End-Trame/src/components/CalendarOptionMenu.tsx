@@ -16,13 +16,17 @@ interface CalendarOptionMenuProps {
     isOpen: boolean;
 }
 
-export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
+export default function CalendarOptionMenu(props: CalendarOptionMenuProps) {
     const menuRef = useRef<HTMLDivElement>(null);
     const startTimes = [8, 9.75, 11.5, 13.25, 15, 16.75, 18.5];
 
     // New state variables for the Professeur section
     const [teacherName, setTeacherName] = useState('');
     const [teacherStatus, setTeacherStatus] = useState('Permanent');
+    
+    // Add state for room type with proper initialization
+    const [roomType, setRoomType] = useState(props.cours.RoomType || '');
+    const [tempRoomType, setTempRoomType] = useState(props.cours.RoomType || '');
     
     // Use the mutation hooks with the namespace
     const separateMutation = CalendarHooks.useSeparateCourse();
@@ -35,6 +39,14 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
     const [profList, setProfList] = useState<Prof[]>([]);
 
     const queryClient = useQueryClient();
+
+    // Update room type when cours changes - ensure we display the existing value if present
+    useEffect(() => {
+        console.log("Current RoomType:", props.cours.RoomType);
+        const currentRoomType = props.cours.RoomType || '';
+        setRoomType(currentRoomType);
+        setTempRoomType(currentRoomType);
+    }, [props.isOpen, props.cours]);
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -66,12 +78,13 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
         return `${formatTime(start)} - ${formatTime(end)}`;
     };
 
-    async function editCours({ newLength, newStart }: { newLength?: number, newStart?: string }) {
+    async function editCours({ newLength, newStart, newRoomType }: { newLength?: number, newStart?: string, newRoomType?: string }) {
         if (!props.cours) return;
         const updatedCourse = {
             ...props.cours,
             ...(newLength !== undefined && { length: newLength }),
-            ...(newStart !== undefined && { StartHour: newStart })
+            ...(newStart !== undefined && { StartHour: newStart }),
+            ...(newRoomType !== undefined && { RoomType: newRoomType })
         };
         try {
             const response = await fetch(`http://localhost:3000/api/cours/${props.cours.Id}`, {
@@ -82,7 +95,7 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
             if (!response.ok) throw new Error('Update failed');
             const data = await response.json();
             props.setCours(data);
-            console.log(`Modified course ${props.cours.Id}: new length ${newLength ?? props.cours.length}, new start ${newStart ?? props.cours.StartHour}`);
+            console.log(`Modified course ${props.cours.Id}: new length ${newLength ?? props.cours.length}, new start ${newStart ?? props.cours.StartHour}, new room type ${newRoomType ?? props.cours.RoomType}`);
         } catch (error) {
             console.error(error);
         }
@@ -305,7 +318,11 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
         console.log("Updated existingProf:", existingProf);
       }, [existingProf]);
       
-
+    // Function to apply room type change
+    const applyRoomTypeChange = () => {
+        setRoomType(tempRoomType);
+        editCours({ newRoomType: tempRoomType });
+    };
 
     return (
         <Portal>
@@ -339,7 +356,7 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
                         </div>
 
                         {/* Start Time Subsection */}
-                        <div>
+                        <div className="mb-4 border-b pb-2">
                             <h3 className="text-base font-semibold text-gray-700">Heure de début</h3>
                             <div className="flex justify-between items-center mt-1">
                                 <button
@@ -357,6 +374,27 @@ export default  function CalendarOptionMenu(props: CalendarOptionMenuProps) {
                                         editCours({ newStart: formatTime(newTime) });
                                     }}
                                 >+15mn</button>
+                            </div>
+                        </div>
+                        
+                        {/* Room Type Subsection */}
+                        <div>
+                            <h3 className="text-base font-semibold text-gray-700">Type de salle</h3>
+                            <div className="mt-1 flex">
+                                <input 
+                                    type="text"
+                                    value={tempRoomType}
+                                    onChange={(e) => setTempRoomType(e.target.value)}
+                                    placeholder="Saisir le type de salle si nécessaire"
+                                    className={`w-full border p-2 rounded-md rounded-r-none ${props.cours.RoomType ? 'border-green-500' : ''}`}
+                                />
+                                <button 
+                                    onClick={applyRoomTypeChange}
+                                    className="px-3 bg-green-500 hover:bg-green-600 text-white rounded-md rounded-l-none border border-green-500"
+                                    title="Valider"
+                                >
+                                    ✓
+                                </button>
                             </div>
                         </div>
                     </div>
