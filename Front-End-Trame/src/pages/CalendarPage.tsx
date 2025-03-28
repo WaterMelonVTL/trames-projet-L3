@@ -428,7 +428,7 @@ function CalendarPageContent() {
 
   const generateExcel = (weeks: any[]) => {
     const duplicateStart = new Date(trameData.StartDate);
-    
+    console.log("weeks :",weeks);
     // Create a new ExcelJS workbook
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Trames App';
@@ -439,6 +439,9 @@ function CalendarPageContent() {
     console.log("uesdata : ", ues);
     // Create a sheet for each UE
     const ueSheets: { [key: string]: any } = {};
+
+    // Create weekRoomTypes map to store room types per week per course
+    const weekRoomTypes: { [key: string]: any } = {};
 
     weeks.forEach((week, weekIndex) => {
       week.forEach((day, dayIndex) => {
@@ -454,6 +457,17 @@ function CalendarPageContent() {
           const formattedEndHour = formatTimeToFrench(course.EndHour);
           const timeSlot = `${formattedStartHour}-${formattedEndHour}`;
           const groups = course.Groups.map((group: any) => group.Name).join(', ');
+          
+          // Create a unique key for this course occurrence
+          const courseKey = `${course.UEName}|${course.Type}|${timeSlot}|${dayIndex}|${groups}`;
+          
+          if (!weekRoomTypes[courseKey]) {
+            weekRoomTypes[courseKey] = Array(weeks.length).fill('X');
+          }
+          
+          // Store the room type for this specific week
+          weekRoomTypes[courseKey][weekIndex] = course.RoomType || 'X';
+          
           if (!ueSheets[course.UEName][course.Type][timeSlot]) {
             ueSheets[course.UEName][course.Type][timeSlot] = {};
           }
@@ -467,6 +481,7 @@ function CalendarPageContent() {
             ueSheets[course.UEName][course.Type][timeSlot][dayIndex].push({
               prof: course.ProfFullName || 'ZZ',
               groups: groups,
+              courseKey: courseKey,  // Store the courseKey for lookup
               weeks: Array(weeks.length).fill(false)
             });
             ueSheets[course.UEName][course.Type][timeSlot][dayIndex].forEach((info: any) => {
@@ -560,7 +575,13 @@ function CalendarPageContent() {
               info.groups,
               '',
               '',
-              ...info.weeks.map((week: boolean) => (week ? 'X' : ''))
+              ...info.weeks.map((week: boolean, weekIdx: number) => {
+                // If this week has the course, return the specific room type for this week
+                if (week) {
+                  return weekRoomTypes[info.courseKey][weekIdx];
+                }
+                return ''; // No course this week
+              })
             ];
             worksheet.addRow(rowData);
           });
@@ -597,7 +618,12 @@ function CalendarPageContent() {
               info.groups,
               '',
               '',
-              ...info.weeks.map((week: boolean) => (week ? (ue?.TD_NeedInformaticRoom ? 'I' : 'X') : ''))
+              ...info.weeks.map((week: boolean, weekIdx: number) => {
+                if (week) {
+                  return weekRoomTypes[info.courseKey][weekIdx];
+                }
+                return '';
+              })
             ];
             worksheet.addRow(rowData);
           });
@@ -634,7 +660,12 @@ function CalendarPageContent() {
               info.groups,
               '',
               '',
-              ...info.weeks.map((week: boolean) => (week ? (ue?.TP_NeedInformaticRoom ? 'I' : 'X') : ''))
+              ...info.weeks.map((week: boolean, weekIdx: number) => {
+                if (week) {
+                  return weekRoomTypes[info.courseKey][weekIdx];
+                }
+                return '';
+              })
             ];
             worksheet.addRow(rowData);
           });

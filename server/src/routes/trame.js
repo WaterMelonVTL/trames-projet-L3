@@ -574,6 +574,7 @@ router.post('/duplicate/:id', async (req, res) => {
                     Type: course.Type,
                     StartHour: course.StartHour,
                     ProfId: course.ProfId,
+                    RoomType: course.RoomType
                 }));
 
                 if (courseError) {
