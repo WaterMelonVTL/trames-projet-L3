@@ -324,6 +324,29 @@ export default function CalendarOptionMenu(props: CalendarOptionMenuProps) {
         editCours({ newRoomType: tempRoomType });
     };
 
+    // Fetch course data when menu opens to ensure we have the latest RoomType
+    useEffect(() => {
+        async function fetchCourseDetails() {
+            if (props.isOpen && props.cours.Id) {
+                try {
+                    console.log("Fetching course details for ID:", props.cours.Id);
+                    const response = await fetch(`http://localhost:3000/api/cours/${props.cours.Id}`);
+                    if (!response.ok) throw new Error('Failed to fetch course details');
+                    const courseData = await response.json();
+                    console.log("Fetched course data:", courseData);
+                    
+                    // Update roomType state with the fetched data
+                    setRoomType(courseData.RoomType || '');
+                    setTempRoomType(courseData.RoomType || '');
+                } catch (error) {
+                    console.error('Error fetching course details:', error);
+                }
+            }
+        }
+        
+        fetchCourseDetails();
+    }, [props.isOpen, props.cours.Id]);
+
     return (
         <Portal>
             <div
@@ -386,7 +409,7 @@ export default function CalendarOptionMenu(props: CalendarOptionMenuProps) {
                                     value={tempRoomType}
                                     onChange={(e) => setTempRoomType(e.target.value)}
                                     placeholder="Saisir le type de salle si nécessaire"
-                                    className={`w-full border p-2 rounded-md rounded-r-none ${props.cours.RoomType ? 'border-green-500' : ''}`}
+                                    className={`w-full border p-2 rounded-md rounded-r-none ${roomType ? 'border-green-500' : ''}`}
                                 />
                                 <button 
                                     onClick={applyRoomTypeChange}
@@ -395,6 +418,10 @@ export default function CalendarOptionMenu(props: CalendarOptionMenuProps) {
                                 >
                                     ✓
                                 </button>
+                            </div>
+                            {/* Debug info - can be removed in production */}
+                            <div className="text-xs text-gray-500 mt-1">
+                                Type actuel: {roomType || 'Non défini'}
                             </div>
                         </div>
                     </div>
