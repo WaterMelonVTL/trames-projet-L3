@@ -3,6 +3,7 @@ import { Trame } from '../types/types.ts'
 import { useNavigate } from 'react-router-dom';
 import ThemeSelector from '../components/ThemeSelector';
 import { ThemeContext } from '../components/ThemeContext';
+import SecretFeature from '../components/SecretFeature.tsx'
 
 const ARROW = <svg fill="#000000" height="200px" width="200px" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" viewBox="0 0 330 330" xmlSpace="preserve">
   <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
@@ -100,6 +101,11 @@ function Home() {
             </div>
           )}
         </div>
+
+      </div>
+       {/* Secret Feature Component */}
+       <div className="mt-8">
+        <SecretFeature />
       </div>
     </div>
   )

@@ -9,6 +9,23 @@ interface ThemeDecorationsProps {
 }
 
 const ThemeDecorations: React.FC<ThemeDecorationsProps> = ({ theme }) => {
+    if (theme === 'caca') {
+        return (
+            <div className="pointer-events-none">
+            <div
+              className="absolute w-full h-16 top-0 z-[999] -translate-y-[17%] left-0"
+              style={{
+                backgroundImage: 'url(/assets/noel2.png)',
+                backgroundRepeat: 'repeat-x',
+                backgroundSize: 'auto 100%',
+                backgroundPosition: 'center top',
+              }}
+            />
+            <Snowfall color="white" style={{ zIndex: 200 }} />
+          </div>
+        );
+      }
+
   if (theme === 'noel') {
     return (
         <div className="pointer-events-none">

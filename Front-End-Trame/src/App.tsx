@@ -8,6 +8,7 @@ import SetupTrame from './pages/SetupTrame';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeContext, ThemeProvider } from './components/ThemeContext';
 import ThemeDecorations from './components/ThemeDecorations';
+import SecretVideoPage from './components/SecretVideoPage';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -35,6 +36,7 @@ function App() {
                     <Route path="/edit">
                       <Route path="trame/:id" element={<SetupTrame />} />
                     </Route>
+                    <Route path="/secret-video" element={<SecretVideoPage />} />
                   </Routes>
                 </Router>
               </QueryClientProvider>
