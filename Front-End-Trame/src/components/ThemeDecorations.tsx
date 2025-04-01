@@ -3,12 +3,17 @@ import Snowfall from 'react-snowfall';
 import Confetti from 'react-confetti';
 import EggsParticles from './EggParticles';
 import HeartsParticles from './HeartParticles';
+import { useLocation } from 'react-router-dom';
+
 
 interface ThemeDecorationsProps {
   theme: string;
 }
 
 const ThemeDecorations: React.FC<ThemeDecorationsProps> = ({ theme }) => {
+    const location = useLocation();
+    const isSetupPage = location.pathname.includes('/edit/trame');
+
     if (theme === 'caca') {
         return (
             <div className="pointer-events-none">
@@ -55,6 +60,7 @@ const ThemeDecorations: React.FC<ThemeDecorationsProps> = ({ theme }) => {
             backgroundPosition: 'center top',
           }}
         />
+        {!isSetupPage && (
         <div className="absolute left-0 w-full top-0 -mt-4 flex justify-center z-[999]">
         <svg width="600" height="200" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -88,7 +94,7 @@ const ThemeDecorations: React.FC<ThemeDecorationsProps> = ({ theme }) => {
             height="125" 
         />
         </svg>
-        </div>
+        </div>)}
         {/* Sun effect */}
         <div
           className="absolute top-12 left-6 w-16 h-16 z-[999] animate-pulse"
@@ -121,34 +127,34 @@ const ThemeDecorations: React.FC<ThemeDecorationsProps> = ({ theme }) => {
           }}
         />
         {/* SVG text container positioned just below the image */}
-            <div className="absolute left-0 w-full top-0 -mt-4 flex justify-center z-[999]">
-            <svg width="600" height="200" xmlns="http://www.w3.org/2000/svg">
-        <image 
-            href="/assets/egg1.svg" 
-            x="50" 
-            y="75" 
-            width="50" 
-            height="50" 
-        />
-        <text 
-            x="50%" 
-            y="50%" 
-            textAnchor="middle" 
-            className="paques-title" 
-            dy=".3em"
-        >
-            Joyeuses Pâques
-        </text>
-        <image 
-            href="/assets/egg2.svg" 
-            x="500" 
-            y="75" 
-            width="50" 
-            height="50" 
-        />
-        </svg>
-
-            </div>
+        {!isSetupPage && (
+                <div className="absolute left-0 w-full top-0 -mt-4 flex justify-center z-[999]">
+                <svg width="600" height="200" xmlns="http://www.w3.org/2000/svg">
+            <image 
+                href="/assets/egg1.svg" 
+                x="50" 
+                y="75" 
+                width="50" 
+                height="50" 
+            />
+            <text 
+                x="50%" 
+                y="50%" 
+                textAnchor="middle" 
+                className="paques-title" 
+                dy=".3em"
+            >
+                Joyeuses Pâques
+            </text>
+            <image 
+                href="/assets/egg2.svg" 
+                x="500" 
+                y="75" 
+                width="50" 
+                height="50" 
+            />
+            </svg>
+        </div>)}
         <div
             className="absolute top-16 left-8 w-12 h-12 z-[999] animate-pulse"
             style={{
@@ -178,33 +184,34 @@ const ThemeDecorations: React.FC<ThemeDecorationsProps> = ({ theme }) => {
           }}
         />
         {/* SVG text container positioned just below the image */}
-<div className="absolute left-0 w-full top-0 -mt-4 flex justify-center z-[999]">
-  <svg width="600" height="200" xmlns="http://www.w3.org/2000/svg">
-    <image 
-      href="/assets/heart1.svg" 
-      x="50" 
-      y="75" 
-      width="50" 
-      height="50" 
-    />
-    <text 
-      x="50%" 
-      y="50%" 
-      textAnchor="middle" 
-      className="title" 
-      dy=".5em"
-    >
-      Joyeuse St. Valentin
-    </text>
-    <image 
-      href="/assets/heart2.svg" 
-      x="525" 
-      y="75" 
-      width="70" 
-      height="70" 
-    />
-  </svg>
-</div>
+        {!isSetupPage && (
+            <div className="absolute left-0 w-full top-0 -mt-4 flex justify-center z-[999]">
+            <svg width="600" height="200" xmlns="http://www.w3.org/2000/svg">
+                <image 
+                href="/assets/heart1.svg" 
+                x="50" 
+                y="75" 
+                width="50" 
+                height="50" 
+                />
+                <text 
+                x="50%" 
+                y="50%" 
+                textAnchor="middle" 
+                className="title" 
+                dy=".5em"
+                >
+                Joyeuse St. Valentin
+                </text>
+                <image 
+                href="/assets/heart2.svg" 
+                x="525" 
+                y="75" 
+                width="70" 
+                height="70" 
+                />
+            </svg>
+            </div>)}
 
 
         <div
