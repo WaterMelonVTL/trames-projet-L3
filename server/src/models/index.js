@@ -222,10 +222,13 @@ const Course = sequelize.define('Course', {
             key: 'Id'
         }
     },
-
     Type: {
         type: DataTypes.STRING,
         allowNull: false
+    },
+    RoomType: {
+        type: DataTypes.STRING,
+        allowNull: true
     }
 });
 
