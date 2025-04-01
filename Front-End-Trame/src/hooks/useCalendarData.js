@@ -206,6 +206,16 @@ export function useAddCourse() {
         return;
       }
       
+      // // Check if there are conflicts in the response
+      // if (data && data.Conflicts && Array.isArray(data.Conflicts) && data.Conflicts.length > 0) {
+      //   // Return conflict information so the caller can handle it
+      //   return {
+      //     hasConflicts: true,
+      //     conflicts: data.Conflicts,
+      //     conflictId: data.Conflicts[0]?.Id || -1
+      //   };
+      // }
+      
       const { queryKey, optimisticCourse } = context;
       const { trameId, layerId } = variables;
 

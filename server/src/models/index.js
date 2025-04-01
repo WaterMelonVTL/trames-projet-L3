@@ -336,7 +336,35 @@ const CoursePool = sequelize.define('CoursePool', {
 	}
 });
 
+// Define Conflicts model
+const Conflicts = sequelize.define('Conflicts', {
+    Id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+    },
+    GroupId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Group,
+            key: 'Id'
+        }
+    },
+    ResolutionMethod: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 'None'
+    }
+});
+
 // Define relationships
+
+
+// Conflicts relationships
+Conflicts.belongsTo(Group, { foreignKey: 'GroupId' });
+Course.belongsToMany(Conflicts, { through: 'Course_Conflicts', foreignKey: 'CourseId' });
+Conflicts.belongsToMany(Course, { through: 'Course_Conflicts', foreignKey: 'ConflictId' });
 
 // UE relationships
 UE.belongsToMany(Prof, { as: 'Responsibles', through: 'UE_Responsibles', foreignKey: 'UEId' });
@@ -408,5 +436,6 @@ export {
     Group,
     DesignatedDays,
     CoursePool,
-    Events
+    Events,
+    Conflicts
 };

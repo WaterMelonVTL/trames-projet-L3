@@ -2,19 +2,67 @@ import express from 'express';
 import dotenv from 'dotenv';
 import { catchError } from '../utils/HandleErrors.js';
 // Updated import to include Layer, Group, Prof and CoursePool
-import { Course, Sequelize, sequelize, Layer, Group, Prof, CoursePool } from '../models/index.js';
+import { Course, Sequelize, sequelize, Layer, Group, Prof, CoursePool, Conflicts } from '../models/index.js';
 import chalk from 'chalk';
 import { Op } from 'sequelize';
 dotenv.config();
 const router = express.Router();
 
+
+async function findOverlappingCourses(inputDate, groupId, startHour, length) {
+    // Convert input date to YYYY-MM-DD format
+    const dateStr = inputDate.toISOString().split('T')[0];
+
+    // Calculate input start and end times in minutes
+    const inputStartMinutes = timeToMinutes(startHour);
+    const inputEndMinutes = inputStartMinutes + length;
+
+    // Fetch courses for the group on the given date
+    const courses = await Course.findAll({
+        include: [{
+            model: Group,
+            where: { Id: groupId },
+            through: { attributes: [] } // Exclude join table attributes
+        }],
+        where: {
+            [Op.and]: [
+                // Ensure the course's date matches the input date (ignoring time part)
+                sequelize.where(sequelize.fn('DATE', sequelize.col('Date')), Op.eq, dateStr)
+            ]
+        }
+    });
+
+    // Check each course for time overlap
+    const overlappingCourses = courses.filter(course => {
+        const courseStart = timeToMinutes(course.StartHour);
+        const courseEnd = courseStart + course.length;
+
+        // Check if the course overlaps with the input time frame
+        return courseStart < inputEndMinutes && courseEnd > inputStartMinutes;
+    });
+
+    console.log(chalk.yellow(`Found ${overlappingCourses.length} overlapping courses`));
+
+    return overlappingCourses;
+}
+
+// Helper function to convert time string to minutes since midnight
+function timeToMinutes(timeStr) {
+    const parts = timeStr.split(':');
+    const hours = parseInt(parts[0], 10);
+    const minutes = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+    return hours * 60 + minutes;
+}
+
+async function multiGroupsFindOverlappingCourses(inputDate, groupIds, startHour, length) {
+
+}
 // Create a new Course
 router.post('/', async (req, res) => {
     const { course, groups, separate } = req.body;
     if (!separate) {
         console.log("SEPARATE IS FALSE")
-        console.log(course);
-        console.log(groups);
+
         const groupIds = groups.map((group) => (group.Id));
         const [courseError, courseData] = await catchError(Course.create(course));
         if (courseError) {
@@ -22,6 +70,34 @@ router.post('/', async (req, res) => {
             res.status(500).send('Internal Server Error');
             return;
         }
+
+        const conflicts = [];
+        const inputDate = new Date(course.Date);
+        const startHour = course.StartHour;
+        const length = course.length;
+
+        for (const groupId of groupIds) {
+
+            const overlappingCourses = await findOverlappingCourses(inputDate, groupId, startHour, length);
+            if (overlappingCourses.length > 0) {
+                const [conflictError, conflict] = await catchError(Conflicts.create({
+                    GroupId: groupId,
+                }));
+                if (conflictError) {
+                    console.error(conflictError);
+                    res.status(500).send('Internal Server Error');
+                    return;
+                }
+                
+                conflict.setCourses(overlappingCourses.map(c => c.Id));
+                conflicts.push(conflict);
+
+            }
+        }
+
+
+
+
         if (groups && Array.isArray(groups) && groups.length > 0) {
             const [groupError, _] = await catchError(courseData.setGroups(groupIds));
             if (groupError) {
@@ -29,19 +105,19 @@ router.post('/', async (req, res) => {
                 res.status(500).send('Internal Server Error');
                 return;
             }
-            
+
             // Update CoursePool for each group if course date is not in 2001
             if (new Date(courseData.Date).getFullYear() !== 2001) {
                 for (const group of groups) {
                     const [poolError, __] = await catchError(
                         CoursePool.decrement(
                             { Volume: course.length },
-                            { 
-                                where: { 
-                                    UEId: courseData.UEId, 
+                            {
+                                where: {
+                                    UEId: courseData.UEId,
                                     Type: courseData.Type,
                                     GroupId: group.Id
-                                } 
+                                }
                             }
                         )
                     );
@@ -61,10 +137,9 @@ router.post('/', async (req, res) => {
             }
             return res.status(400).send('No groups provided');
         }
-        
-        console.log(courseData);
+
         courseData.dataValues.Groups = groups;
-        console.log(courseData);
+        courseData.dataValues.Conflicts = conflicts;
         return res.json(courseData);
     } else {
         if (!groups || !Array.isArray(groups) || groups.length === 0) {
@@ -87,18 +162,18 @@ router.post('/', async (req, res) => {
                 res.status(500).send('Internal Server Error');
                 return;
             }
-            
+
             // Update CoursePool for the specific group if course date is not in 2001
             if (new Date(courseData.Date).getFullYear() !== 2001) {
                 const [poolError, __] = await catchError(
                     CoursePool.decrement(
                         { Volume: course.length },
-                        { 
-                            where: { 
-                                UEId: courseData.UEId, 
+                        {
+                            where: {
+                                UEId: courseData.UEId,
                                 Type: courseData.Type,
                                 GroupId: g.Id
-                            } 
+                            }
                         }
                     )
                 );
@@ -106,13 +181,78 @@ router.post('/', async (req, res) => {
                     console.error(`Error updating CoursePool for group ${g.Id}:`, poolError);
                 }
             }
-            
+
             console.log(courseData);
             courseData.dataValues.Groups = [g];
             console.log("CREATED COURSE FOR GROUP : ", g);
             createdCourses.push(courseData);
         }
         return res.json(createdCourses);
+    }
+});
+
+router.get('/conflicts/:id', async (req, res) => {
+    console.log(chalk.redBright('GETTING CONFLICTS'));
+    const id = req.params.id;
+    const [conflictError, conflicts] = await catchError(Conflicts.findOne({ where: { Id: id }, include: ['Courses'] }));
+    if (conflictError) {
+        console.error(conflictError);
+        res.status(500).send('Internal Server Error');
+        return;
+    }
+    return res.json(conflicts);
+});
+
+router.post('/conflicts/:id/resolve', async (req, res) => {
+    const { id } = req.params;
+    const { option, courses } = req.body;
+
+    // Fetch the conflict including associated courses
+    const [conflictError, conflict] = await catchError(
+        Conflicts.findOne({ where: { Id: id }, include: ['Courses'] })
+    );
+    if (conflictError || !conflict) {
+        console.error(conflictError || 'Conflict not found');
+        return res.status(404).send('Conflict not found');
+    }
+
+    if (option === 'ignore') {
+        // Do nothing
+        return res.json({ message: 'Conflict ignored' });
+    } else if (option === 'keep') {
+        // Find courses linked to the conflict that are not selected
+        const remainingCourses = conflict.Courses.filter(c => !courses.includes(c.Id));
+
+        // Destroy unselected courses
+        for (const course of remainingCourses) {
+            const [destroyError, _] = await catchError(course.destroy());
+            if (destroyError) {
+                console.error(`Error destroying course ${course.Id}:`, destroyError);
+                return res.status(500).send('Internal Server Error');
+            }
+        }
+
+        // If only one or no course remains, destroy the conflict
+        if (remainingCourses.length <= 1) {
+            const [conflictDestroyError, __] = await catchError(conflict.destroy());
+            if (conflictDestroyError) {
+                console.error('Error destroying conflict:', conflictDestroyError);
+                return res.status(500).send('Internal Server Error');
+            }
+            return res.json({ message: 'Conflict resolved and removed' });
+        }
+
+        return res.json({ message: 'Conflict resolved, remaining courses kept' });
+    } else {
+        // Update the conflict's ResolutionMethod
+        const [updateError, _] = await catchError(
+            conflict.update({ ResolutionMethod: option })
+        );
+        if (updateError) {
+            console.error('Error updating conflict resolution method:', updateError);
+            return res.status(500).send('Internal Server Error');
+        }
+        return res.json({ message: `Conflict resolution method set to '${option}'` });
     }
 });
 
@@ -359,7 +499,7 @@ router.post('/restoreDefaultGroups/:courseId', async (req, res) => {
         return res.status(400).send('No default groups available');
     }
     const defaultGroupIds = defaultGroups.map(g => g.Id);
-    
+
     // Assign default groups to the course
     const [setGroupsError, _] = await catchError(course.setGroups(defaultGroupIds));
     if (setGroupsError) {
@@ -641,31 +781,31 @@ router.delete('/:id', async (req, res) => {
     const id = req.params.id;
     // Fetch the course first with associated groups
     const [findError, courseToDelete] = await catchError(
-        Course.findOne({ 
+        Course.findOne({
             where: { id },
-            include: ['Groups'] 
+            include: ['Groups']
         })
     );
-    
+
     if (findError || !courseToDelete) {
         console.error(findError || 'Course not found');
         return res.status(404).send('Course not found');
     }
-    
+
     // Update CoursePool for each associated group if course date is not in 2001
-    if (new Date(courseToDelete.Date).getFullYear() !== 2001 && 
+    if (new Date(courseToDelete.Date).getFullYear() !== 2001 &&
         courseToDelete.Groups && courseToDelete.Groups.length > 0) {
-        
+
         for (const group of courseToDelete.Groups) {
             const [poolError, __] = await catchError(
                 CoursePool.increment(
                     { Volume: courseToDelete.length },
-                    { 
-                        where: { 
-                            UEId: courseToDelete.UEId, 
+                    {
+                        where: {
+                            UEId: courseToDelete.UEId,
                             Type: courseToDelete.Type,
-                            GroupId: group.Id 
-                        } 
+                            GroupId: group.Id
+                        }
                     }
                 )
             );
@@ -675,7 +815,7 @@ router.delete('/:id', async (req, res) => {
             }
         }
     }
-    
+
     const [courseError, courseData] = await catchError(Course.destroy({ where: { id } }));
     if (courseError) {
         console.error(courseError);
