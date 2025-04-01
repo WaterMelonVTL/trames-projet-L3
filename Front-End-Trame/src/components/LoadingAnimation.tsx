@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import bgMusic from '../assets/lingan-guli-don-pollo.mp3'
+import bgMusic from '/assets/lingan-guli-don-pollo.mp3'
 interface LoadingAnimationProps {
   colors: string[]
   texte: string,
