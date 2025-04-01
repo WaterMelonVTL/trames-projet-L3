@@ -2,9 +2,9 @@ import React, { useEffect } from 'react'
 import { Group, Course } from '../types/types'
 import { useState } from 'react'
 import { useUEs, useGroups } from "../hooks/useApiData.js";
-import {api} from '../public/api/api.js'
+import { api } from '../public/api/api.js'
 
-function ConflictModal({id, onClose}: {id: number, onClose: () => void}) {
+function ConflictModal({ id, onClose }: { id: number, onClose: () => void }) {
     const [selectedOption, setSelectedOption] = useState<string>('');
     const [selectedCourses, setSelectedCourses] = useState<Course[]>([]);
     const { isLoading: loading, data: UEs } = useUEs();
@@ -27,10 +27,9 @@ function ConflictModal({id, onClose}: {id: number, onClose: () => void}) {
             }
 
         }
-        
+
         fetchConflict(id)
-    }
-    , [])
+    }, [])
 
     const getGroupName = (groupId: number) => {
         const group = groups.find(group => group.Id === groupId);
@@ -48,6 +47,7 @@ function ConflictModal({id, onClose}: {id: number, onClose: () => void}) {
             courses: selectedCourses.map(c => c.Id)
         })
         onClose();
+        return;
     }
     if (loading || loadingGroups) {
         return (
@@ -72,7 +72,7 @@ function ConflictModal({id, onClose}: {id: number, onClose: () => void}) {
                     <div className='mb-4'>
                         <input type="radio" id="move" name="conflict" value="keep" onChange={(e) => { setSelectedOption(e.target.value) }} />
                         <label htmlFor="move" className='ml-2'>Garder :</label>
-                        {selectedOption=="keep" && <ul className='ml-6 mt-2'>
+                        {selectedOption == "keep" && <ul className='ml-6 mt-2'>
                             {courses.map(course => (
                                 <li key={course.Id} className='mb-2'>
                                     <input type="checkbox" id={course.Id} name={"courseToKeep"} value={course.Id} onChange={(e) => {
@@ -105,8 +105,8 @@ function ConflictModal({id, onClose}: {id: number, onClose: () => void}) {
                 </p>
                 <div className='flex justify-end'>
 
-                    <button 
-                        onClick={handleClose}} 
+                    <button
+                        onClick={handleClose}
                         disabled={selectedOption === '' || (selectedOption === 'keep' && selectedCourses.length === 0)}
                         className={`px-4 py-2 rounded-lg ${selectedOption === '' || (selectedOption === 'keep' && selectedCourses.length === 0) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
                     >
