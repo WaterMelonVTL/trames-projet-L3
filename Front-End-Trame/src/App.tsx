@@ -4,9 +4,11 @@ import React from 'react';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import CalendarPage from './pages/CalendarPage';
-//import Snowfall from 'react-snowfall'
 import SetupTrame from './pages/SetupTrame';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeContext, ThemeProvider } from './components/ThemeContext';
+import ThemeDecorations from './components/ThemeDecorations';
+import SecretVideoPage from './components/SecretVideoPage';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -18,30 +20,32 @@ const queryClient = new QueryClient({
   },
 });
 function App() {
-
-
   return (
-    <div className='w-screen h-screen absolute top-0 left-0'>
-      <QueryClientProvider client={queryClient}>
-        <Router>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path='/calendar/:id' element={<CalendarPage />} />
-            <Route path="/edit">
-              <Route path="trame/:id" element={<SetupTrame />} />
-            </Route>
-          </Routes>
-        </Router>
-      </QueryClientProvider>
-    </div>
-  )
+    <ThemeProvider>
+      <ThemeContext.Consumer>
+        {({ theme }) => (
+          <div className="App">
+              <ThemeDecorations theme={theme} />
+            <div className='w-screen h-screen absolute top-0 left-0'>
+              <QueryClientProvider client={queryClient}>
+                <Router>
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path='/calendar/:id' element={<CalendarPage />} />
+                    <Route path="/edit">
+                      <Route path="trame/:id" element={<SetupTrame />} />
+                    </Route>
+                    <Route path="/secret-video" element={<SecretVideoPage />} />
+                  </Routes>
+                </Router>
+              </QueryClientProvider>
+            </div>
+          </div>
+        )}
+      </ThemeContext.Consumer>
+    </ThemeProvider>
+  );
 }
 
 export default App
-
-{/* CHRISTMAS THEME
-        <div className="absolute w-full h-16 top-0 z-[999] -translate-y-[17%]" style={{ backgroundImage: 'url(./src/assets/noel2.png)', backgroundRepeat: 'repeat-x', backgroundSize: 'auto 100%' }}>
-      </div>
-      <Snowfall color="white" style={{ zIndex: 200 }} />
-*/}
