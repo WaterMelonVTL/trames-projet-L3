@@ -144,7 +144,7 @@ export function useAddCourse() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ course, groups, separate, isMoving, originalId }) => {
+    mutationFn: async ({ course, groups, separate, isMoving, originalId, trameId }) => {
       // If this is part of a move operation, track the original course ID
       if (isMoving && originalId) {
         movingCourseIds.add(originalId);
@@ -153,6 +153,7 @@ export function useAddCourse() {
       const response = await api.post('/cours', {
         course,
         groups,
+        trameId,
         separate
       });
       

@@ -339,18 +339,35 @@ const CoursePool = sequelize.define('CoursePool', {
 	}
 });
 
-// Define Conflicts model
+// Update Conflicts model definition
 const Conflicts = sequelize.define('Conflicts', {
     Id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
     },
-    GroupId: {
+    TrameId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: Group,
+            model: Trame,
+            key: 'Id'
+        }
+    },
+
+    Course1Id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Course,
+            key: 'Id'
+        }
+    },
+    Course2Id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Course,
             key: 'Id'
         }
     },
@@ -361,13 +378,16 @@ const Conflicts = sequelize.define('Conflicts', {
     }
 });
 
-// Define relationships
+// Update relationships
+Conflicts.belongsTo(Course, { foreignKey: 'Course1Id', as: 'Course1', onDelete: 'CASCADE' });
+Conflicts.belongsTo(Course, { foreignKey: 'Course2Id', as: 'Course2', onDelete: 'CASCADE' });
 
-
-// Conflicts relationships
-Conflicts.belongsTo(Group, { foreignKey: 'GroupId' });
-Course.belongsToMany(Conflicts, { through: 'Course_Conflicts', foreignKey: 'CourseId' });
-Conflicts.belongsToMany(Course, { through: 'Course_Conflicts', foreignKey: 'ConflictId' });
+// Ensure the database schema reflects the cascade behavior
+sequelize.sync({ alter: true }).then(() => {
+    console.log('Database schema updated to enforce cascade delete for Conflicts.');
+}).catch(error => {
+    console.error('Error updating database schema:', error);
+});
 
 // UE relationships
 UE.belongsToMany(Prof, { as: 'Responsibles', through: 'UE_Responsibles', foreignKey: 'UEId' });

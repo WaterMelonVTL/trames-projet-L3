@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { catchError } from '../utils/HandleErrors.js';
-import { Trame, Sequelize, Layer, Course, Group, UE, DesignatedDays, CoursePool, Prof, Events } from '../models/index.js';
+import { Trame, Sequelize, Layer, Course, Group, UE, DesignatedDays, CoursePool, Prof, Events, Conflicts } from '../models/index.js';
 import chalk from 'chalk';
 import { json } from 'sequelize';
 
@@ -268,6 +268,32 @@ async function clearCoursesFromTrame(trameId) {
     return count;
 }
 
+// Cache conflicts for the trame
+async function cacheConflicts(trameId) {
+    const [conflictError, conflicts] = await catchError(Conflicts.findAll({
+        include: [
+            { model: Course, as: 'Course1', include: [Group] },
+            { model: Course, as: 'Course2', include: [Group] }
+        ],
+        where: {
+            TrameId: trameId,
+            ResolutionMethod: { [Sequelize.Op.ne]: 'None' }
+        }
+    }));
+
+    if (conflictError) {
+        console.error("Error fetching conflicts:", conflictError);
+        throw new Error('Failed to fetch conflicts');
+    }
+
+    const conflictCache = new Map();
+    for (const conflict of conflicts) {
+        const key = `${conflict.Course1Id}-${conflict.Course2Id}`;
+        conflictCache.set(key, conflict);
+    }
+    return conflictCache;
+}
+
 // Update the duplicate route to call the clearCoursesFromTrame function
 router.post('/duplicate/:id', async (req, res) => {
 
@@ -393,6 +419,20 @@ router.post('/duplicate/:id', async (req, res) => {
     let totcourses = 0;
     const totalLayers = layers.length;
 
+    // Cache conflicts for the trame
+    let conflictCache;
+    try {
+        conflictCache = await cacheConflicts(id);
+    } catch (error) {
+        duplicationProgress[id].state = 'erreur';
+        console.error('Error caching conflicts:', error);
+        res.status(500).send('Error caching conflicts');
+        return;
+    }
+
+    const alternateCounts = new Map(); // Tracks alternate counts per group and day
+    const sequenceRemaining = new Map(); // Tracks remaining hours for sequence
+
     for (let layerIndex = 0; layerIndex < layers.length; layerIndex++) {
         const layer = layers[layerIndex];
 
@@ -497,6 +537,12 @@ router.post('/duplicate/:id', async (req, res) => {
             return `${year}-${month}-${day}`;
         };
 
+        // Helper function to check if a course is in the default weekday
+        function isCourseInDefaultWeekDay(course, dayOfWeek) {
+            const courseDate = new Date(course.Date);
+            return courseDate.getDay() === dayOfWeek;
+        }
+
         while (currentDate <= endDate) {
             // Update layer percentage based on date progress
             const elapsedTime = currentDate.getTime() - startDate.getTime();
@@ -564,6 +610,66 @@ router.post('/duplicate/:id', async (req, res) => {
                     );
                 })) {
                     continue;
+                }
+
+                // Check for conflicts
+                let shouldSkipCourse = false;
+                const dayOfWeek = currentDate.getDay();
+                
+                for (const group of eligibleGroups) {
+                    const key = `${group.Id}-${dayOfWeek}`;
+                    
+                    const conflicts = Array.from(conflictCache.values()).filter(conflict => {
+                        return [conflict.Course1.Id, conflict.Course2.Id].includes(course.Id) &&
+                            [conflict.Course1.Groups, conflict.Course2.Groups].some(groups =>
+                                groups.some(g => g.Id === group.Id)
+                            );
+                    });
+
+                    for (const conflict of conflicts) {
+                        const courseInDay = [conflict.Course1, conflict.Course2].filter(c =>
+                            isCourseInDefaultWeekDay(c, dayOfWeek)
+                        );
+                        
+                        if (courseInDay.length !== 2) continue;
+
+                        switch (conflict.ResolutionMethod) {
+                            case 'Alternate':
+                                const count = alternateCounts.get(key) || 0;
+                                const selectedCourse = count % 2 === 0 ? courseInDay[0] : courseInDay[1];
+                                
+                                if (selectedCourse.Id !== course.Id) {
+                                    shouldSkipCourse = true;
+                                }
+                                
+                                alternateCounts.set(key, count + 1);
+                                break;
+                                
+                            case 'Sequence':
+                                const remaining = sequenceRemaining.get(key) || {};
+                                const selectedSeqCourse = remaining[conflict.Course1.Id]
+                                    ? conflict.Course2
+                                    : conflict.Course1;
+                                
+                                if (selectedSeqCourse.Id !== course.Id) {
+                                    shouldSkipCourse = true;
+                                }
+                                
+                                sequenceRemaining.set(key, {
+                                    ...remaining,
+                                    [course.Id]: true
+                                });
+                                break;
+                        }
+                        
+                        if (shouldSkipCourse) break;
+                    }
+                    
+                    if (shouldSkipCourse) break;
+                }
+                
+                if (shouldSkipCourse) {
+                    continue; // Skip this course due to conflict resolution
                 }
 
                 // Create the course
