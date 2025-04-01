@@ -1,3 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
+
+@import url('https://fonts.googleapis.com/css2?family=Satisfy&display=swap');
+.paques-title { 
+  font-family: 'Satisfy', cursive; 
+  font-size: 64px; 
+  fill: #FF6F61;
+}
+
+.title {
+  font-family: 'Great Vibes', cursive;
+  font-size: 56px;
+  fill: #E91E63;
+}
+
+.mexican-title { 
+  font-family: 'Pacifico', cursive; 
+  font-size: 72px; 
+  fill: url(#grad1);
+}
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -40,3 +62,5 @@
 .read-the-docs {
   color: #888;
 }
+
+

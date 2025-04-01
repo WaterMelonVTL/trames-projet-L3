@@ -27,6 +27,8 @@ function Home() {
   const themes = [
     { id: 'noel', name: 'Noel' },
     { id: 'mexicain', name: 'Mexicain' },
+    { id: 'paques', name: 'Pâques' },
+    { id: 'valentin', name: 'St. Valentin' },
   ];
   const handleThemeSelect = (themeId: string) => {
     setSelectedTheme(themeId);
