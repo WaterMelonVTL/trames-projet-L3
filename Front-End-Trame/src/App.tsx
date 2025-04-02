@@ -22,30 +22,31 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <ThemeProvider>
-      <ThemeContext.Consumer>
-        {({ theme }) => (
-          <div className="App">
-              <ThemeDecorations theme={theme} />
-            <div className='w-screen h-screen absolute top-0 left-0'>
-              <QueryClientProvider client={queryClient}>
-                <Router>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <ThemeContext.Consumer>
+            {({ theme }) => (
+              <>
+                <ThemeDecorations theme={theme} />
+                <div className="w-screen h-screen absolute top-0 left-0">
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/login" element={<Login />} />
-                    <Route path='/calendar/:id' element={<CalendarPage />} />
+                    <Route path="/calendar/:id" element={<CalendarPage />} />
                     <Route path="/edit">
                       <Route path="trame/:id" element={<SetupTrame />} />
                     </Route>
                     <Route path="/secret-video" element={<SecretVideoPage />} />
                   </Routes>
-                </Router>
-              </QueryClientProvider>
-            </div>
-          </div>
-        )}
-      </ThemeContext.Consumer>
+                </div>
+              </>
+            )}
+          </ThemeContext.Consumer>
+        </Router>
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }
+
 
 export default App
