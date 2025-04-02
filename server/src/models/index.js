@@ -9,7 +9,8 @@ const __dirname = dirname(__filename);
 
 const sequelize = new Sequelize({
     dialect: 'sqlite',
-    storage: path.join(__dirname, '../main.db')
+    storage: path.join(__dirname, '../main.db'),
+    logging: false,
 });
 
 // Define User model 

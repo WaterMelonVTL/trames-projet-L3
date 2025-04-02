@@ -319,7 +319,7 @@ router.post('/duplicate/:id', async (req, res) => {
     let daysToSkip = designatedDaysRecords.map(record => record.Day);
 
     let totalEvents = await Events.findAll({ where: { TrameId: id } });
-    if (!totalEvents ) {
+    if (!totalEvents) {
         console.log("Total events found : ", totalEvents.length);
         totalEvents = [];
     }
@@ -565,9 +565,10 @@ router.post('/duplicate/:id', async (req, res) => {
             }
             let currentDay = currentDate.getDay();
             const courseofDay = weekCourses[currentDay];
-            console.log(chalk.red("Current day : ", currentDay, " ", currentDate));
+            //console.log(chalk.red("Current day : ", currentDay, " ", currentDate));
 
             // ...existing course creation code...
+            console.log(chalk.green("_____________________Current date : ", currentDate));
             for (const course of courseofDay) {
                 // Get all groups associated with this course
                 const allGroupsAssociated = course.Groups;
@@ -615,64 +616,73 @@ router.post('/duplicate/:id', async (req, res) => {
                 // Check for conflicts
                 let shouldSkipCourse = false;
                 const dayOfWeek = currentDate.getDay();
-                
-                for (const group of eligibleGroups) {
-                    const key = `${group.Id}-${dayOfWeek}`;
-                    
-                    const conflicts = Array.from(conflictCache.values()).filter(conflict => {
-                        return [conflict.Course1.Id, conflict.Course2.Id].includes(course.Id) &&
-                            [conflict.Course1.Groups, conflict.Course2.Groups].some(groups =>
-                                groups.some(g => g.Id === group.Id)
-                            );
-                    });
 
-                    for (const conflict of conflicts) {
-                        const courseInDay = [conflict.Course1, conflict.Course2].filter(c =>
-                            isCourseInDefaultWeekDay(c, dayOfWeek)
-                        );
-                        
-                        if (courseInDay.length !== 2) continue;
+                const conflicts = Array.from(conflictCache.values()).filter(conflict => {
+                    return [conflict.Course1.Id, conflict.Course2.Id].includes(course.Id)
+                });
 
-                        switch (conflict.ResolutionMethod) {
-                            case 'Alternate':
-                                const count = alternateCounts.get(key) || 0;
-                                const selectedCourse = count % 2 === 0 ? courseInDay[0] : courseInDay[1];
-                                
-                                if (selectedCourse.Id !== course.Id) {
-                                    shouldSkipCourse = true;
-                                }
-                                
+                console.log("Current course : ", course.Id);
+
+
+                if (conflicts.length > 0) {
+                    console.log(chalk.red("Conflicts found for course "));
+                } else {
+                    console.log(chalk.green("No conflicts found for course "));
+                }
+
+                for (const conflict of conflicts) {
+                    const courseInDay = [conflict.Course1, conflict.Course2]
+                    console.log("course ID corresponds to : 0:", courseInDay[0].Id, " 1:", courseInDay[1].Id);
+                    // if (courseInDay.length !== 2) continue;
+                    const key = conflict.Id;
+                    switch (conflict.ResolutionMethod) {
+                        case 'alternate':
+                            console.log(chalk.red("Alternate method"));
+                            const count = alternateCounts.get(key) || 0;
+                            const selectedCourse = count % 2 === 0 ? courseInDay[0] : courseInDay[1];
+                            console.log(chalk.green("Count == ", count));
+                            console.log("placing course : ", count % 2 === 0 ? "0" : "1");
+                            console.log("Selected course : ", selectedCourse.Id);
+                            console.log("Course : ", course.Id);
+                            if (course.Id === conflict.Course1.Id) {
                                 alternateCounts.set(key, count + 1);
-                                break;
-                                
-                            case 'Sequence':
-                                const remaining = sequenceRemaining.get(key) || {};
-                                const selectedSeqCourse = remaining[conflict.Course1.Id]
-                                    ? conflict.Course2
-                                    : conflict.Course1;
-                                
-                                if (selectedSeqCourse.Id !== course.Id) {
-                                    shouldSkipCourse = true;
-                                }
-                                
-                                sequenceRemaining.set(key, {
-                                    ...remaining,
-                                    [course.Id]: true
-                                });
-                                break;
-                        }
-                        
-                        if (shouldSkipCourse) break;
+                            }
+                            if (selectedCourse.Id !== course.Id) {
+                                console.log(chalk.blue("Id differents, skipping course"));
+                                shouldSkipCourse = true;
+                            }
+
+
+                            break;
+                        case 'sequence':
+                            console.log(chalk.red("Sequence method"));
+                            const shouldPlaceCourse1 = conflict.Course1.Groups.some(group => {
+                                return RemainingHours[conflict.Course1.UEId] &&
+                                    RemainingHours[conflict.Course1.UEId][group.Id] &&
+                                    RemainingHours[conflict.Course1.UEId][group.Id][conflict.Course1.Type] >= conflict.Course1.length;
+                            });
+                            console.log(chalk.green("shouldPlaceCourse1 : ", shouldPlaceCourse1));
+                            const selectedSeqCourse = shouldPlaceCourse1
+                                ? conflict.Course1
+                                : conflict.Course2;
+
+                            if (selectedSeqCourse.Id !== course.Id && course.Id === conflict.Course2.Id) {
+                                shouldSkipCourse = true;
+                            }
+
+
+                            break;
                     }
-                    
+
                     if (shouldSkipCourse) break;
                 }
-                
+                console.log(chalk.magenta("we're out of the for loop, shouldSkipCourse : ", shouldSkipCourse));
                 if (shouldSkipCourse) {
                     continue; // Skip this course due to conflict resolution
                 }
 
                 // Create the course
+                console.log(chalk.red("Creating cours"));
                 const [courseError, newCourse] = await catchError(Course.create({
                     UEId: course.UEId,
                     Date: currentDate,
@@ -850,11 +860,11 @@ router.post('/export-excel', async (req, res) => {
     try {
         console.log(`Export Excel request - trameId: ${trameId}, layerId: ${layerId}`);
         console.log(`Date range: ${startDate} to ${endDate}`);
-        
+
         const startMonday = getMonday(new Date(startDate));
         const endMonday = getMonday(new Date(endDate));
         console.log(`Start Monday: ${startMonday.toISOString()}, End Monday: ${endMonday.toISOString()}`);
-        
+
         const weeks = [];
 
         // Verify the layer exists
@@ -863,19 +873,19 @@ router.post('/export-excel', async (req, res) => {
             console.error("Layer not found:", layerErr);
             return res.status(404).json({ error: "Layer not found" });
         }
-        
+
         // Get UEs for the layer to verify we have data
         const [uesErr, ues] = await catchError(UE.findAll({ where: { LayerId: layerId } }));
         if (uesErr) {
             console.error("Error fetching UEs:", uesErr);
             return res.status(500).json({ error: "Error fetching UEs" });
         }
-        
+
         console.log(`Found ${ues.length} UEs for layer ${layerId}`);
         if (ues.length === 0) {
             return res.status(404).json({ error: "No UEs found for this layer" });
         }
-        
+
         const ueIds = ues.map(ue => ue.Id);
         console.log(`UE IDs: ${ueIds.join(', ')}`);
 
@@ -888,14 +898,14 @@ router.post('/export-excel', async (req, res) => {
             for (let i = -1; i < 6; i++) {
                 const date = new Date(currentMonday);
                 date.setDate(currentMonday.getDate() + i);
-                
+
                 // Create start and end of day for range query
                 const startOfDay = new Date(date);
                 startOfDay.setHours(0, 0, 0, 0);
-                
+
                 const endOfDay = new Date(date);
                 endOfDay.setHours(23, 59, 59, 999);
-                
+
                 const formattedDate = date.toISOString().split('T')[0];
                 console.log(`Fetching courses for day: ${formattedDate}`);
 
@@ -905,7 +915,7 @@ router.post('/export-excel', async (req, res) => {
                         {
                             model: UE,
                             required: true,
-                            where: { 
+                            where: {
                                 Id: { [Sequelize.Op.in]: ueIds }
                             }
                         },
