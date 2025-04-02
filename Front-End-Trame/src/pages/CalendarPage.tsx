@@ -3,7 +3,7 @@ import CalendarFrame from '../components/CalendarFrame.js'
 import CalendarCoursSelection from '../components/CalendarCoursSelection.js'
 import EcuItem from '../components/EcuItem.js';
 import { Course, UE, Layer, Trame } from '../types/types.js';
-import { useLocation, useSearchParams } from 'react-router-dom'; // <-- added useSearchParams
+import { Link, useLocation, useSearchParams } from 'react-router-dom'; // <-- added useSearchParams
 import CalendarLayerSelection from '../components/CalendarLayerSelection.js';
 import { api } from '../public/api/api.js'; // <-- added api import
 import CalendarPoolSelection from '../components/CalendarPoolSelection.js';
@@ -474,17 +474,17 @@ function CalendarPageContent() {
           const formattedEndHour = formatTimeToFrench(course.EndHour);
           const timeSlot = `${formattedStartHour}-${formattedEndHour}`;
           const groups = course.Groups.map((group: any) => group.Name).join(', ');
-          
+
           // Create a unique key for this course occurrence
           const courseKey = `${course.UEName}|${course.Type}|${timeSlot}|${dayIndex}|${groups}`;
-          
+
           if (!weekRoomTypes[courseKey]) {
             weekRoomTypes[courseKey] = Array(weeks.length).fill('X');
           }
-          
+
           // Store the room type for this specific week
           weekRoomTypes[courseKey][weekIndex] = course.RoomType || 'X';
-          
+
           if (!ueSheets[course.UEName][course.Type][timeSlot]) {
             ueSheets[course.UEName][course.Type][timeSlot] = {};
           }
@@ -1026,7 +1026,7 @@ function CalendarPageContent() {
   return (
     <div className="w-screen h-screen bg-gray-200  pt-8"
       onMouseUp={() => { setCurrentCours(null) }}>
-
+      <Link to={'/'} className="absolute top-8 left-4 text-black font-bold text-xl z-50">Retour à l'accueil</Link>
       <div className='flex justify-around items-start relative mt-16'>
         {defaultDate.getTime() === new Date('2001-01-01').getTime() ?
           <CalendarCoursSelection setCurrentCours={setCurrentCours} ecus={currentLayerId ? uesByLayer[currentLayerId] : [{ Name: "No currentLayerId" }]} /> :
@@ -1099,12 +1099,15 @@ function CalendarPageContent() {
       {/* Conditional rendering for control buttons */}
       <div className="mt-4 flex flex-col items-center">
         {defaultDate.getTime() === new Date('2001-01-01').getTime() ? (
-          <div>
+          <div className='flex space-x-4'>
             <button
               className="py-2 px-6 rounded-lg transition-colors duration-200 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg"
               onClick={() => duplicate()}>
               Appliquer la semaine type
             </button>
+            <Link to={"/edit/trame/" + trameId} className="py-2 px-6 rounded-lg transition-colors duration-200 bg-green-600 hover:bg-green-700 text-white shadow-lg">
+              Modifier la trame
+            </Link>
           </div>
         ) : (
           <div className="flex justify-around max-w-7xl self-center gap-4">

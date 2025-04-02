@@ -1,6 +1,6 @@
 import React from 'react'
 import { Layer } from '../types/types'
-
+import EditLayerModal from './EditLayerModal.js'
 interface CalendarLayerSelectionProps {
   layers: Layer[];
   updateLayer: (layer: Layer) => void;  // Changed from setLayers to updateLayer
