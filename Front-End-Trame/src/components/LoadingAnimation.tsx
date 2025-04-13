@@ -24,24 +24,25 @@ function LoadingAnimation({ colors, texte, percentage }: LoadingAnimationProps) 
     return () => clearInterval(interval)
   }, [colors])
 
-    // Initialize audio on component mount
-    useEffect(() => {
-      // Create audio element for background music
-      bgMusicRef.current = new Audio(bgMusic)
-      bgMusicRef.current.loop = true
-      bgMusicRef.current.volume = 0.3
-      bgMusicRef.current.play().catch(err => console.log('Auto-play prevented:', err))
-      
-      // Clean up audio on component unmount
-      return () => {
-        bgMusicRef.current?.pause()
-      }
-    }, [])
+  // Initialize audio on component mount
+  //{/* ONLY IN BRAINROT THEME */}
+  // useEffect(() => {
+  //   // Create audio element for background music
+  //   bgMusicRef.current = new Audio(bgMusic)
+  //   bgMusicRef.current.loop = true
+  //   bgMusicRef.current.volume = 0.3
+  //   bgMusicRef.current.play().catch(err => console.log('Auto-play prevented:', err))
+
+  //   // Clean up audio on component unmount
+  //   return () => {
+  //     bgMusicRef.current?.pause()
+  //   }
+  // }, [])
 
   return (
     <div className="flex flex-col items-center justify-center h-screen">
-
-      <img src="https://tenor.com/view/lingang-guli-guli-catfish-meme-gif-18405001805509666562.gif" alt="loading" className='mb-8'/>
+      {/* ONLY IN BRAINROT THEME */}
+      {/* <img src="https://tenor.com/view/lingang-guli-guli-catfish-meme-gif-18405001805509666562.gif" alt="loading" className='mb-8'/> */}
       {/* Dots animation */}
       <div className="relative w-24 h-24 mb-5">
         <div
