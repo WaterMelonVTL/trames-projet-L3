@@ -165,6 +165,10 @@ function CalendarPageContent() {
           Date: date,
           StartHour: time,
           length: course.length,
+          IsExam: course.IsExam,
+          ProfId: course.ProfId,
+          RoomType: course.RoomType,
+          
         },
         groups: selectedGroups,
         separate: (course.Type === 'TD' || course.Type === 'TP') && course.Id === -1,

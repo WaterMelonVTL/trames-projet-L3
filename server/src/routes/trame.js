@@ -55,6 +55,49 @@ router.put('/addDesignatedDays', async (req, res) => {
     }
 });
 
+router.put('/pool', async (req, res) => {
+    const { ueId, groupIds, type, change } = req.body;
+
+    if (!ueId || !groupIds || !type || !change) {
+        res.status(400).send('All fields are required');
+        return;
+    }
+    let coursePools = [];
+
+    for (const group of groupIds) {
+
+        const [coursePoolError, coursePool] = await catchError(CoursePool.findOne({
+            where: {
+                UEId: ueId,
+                GroupId: group.Id,
+                Type: type
+            }
+        }));
+        if (coursePoolError) {
+            console.error(coursePoolError);
+            res.status(500).send('Internal Server Error');
+            return;
+        }
+        if (!coursePool) {
+            res.status(404).send('Course pool not found');
+            return;
+        }
+        const newVolume = coursePool.Volume + change;
+
+        const [updateError, updatedCoursePool] = await catchError(coursePool.update({
+            Volume: newVolume
+        }));
+
+        if (updateError) {
+            console.error(updateError);
+            res.status(500).send('Internal Server Error');
+            return;
+        }
+        coursePools.push(updatedCoursePool);
+    }
+    return res.json(coursePools);
+});
+
 // Get designated days by trameId
 router.get('/:trameId/designatedDays', async (req, res) => {
     try {
@@ -293,6 +336,8 @@ async function cacheConflicts(trameId) {
     }
     return conflictCache;
 }
+
+
 
 // Update the duplicate route to call the clearCoursesFromTrame function
 router.post('/duplicate/:id', async (req, res) => {

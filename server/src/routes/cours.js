@@ -59,7 +59,7 @@ router.post('/', async (req, res) => {
 
 
             // Update CoursePool if not in default week
-            if (!isDefaultWeek) {
+            if (!isDefaultWeek && !course.IsExam) {
                 await updateCoursePool(newCourse, groups);
             }
 
@@ -115,7 +115,7 @@ router.post('/', async (req, res) => {
                 }
 
                 // Update CoursePool if not in default week
-                if (!isDefaultWeek) {
+                if (!isDefaultWeek && !course.IsExam) {
                     await updateCoursePool(groupCourse, [group]);
                 }
 
@@ -769,10 +769,17 @@ router.get('/', async (req, res) => {
     return res.json(courseData);
 });
 
+
+
 // Update a Course by ID
 router.put('/:id', async (req, res) => {
     const id = req.params.id;
-    const { course } = req.body;
+    const  course  = req.body;
+    console.log(chalk.redBright('Updating course', course));
+    if (!course) {
+        console.log(chalk.red('No course data provided'));
+        return res.status(400).send('No course data provided');
+    }
     const [courseError, courseData] = await catchError(Course.update(course, { where: { id } }));
     if (courseError) {
         console.error(courseError);
@@ -809,7 +816,7 @@ router.delete('/:id', async (req, res) => {
     }
 
     // Update CoursePool for each associated group if course date is not in 2001
-    if (new Date(courseToDelete.Date).getFullYear() !== 2001 &&
+    if (new Date(courseToDelete.Date).getFullYear() !== 2001 && !courseToDelete.IsExam &&
         courseToDelete.Groups && courseToDelete.Groups.length > 0) {
 
         for (const group of courseToDelete.Groups) {

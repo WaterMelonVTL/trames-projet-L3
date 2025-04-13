@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import CalendarOptionMenu from "./CalendarOptionMenu";
 import { Course, Prof, Room, UE } from "../types/types";
 import { useUE, useGroupsByCourse, useGroups } from "../hooks/useApiData.js";
-import { useIsCourseLocked} from "../hooks/useCalendarData.js";
+import { useIsCourseLocked } from "../hooks/useCalendarData.js";
 function calculateLuminance(hexColor: string): number {
   if (!hexColor) {
     return 0;
@@ -23,24 +23,25 @@ function calculateLuminance(hexColor: string): number {
 function CoursItem(props: {
   setCours: React.Dispatch<React.SetStateAction<Course[]>>;
   cours: Course;
+  setPoolRefreshCounter: React.Dispatch<React.SetStateAction<number>>;
   onMouseDown: (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   créneau: { start: string, end: string }
   trameId: string | undefined;
 }): JSX.Element {
-  
+
   // Use our centralized hooks
   const { data: ue, isLoading: isUeLoading } = useUE(props.cours.UEId);
-  
+
   // Get all groups to match IDs with complete objects
   const { data: allGroups, isLoading: isGroupsLoading } = useGroups();
-  
+
   // Only fetch groups if they're not already present in the course object
   const shouldFetchGroups = !props.cours.Groups && typeof props.cours.Id === 'number' && !String(props.cours.Id).startsWith('temp');
   const { data: groups } = useGroupsByCourse(shouldFetchGroups ? props.cours.Id : undefined);
-  
+
   // Check if this course is currently being moved/processed
   const isLocked = useIsCourseLocked(props.cours.Id);
-  
+
   const [luminance, setLuminance] = useState<number>(0);
   const [textColor, setTextColor] = useState<string>('black');
   const [timeRatio, setTimeRatio] = useState<number>(1.5);
@@ -101,7 +102,7 @@ function CoursItem(props: {
     if (typeof group === 'object' && group !== null && group.Name) {
       return group.Name;
     }
-    
+
     // Case 2: Group is an object with ID but no Name - look it up in allGroups
     if (typeof group === 'object' && group !== null && group.Id && !group.Name) {
       const groupId = String(group.Id);
@@ -112,7 +113,7 @@ function CoursItem(props: {
         }
       }
     }
-    
+
     // Case 3: Group is an ID (number/string) - look it up in allGroups
     if ((typeof group === 'number' || typeof group === 'string') && allGroups && allGroups.length > 0) {
       const groupId = String(group);
@@ -121,7 +122,7 @@ function CoursItem(props: {
         return foundGroup.Name;
       }
     }
-    
+
     // Fallback: Return ID with G- prefix
     return `G-${typeof group === 'object' && group !== null ? group.Id : group}`;
   };
@@ -133,31 +134,36 @@ function CoursItem(props: {
     <div
       ref={itemRef}
       className={`text-${textColor} h-28 ${isLocked ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-300 cursor-pointer'} flex flex-col items-center flex-grow text-center z-50`}
-      style={{ 
-        backgroundColor: ue.Color, 
-        height: `${props.cours.length / timeRatio * 100}%`, 
+      style={{
+        backgroundColor: ue.Color,
+        height: `${props.cours.length / timeRatio * 100}%`,
         transform: `translateY(${offsetToPercentage(offsetInHours)}%)`,
         position: 'relative' // Add this to ensure absolute positioned children work correctly
       }}
-      onClick={() => { 
-        if (!isLocked) console.log(`vous avez clické sur ${ue.Name} ${props.cours.Date} ${ue.Color}`) 
+      onClick={() => {
+        if (!isLocked) console.log(`vous avez clické sur ${ue.Name} ${props.cours.Date} ${ue.Color}`)
       }}
-      onMouseDown={(e) => { 
+      onMouseDown={(e) => {
         // Only allow drag if not locked and no context menu is shown
-        if (!isLocked && !showOption) { 
+        if (!isLocked && !showOption) {
           console.log(`Mouse down on course ID: ${props.cours.Id} (${typeof props.cours.Id})`);
-          props.onMouseDown(e) 
+          props.onMouseDown(e)
         }
       }}
       onContextMenu={handleContextMenu} >
-      
+
       {/* Show a visual indicator that the course is being processed */}
       {isLocked && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
           <span className="text-white font-bold">⏳</span>
         </div>
       )}
-      
+
+      {props.cours.IsExam && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
+          <span className="text-white font-bold">EXAMEN</span>
+        </div>)}
+
       <h1 className="text-xl font-bold">{ue.Name}</h1>
       <h1 className="text-base">{props.cours.Type}</h1>
       {/* <h1 className="text-xl">{props.cours.ProfFullName}</h1> */}
@@ -170,11 +176,11 @@ function CoursItem(props: {
       </div>
       {showOption && (
         <CalendarOptionMenu
-        key={`${props.cours.Id}-${props.cours.ProfId || 'none'}-${showOption}`}
+          key={`${props.cours.Id}-${props.cours.ProfId || 'none'}-${showOption}`}
           isOpen={showOption}
           cours={props.cours}
           setCours={props.setCours}
-          close={() => setShowOption(false)}
+          close={() => {setShowOption(false); props.setPoolRefreshCounter(prev => prev + 1)}}
           position={menuPosition}
           trameId={props.trameId}
         />

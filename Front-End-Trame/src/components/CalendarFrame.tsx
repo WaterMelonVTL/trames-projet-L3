@@ -211,9 +211,7 @@ function CalendarFrame({
                                             height: `${creneauHeight}rem`,
                                             background: isDesignated ? 'repeating-linear-gradient(45deg, #d3d3d3, #d3d3d3 10px, #fff 10px, #fff 20px)' : 'white'
                                         }}
-                                        onClick={() => {
-                                            console.log(`vous avez clické sur ${day} ${crenaux[colIndex].start}`);
-                                        }}
+
                                         onMouseUp={() => {
                                             if (currentCours) {
                                                 AddCours(currentCours, currentDate.toISOString(), formatTime(crenaux[colIndex].start));
@@ -242,6 +240,7 @@ function CalendarFrame({
                                                         setCours={setCours}
                                                         trameId={trameId}
                                                         créneau={crenaux[colIndex]}
+                                                        setPoolRefreshCounter={setPoolRefreshCounter}
                                                         onMouseDown={(e) => {
                                                             if (e.button === 0) {
                                                                 console.log("Dragging course:", cours);
@@ -253,10 +252,8 @@ function CalendarFrame({
                                                                     return;
                                                                 }
 
-                                                                // Set the current course first before deletion
                                                                 setCurrentCours({ ...cours });
 
-                                                                // Small delay to ensure the current course is set before deletion
                                                                 setTimeout(() => {
                                                                     RemoveCours(courseId, true);
                                                                 }, 10);
@@ -264,10 +261,7 @@ function CalendarFrame({
                                                         }}
                                                         onContextMenu={(e) => {
                                                             e.preventDefault();
-                                                            // Context menu handling logic would go here
-                                                            // This would typically open a menu with options like delete, separate, merge
                                                             console.log(`Context menu opened for course: ${cours.Id}`);
-                                                            // Call RemoveCours with forMoving=false for actual deletion
                                                             if (e.shiftKey) {
                                                                 handleDelete(cours.Id, cours.Date);
                                                             }

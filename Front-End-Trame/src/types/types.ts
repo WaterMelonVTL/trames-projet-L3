@@ -56,6 +56,7 @@ export interface Course {
   UEId: number;
   Type: string;
   Date: string | Date;
+  IsExam: boolean;
   StartHour: string;
   length: number;
   TrameId: number;
@@ -63,6 +64,7 @@ export interface Course {
   ProfId?: number | null;
   Groups?: Group[];
   UEName?: string;
+  RoomType?: string;
   ProfFullName?: string | null;
   EndHour?: string;
   originalId?: number | string; // Add this field to track the original ID during moves

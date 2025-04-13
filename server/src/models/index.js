@@ -230,7 +230,12 @@ const Course = sequelize.define('Course', {
     RoomType: {
         type: DataTypes.STRING,
         allowNull: true
-    }
+    },
+    IsExam: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
 });
 
 // Define Tokens model
