@@ -121,9 +121,7 @@ export default function CalendarOptionMenu(props: CalendarOptionMenuProps) {
         console.log("Professor already exists:", existing);
         setExistingProf(existing);
         // Update the course with the existing professor's Id.
-        const courseResponse = await api.put(`/cours/${props.cours.Id}`, {
-          course: { ProfId: existing.Id },
-        });
+        const courseResponse = await api.put(`/cours/${props.cours.Id}`, {ProfId: existing.Id });
 
         updateCourseInCache(queryClient, props.cours.Id, { ProfId: existing.Id });
 
@@ -146,7 +144,7 @@ export default function CalendarOptionMenu(props: CalendarOptionMenuProps) {
 
       // Now update the course with the new professor's Id.
       const courseResponse = await api.put(`/cours/${props.cours.Id}`, {
-        course: { ProfId: newProf.Id },
+        ProfId: newProf.Id
       });
       updateCourseInCache(queryClient, props.cours.Id, { ProfId: newProf.Id });
       console.log("Course updated with new ProfId:", courseResponse);
@@ -518,10 +516,10 @@ export default function CalendarOptionMenu(props: CalendarOptionMenuProps) {
                             // Update the Course with the selected professor
                             try {
                               const response = await api.put(`/cours/${props.cours.Id}`, {
-                                course: {
-                                  ProfId: prof.Id,
-                                  ProfFullName: prof.FullName,
-                                },
+
+                                ProfId: prof.Id,
+                                ProfFullName: prof.FullName,
+
                               });
                               setExistingProf(prof);
                               console.log(response);
