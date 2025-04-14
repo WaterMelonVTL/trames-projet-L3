@@ -12,7 +12,7 @@ ___
 C'est rapide, c'est efficace. On aime.
 ___
 ### Tailwind
-Ici on veut pas juste un site qui fonctionne, mais un site BEAU GOSSE qui fonctionne. Tailwind c'est bien, ça permet de faire du css dans le code directement. En plus ça va pemermetre de garder de la cohérence au travers du site à l'aide de variables. 
+Tailwind c'est bien, ça permet de faire du css dans le code directement. En plus ça va pemermetre de garder de la cohérence au travers du site à l'aide de variables. 
 Exemple : 
 ```bg-primary, bg-secondary, bg-accent, bg-text, bg-background```on verra ce qu'on implemente. 
 
