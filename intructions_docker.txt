@@ -1,0 +1,4 @@
+lancer, dans la racine du projet, les commandes :
+docker build -t trames-app .
+puis
+docker run -p 3000:3000 trames-app
