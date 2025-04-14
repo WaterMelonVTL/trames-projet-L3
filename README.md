@@ -3,7 +3,7 @@
 # Explications Stack 
 ## Front end : 
 ### React TS
-On connait react, cette fois on s'attaque à react TS (TypeScript) c'est pareil, mais en plus casse couille par ce qu'ils t'emmerdent avec les types. 
+On connait react, cette fois on s'attaque à react TS (TypeScript) c'est pareil, mais en plus contraignant par ce qu'il est fortement typé. 
 Mais au moins, ça fait du code vraiment propre car typé (ce que javascript ne fait pas) la syntaxe est la meme que JS, sauf que les variables sont typées. 
 
 Comme d'habitude, on sépare le code un maximum en composants. Si un code est dupliqué, alors c'est que tu peux en créer un composant. 
