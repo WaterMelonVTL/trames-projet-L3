@@ -1,6 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
 import userRoutes from './routes/users.js';
 import coursRoutes from './routes/cours.js';
 import profRoutes from './routes/profs.js';
@@ -14,6 +17,11 @@ import eventsRouter from './routes/events.js';
 const app = express();
 const port = process.env.PORT || 3000;
 const ip = 'localhost';
+
+// Get the directory name using ES module syntax
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const distPath = path.join(__dirname, '../../Front-End-Trame/dist');
 
 // Middleware to parse JSON bodies
 app.use(express.json());
@@ -45,7 +53,10 @@ app.use((req, res, next) => {
     next();
 });
 
-// Use routes
+// Serve static files from the dist directory
+app.use(express.static(distPath));
+
+// API routes
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/profs', profRoutes);
@@ -56,6 +67,14 @@ app.use('/api/cours', coursRoutes);
 app.use('/api/groups', groupRoutes); 
 app.use('/api/events', eventsRouter);
 
+// Catch-all route handler for client-side routing
+// This must be AFTER API routes but BEFORE the 404 handler
+app.get('*', (req, res) => {
+    // Redirect all non-API routes to index.html
+    if (!req.path.startsWith('/api/')) {
+      res.sendFile(path.join(distPath, 'index.html'));
+    }
+  });
 
 // Function to print the number of requests every minute
 setInterval(() => {
