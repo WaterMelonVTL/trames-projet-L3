@@ -1,13 +1,4 @@
-# Fonctionnement du Kaban : 
-lien du kaban : https://docs.google.com/spreadsheets/d/1PJgx4SH91ndyKlMQiGW3qryYvu3asdXoCPBbpMmIjwk/edit?usp=sharing
 
-Concrètement, quand vous voulez travailler sur le projet, vous checkez le Kaban, vous cherchez une feature qui est en etat "TBA" (toutes les infos sont sur le doc) et qui vous parrait importante et pas trop dure pour vous (en vous basant par exemple sur la priorité et la difficulté), vous changez son état en "En cours" vous mettez votre @ dans la case "développeur", vous créez une petite branche pour la feature et puis ça part. 
-
-Quand vous avez fini, vous changez l'état en "Terminée" et vous pouvez passer à une autre feature avec le même process. 
-
-Un autre truc à faire est de tester une feature en état "terminée" que ça soit la votre ou non. Vous implémentez les tests qu'il faut sur la branche, puis, une fois les tests implémentés et passés, vous changez l'état en "Testée". Une fois testée, on mergera avec le main et passera à l'état "Déployée".
-
-N'hésitez pas à survoler une catégorie, j'ai mis des explications dedans si jamais.
 
 # Explications Stack 
 ## Front end : 
