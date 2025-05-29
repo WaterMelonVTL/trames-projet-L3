@@ -1,18 +1,9 @@
-# Fonctionnement du Kaban : 
-lien du kaban : https://docs.google.com/spreadsheets/d/1PJgx4SH91ndyKlMQiGW3qryYvu3asdXoCPBbpMmIjwk/edit?usp=sharing
 
-Concrètement, quand vous voulez travailler sur le projet, vous checkez le Kaban, vous cherchez une feature qui est en etat "TBA" (toutes les infos sont sur le doc) et qui vous parrait importante et pas trop dure pour vous (en vous basant par exemple sur la priorité et la difficulté), vous changez son état en "En cours" vous mettez votre @ dans la case "développeur", vous créez une petite branche pour la feature et puis ça part. 
-
-Quand vous avez fini, vous changez l'état en "Terminée" et vous pouvez passer à une autre feature avec le même process. 
-
-Un autre truc à faire est de tester une feature en état "terminée" que ça soit la votre ou non. Vous implémentez les tests qu'il faut sur la branche, puis, une fois les tests implémentés et passés, vous changez l'état en "Testée". Une fois testée, on mergera avec le main et passera à l'état "Déployée".
-
-N'hésitez pas à survoler une catégorie, j'ai mis des explications dedans si jamais.
 
 # Explications Stack 
 ## Front end : 
 ### React TS
-On connait react, cette fois on s'attaque à react TS (TypeScript) c'est pareil, mais en plus casse couille par ce qu'ils t'emmerdent avec les types. 
+On connait react, cette fois on s'attaque à react TS (TypeScript) c'est pareil, mais en plus contraignant par ce qu'il est fortement typé. 
 Mais au moins, ça fait du code vraiment propre car typé (ce que javascript ne fait pas) la syntaxe est la meme que JS, sauf que les variables sont typées. 
 
 Comme d'habitude, on sépare le code un maximum en composants. Si un code est dupliqué, alors c'est que tu peux en créer un composant. 
@@ -21,7 +12,7 @@ ___
 C'est rapide, c'est efficace. On aime.
 ___
 ### Tailwind
-Ici on veut pas juste un site qui fonctionne, mais un site BEAU GOSSE qui fonctionne. Tailwind c'est bien, ça permet de faire du css dans le code directement. En plus ça va pemermetre de garder de la cohérence au travers du site à l'aide de variables. 
+Tailwind c'est bien, ça permet de faire du css dans le code directement. En plus ça va pemermetre de garder de la cohérence au travers du site à l'aide de variables. 
 Exemple : 
 ```bg-primary, bg-secondary, bg-accent, bg-text, bg-background```on verra ce qu'on implemente. 
 
