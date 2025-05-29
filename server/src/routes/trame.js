@@ -341,10 +341,6 @@ async function cacheConflicts(trameId) {
 
 // Update the duplicate route to call the clearCoursesFromTrame function
 router.post('/duplicate/:id', async (req, res) => {
-
-
-
-
     // Initialize progress tracking
     const id = req.params.id;
     if (!id) {

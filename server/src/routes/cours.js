@@ -334,7 +334,6 @@ router.post('/merge/:id', async (req, res) => {
     }
     const groupIds = groups.map(g => g.dataValues.Id);
 
-    console.log("GROUPS : ", groups);
     const { Id, ...newCourse } = course.dataValues;
 
     const [courseError, courseData] = await catchError(Course.create(newCourse));
@@ -343,7 +342,6 @@ router.post('/merge/:id', async (req, res) => {
         res.status(500).send('Internal Server Error');
         return;
     }
-    console.log("GROUP IDS : ", groupIds);
     const [groupError, _] = await catchError(courseData.setGroups(groupIds));
     if (groupError) {
         console.error(courseError);
